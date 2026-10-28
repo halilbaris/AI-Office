@@ -1,0 +1,1955 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ajan Ofisi</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23ff7a59%22/%3E%3Crect x=%229%22 y=%2211%22 width=%2214%22 height=%2210%22 rx=%223%22 fill=%22%23fff7f2%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --krem:#efe7da; --murekkep:#3b342c; --soluk:#8a7f72; --mercan:#ff7a59; --mercan-k:#e9603f;
+  --cam:rgba(255,250,243,.72); --cam-kenar:rgba(255,255,255,.8); --sag:384px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--krem);color:var(--murekkep);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+#sahne{position:fixed;inset:0;display:block}
+.vinyet{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 42% 58%,transparent 58%,rgba(120,96,70,.14) 100%)}
+.cam{background:var(--cam);backdrop-filter:blur(18px) saturate(1.25);-webkit-backdrop-filter:blur(18px) saturate(1.25);border:1px solid var(--cam-kenar);box-shadow:0 10px 40px rgba(90,70,50,.12),0 1px 0 rgba(255,255,255,.6) inset;border-radius:18px}
+button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
+h3.kucuk{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--soluk)}
+
+/* üst bar */
+.ustbar{position:fixed;top:0;left:0;right:0;height:60px;display:flex;align-items:center;gap:28px;padding:0 20px;background:rgba(250,245,237,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(59,52,44,.08);z-index:5}
+.marka{display:flex;align-items:center;gap:10px}
+.logo{width:30px;height:30px;border-radius:9px;background:var(--mercan);display:grid;place-items:center;box-shadow:0 4px 14px rgba(255,122,89,.4)}
+.logo i{width:13px;height:9px;border-radius:3px;background:#fff7f2;position:relative}
+.logo i::before,.logo i::after{content:"";position:absolute;top:3px;width:3px;height:3px;border-radius:1px;background:var(--mercan)}
+.logo i::before{left:3px}.logo i::after{right:3px}
+.marka b{font-family:"Space Grotesk",sans-serif;font-size:18px;font-weight:700;letter-spacing:-.01em}
+.marka small{font-size:11px;color:var(--soluk);font-weight:600;letter-spacing:.06em;margin-left:2px}
+.sekmeler{display:flex;gap:4px;height:100%}
+.sekmeler button{position:relative;padding:0 12px;font-size:14px;font-weight:500;color:#6d6357}
+.sekmeler button:hover{color:var(--murekkep)}
+.sekmeler button.secili{color:var(--murekkep);font-weight:600}
+.sekmeler button.secili::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2px;border-radius:2px;background:var(--murekkep)}
+.ustbar .bosluk{flex:1}
+.hap{display:flex;align-items:center;gap:8px;font-size:13px;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.7);border:1px solid rgba(59,52,44,.08)}
+.hap b{font-family:"Space Grotesk",sans-serif;font-weight:600}
+.nokta{width:8px;height:8px;border-radius:50%;background:#b9ad9e;flex:none}
+.nokta.canli{background:var(--mercan);box-shadow:0 0 0 4px rgba(255,122,89,.18);animation:atis 1.4s ease-in-out infinite}
+@keyframes atis{50%{box-shadow:0 0 0 7px rgba(255,122,89,.06)}}
+.saat{font-size:13px;color:var(--soluk);font-variant-numeric:tabular-nums}
+.dugme{padding:7px 12px;font-size:13px;font-weight:500;border-radius:999px;background:rgba(255,255,255,.7);border:1px solid rgba(59,52,44,.08);transition:background .15s,transform .15s}
+.dugme:hover{background:#fff}.dugme:active{transform:scale(.97)}
+
+/* selamlama */
+.selam{position:fixed;top:78px;left:22px;width:330px;padding:18px 20px;z-index:3}
+.selam .tarih{font-size:12px;color:var(--soluk);font-weight:500}
+.selam h1{font-family:"Space Grotesk",sans-serif;font-size:30px;font-weight:700;letter-spacing:-.02em;margin:2px 0 8px}
+.selam p{font-size:14px;line-height:1.5;color:#4d453c}
+.selam p b{color:var(--murekkep)}
+.selam .ozetdugme{margin-top:12px;background:var(--murekkep);color:#fff7ee;font-size:13px;font-weight:600;padding:8px 14px;border-radius:10px}
+.selam .ozetdugme:hover{background:#2a241e}
+
+/* sağ kolon */
+.sag{position:fixed;top:76px;right:16px;bottom:42px;width:var(--sag);display:flex;flex-direction:column;gap:12px;z-index:3}
+.kutu{padding:16px 16px 12px;display:flex;flex-direction:column;min-height:0}
+.kutu .bas{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.kutu .bas h2{font-family:"Space Grotesk",sans-serif;font-size:16px;font-weight:600}
+.kutu .bas small{display:block;font-size:12px;color:var(--soluk);margin-top:1px}
+.koyu{background:var(--murekkep);color:#fff7ee;font-size:12px;font-weight:600;padding:7px 11px;border-radius:9px;white-space:nowrap}
+.koyu:hover{background:#2a241e}
+.ceo-kutu{flex:0 1 auto;max-height:52%}
+.kartlar{display:flex;flex-direction:column;gap:8px;overflow:auto;min-height:0}
+.kart{background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.95);border-radius:12px;padding:10px 12px;animation:gir .35s ease}
+.kart .ust{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--soluk);font-weight:500}
+.avatar{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:10px;font-weight:700;color:#fff;flex:none}
+.avatar.foto{width:26px;height:26px;border-radius:50%;background-size:cover;background-position:center;box-shadow:0 0 0 2px #fff,0 2px 6px rgba(59,52,44,.22)}
+.avatar.foto.orta{width:30px;height:30px}
+.avatar.foto.buyuk{width:80px;height:80px;box-shadow:0 0 0 3px #fff,0 6px 18px rgba(59,52,44,.25)}
+.portre-bas{display:flex;align-items:center;gap:16px;margin:4px 0 8px}
+.portre-bas h2{margin:2px 0 2px}
+.meme-alt{font-size:12.5px;font-style:italic;color:var(--mercan-k);font-weight:500;letter-spacing:.01em}
+.ad-avatar{display:flex;align-items:center;gap:10px}
+.kart h4{font-size:13.5px;font-weight:600;margin:5px 0 3px;line-height:1.3}
+.kart p{font-size:12.5px;line-height:1.45;color:#5d5348;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.kart .dugmeler{display:flex;gap:6px;margin-top:8px}
+.kart .onay{background:var(--murekkep);color:#fff7ee;font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px}
+.kart .sonra{font-size:12px;font-weight:500;padding:6px 10px;border-radius:8px;border:1px solid rgba(59,52,44,.14)}
+.kart.sonra-k{opacity:.6}
+.kart.onaylandi{opacity:.7}
+.kart.onaylandi .dugmeler{display:none}
+.bos{font-size:12.5px;color:var(--soluk);padding:6px 2px}
+.akis-kutu{flex:1 1 0}
+.canli-rozet{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--mercan-k)}
+.akis{list-style:none;display:flex;flex-direction:column;gap:2px;overflow:hidden;min-height:0}
+.akis li{display:flex;gap:10px;padding:8px 4px;border-bottom:1px solid rgba(59,52,44,.06);animation:kaygir .35s ease}
+@keyframes kaygir{from{transform:translateY(-6px)}to{transform:none}}
+.akis li .avatar{margin-top:1px}
+.akis li div{min-width:0}
+.akis li p{font-size:13px;line-height:1.38}
+.akis li small{display:block;font-size:11.5px;color:#a3978a;margin-top:2px}
+.akis li.ok p{color:var(--mercan-k);font-weight:600}
+.akis li.hafiza p{color:#8a5a14;font-weight:600}
+@keyframes gir{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* komut */
+.komut{position:fixed;bottom:22px;left:calc((100% - var(--sag) - 16px) / 2);transform:translateX(-50%);width:min(600px,calc(100% - 460px));display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;border-radius:20px;z-index:3}
+.komut .ceo-ikon{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--mercan-k);background:rgba(255,122,89,.12);padding:6px 8px;border-radius:8px}
+.komut input{flex:1;border:none;outline:none;background:transparent;font:inherit;font-size:15px;color:var(--murekkep);padding:10px 4px;min-width:0}
+.komut input::placeholder{color:#a3978a}
+.gonder{background:var(--mercan);color:#fff;font-weight:600;font-size:14px;padding:11px 18px;border-radius:14px;box-shadow:0 4px 14px rgba(255,122,89,.35);transition:transform .15s,background .15s}
+.gonder:hover{background:var(--mercan-k)}.gonder:active{transform:scale(.96)}
+.gonder:disabled{opacity:.55;cursor:wait}
+
+/* ajan paneli (sağ kolonun üstüne biner) */
+.panel{position:fixed;top:76px;right:16px;bottom:42px;width:var(--sag);overflow:auto;padding:22px;transform:translateX(calc(100% + 40px));transition:transform .45s cubic-bezier(.2,.8,.2,1);z-index:4;background:rgba(255,250,243,.94)}
+.panel.acik{transform:none}
+.panel .kapat{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;font-size:18px;color:var(--soluk)}
+.panel .kapat:hover{background:rgba(255,255,255,.8)}
+.panel .oda-etiket{font-size:12px;color:var(--soluk);font-weight:500}
+.panel h2{font-family:"Space Grotesk",sans-serif;font-size:24px;font-weight:600;letter-spacing:-.02em;margin:2px 0 10px}
+.panel h3{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--soluk);margin:14px 0 8px}
+.durum{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px;background:rgba(59,52,44,.07);color:#6d6357;max-width:100%}
+.durum.calisiyor{background:rgba(255,122,89,.14);color:var(--mercan-k)}
+.durum .nokta{width:7px;height:7px;background:currentColor;box-shadow:none;animation:none}
+.satirlar{margin:16px 0 4px;display:flex;flex-direction:column;gap:10px}
+.satir{display:grid;grid-template-columns:86px 1fr;gap:10px;font-size:13px;line-height:1.4}
+.satir span:first-child{color:var(--soluk)}
+.not{font-size:12px;line-height:1.45;background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.9);border-radius:12px;padding:10px 12px;color:#5d5348;margin-top:10px;white-space:pre-line}
+.hazir{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.hazir button{text-align:left;font-size:12.5px;font-weight:500;line-height:1.3;padding:11px 12px;border-radius:12px;background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.95);transition:background .15s,transform .15s,border-color .15s}
+.hazir button:hover{background:#fff;border-color:rgba(255,122,89,.45)}
+.hazir button:active{transform:scale(.97)}
+.yaz{display:flex;gap:8px}
+.yaz input{flex:1;min-width:0;border:1px solid rgba(59,52,44,.12);background:rgba(255,255,255,.75);border-radius:12px;padding:11px 12px;font:inherit;font-size:13px;outline:none;color:var(--murekkep)}
+.yaz input:focus{border-color:rgba(255,122,89,.6)}
+.yaz .gonder{padding:10px 14px;font-size:13px}
+.ajan-liste{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.ajan-liste button{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.95);font-size:13.5px;font-weight:500;text-align:left}
+.ajan-liste button:hover{background:#fff}
+.ajan-liste small{color:var(--soluk);font-weight:400;font-size:12px;text-align:right}
+
+.mini-sayilar{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:8px;margin:4px 0 12px}
+.mini-sayilar div{background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.95);border-radius:12px;padding:9px 11px}
+.mini-sayilar b{display:block;font-family:"Space Grotesk",sans-serif;font-size:20px;font-weight:700}
+.mini-sayilar span{font-size:11.5px;color:var(--soluk)}
+.cipler{display:flex;flex-wrap:wrap;gap:6px}
+.cip{font-size:12px;font-weight:500;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.75);border:1px solid rgba(59,52,44,.1);color:#5d5348}
+.yetenekler{display:flex;flex-direction:column;gap:6px}
+.yetenek{text-align:left;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.95);transition:background .15s,border-color .15s}
+.yetenek:hover{background:#fff;border-color:rgba(255,122,89,.45)}
+.yetenek div{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:500}
+.yetenek small{color:var(--soluk);font-weight:400;font-size:11.5px;white-space:nowrap}
+.yetenek.aktif{border-color:rgba(255,122,89,.6);background:#fff}
+.ycubuk{height:4px;border-radius:2px;background:rgba(59,52,44,.1);margin-top:8px;overflow:hidden;position:relative}
+.ycubuk i{position:absolute;top:0;bottom:0;width:30%;background:var(--mercan);border-radius:2px;animation:kay 1.3s ease-in-out infinite}
+@keyframes kay{from{left:-30%}to{left:100%}}
+.etiket3d.alt{background:rgba(255,251,246,.72);border-style:dashed}
+.etiket3d.alt .ad{font-size:11px;color:#8a7f72}
+
+/* sekme sayfaları */
+.sayfa{position:fixed;top:76px;left:22px;right:calc(var(--sag) + 32px);bottom:42px;padding:24px 26px;overflow:auto;z-index:4;display:none;background:rgba(255,250,243,.93)}
+.sayfa.acik{display:block;animation:gir .3s ease}
+.sayfa h2{font-family:"Space Grotesk",sans-serif;font-size:26px;font-weight:700;letter-spacing:-.02em}
+.sayfa .alt{font-size:13px;color:var(--soluk);margin:4px 0 18px;line-height:1.45}
+.izgara{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.izgara .kart p{-webkit-line-clamp:4}
+.izgara .kart ul{list-style:none;margin-top:6px;display:flex;flex-direction:column;gap:5px}
+.izgara .kart li{font-size:12.5px;line-height:1.4;color:#5d5348;padding-left:10px;position:relative}
+.izgara .kart li::before{content:"";position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:var(--mercan)}
+.izgara .kart button.git{margin-top:8px;font-size:12px;font-weight:600;color:var(--mercan-k)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--soluk);font-weight:600;padding:8px 10px;border-bottom:1px solid rgba(59,52,44,.12)}
+td{padding:9px 10px;border-bottom:1px solid rgba(59,52,44,.06);font-variant-numeric:tabular-nums}
+td.sayi,th.sayi{text-align:right}
+.ozet-sayilar{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.ozet-sayilar div{background:rgba(255,255,255,.72);border-radius:12px;padding:12px 16px;min-width:150px}
+.ozet-sayilar b{display:block;font-family:"Space Grotesk",sans-serif;font-size:26px;font-weight:700}
+.ozet-sayilar span{font-size:12px;color:var(--soluk)}
+
+/* 3D bağlı etiketler */
+#etiketler{position:fixed;inset:0;pointer-events:none;z-index:2}
+.etiket3d{position:absolute;left:0;top:0;pointer-events:none;padding:5px 9px 6px;border-radius:9px;white-space:nowrap;will-change:transform;background:rgba(255,251,246,.9);border:1px solid rgba(59,52,44,.1);box-shadow:0 3px 12px rgba(90,70,50,.12);max-width:250px}
+.etiket3d .ad{font-size:12px;font-weight:700;color:var(--murekkep);line-height:1.2}
+.etiket3d .rozet{display:inline-block;margin-left:6px;padding:0 6px;border-radius:6px;background:#2f2a25;color:#fff4e8;font-size:10px;font-weight:600;line-height:16px;vertical-align:1px}
+.etiket3d .ne{font-size:11.5px;font-weight:500;color:#958a7d;line-height:1.25;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.etiket3d.calisiyor{background:#fff;border-color:rgba(255,122,89,.65);box-shadow:0 4px 16px rgba(255,122,89,.25)}
+.etiket3d.calisiyor .ne{color:var(--mercan-k);font-weight:600}
+.etiket3d.calisiyor .ne::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--mercan);margin-right:5px;vertical-align:1px;animation:atis2 1s ease-in-out infinite}
+@keyframes atis2{50%{opacity:.25}}
+.etiket3d.bitti{border-color:rgba(76,150,96,.5)}
+.etiket3d.bitti .ne{color:#3f8a55;font-weight:600}
+.etiket3d.uyku{background:rgba(255,251,246,.78)}
+.etiket3d .tok{font-size:10.5px;font-weight:700;color:#6d6357;line-height:1.25;margin-top:2px;font-variant-numeric:tabular-nums}
+.etiket3d.calisiyor .tok{color:var(--mercan-k)}
+.token-kart{margin:12px 0 4px;padding:14px 16px;border-radius:14px;background:#fff;border:1px solid rgba(255,122,89,.35);box-shadow:0 4px 16px rgba(255,122,89,.12)}
+.token-kart .tk-ust{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--soluk)}
+.token-kart .tk-ust i{font-style:normal;letter-spacing:0;text-transform:none;color:var(--mercan-k);font-weight:600}
+.token-kart .tk-sayi{font-family:"Space Grotesk",sans-serif;font-size:34px;font-weight:700;letter-spacing:-.02em;color:var(--murekkep);line-height:1.1;margin:4px 0 6px;font-variant-numeric:tabular-nums}
+.token-kart .tk-sayi small{font-size:15px;font-weight:600;color:var(--soluk);margin-left:6px;letter-spacing:0}
+.token-kart .tk-ince{font-size:11.5px;line-height:1.5;color:#6d6357;font-variant-numeric:tabular-nums}
+.token-kart .tk-ince+.tk-ince{color:var(--soluk);margin-top:2px}
+.token-kart .tk-ince abbr{text-decoration:underline dotted rgba(59,52,44,.35);cursor:help}
+.etiket3d .sap{position:absolute;left:50%;top:100%;width:1px;background:rgba(59,52,44,.35);height:0}
+.etiket3d .balon{white-space:normal;width:300px;font-size:12.5px;line-height:1.42;color:var(--murekkep);background:#fff7ee;border-radius:8px;padding:8px 10px;margin-top:6px;border:1px solid rgba(255,122,89,.35)}
+.oda-ad{position:absolute;left:0;top:0;pointer-events:none;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#4a4137;white-space:nowrap;will-change:transform;text-shadow:0 1px 0 rgba(255,255,255,.7)}
+.oda-ad small{display:block;font-family:Inter,sans-serif;font-size:11px;font-weight:500;letter-spacing:0;text-transform:none;color:#8a7f72;margin-top:1px}
+
+.mod{position:fixed;right:20px;bottom:13px;font-size:11px;color:#a3978a;display:flex;align-items:center;gap:6px;z-index:3}
+.mod .nokta{width:6px;height:6px}
+.mod.demo .nokta{background:#c9a24a}
+.mod.canli .nokta{background:#5aa06e}
+.mod.kopuk .nokta{background:#d0554a}
+.tost{position:fixed;left:calc((100% - var(--sag) - 16px) / 2);bottom:92px;transform:translateX(-50%);padding:10px 16px;font-size:13.5px;font-weight:500;border-radius:12px;z-index:6;opacity:0;transition:opacity .25s;pointer-events:none}
+.tost.goster{opacity:1}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<canvas id="sahne"></canvas>
+<div class="vinyet"></div>
+<div id="etiketler"></div>
+
+<header class="ustbar">
+  <div class="marka"><div class="logo"><i></i></div><b id="marka">Ajan Ofisi</b><small>AJAN OFİSİ</small></div>
+  <nav class="sekmeler" id="sekmeler">
+    <button data-sekme="ofis" class="secili">Ofis</button>
+    <button data-sekme="odalar">Odalar</button>
+    <button data-sekme="hafiza">Hafıza</button>
+    <button data-sekme="maliyet">Maliyet</button>
+  </nav>
+  <div class="bosluk"></div>
+  <div class="hap"><span class="nokta" id="aktifNokta"></span><b id="aktif">0</b> ajan çalışıyor</div>
+  <span class="saat" id="saat"></span>
+  <button class="dugme" id="genel">Genel bakış</button>
+</header>
+
+<section class="selam cam" id="selam">
+  <div class="tarih" id="tarih"></div>
+  <h1 id="selamBaslik">Merhaba.</h1>
+  <p id="selamMetin">Ofis yükleniyor…</p>
+</section>
+
+<aside class="sag">
+  <section class="kutu cam ceo-kutu">
+    <div class="bas"><div><h2>CEO soruyor</h2><small id="ceoAlt">gözden geçirmeni bekleyen yok</small></div><button class="koyu" id="hepsiniOnayla">Hepsini onayla</button></div>
+    <div class="kartlar" id="kartlar"></div>
+  </section>
+  <section class="kutu cam akis-kutu">
+    <div class="bas"><h2>Ajanların az önce yaptıkları</h2><span class="canli-rozet"><span class="nokta canli"></span>Canlı</span></div>
+    <ul class="akis" id="akis"></ul>
+  </section>
+</aside>
+
+<aside class="panel cam" id="panel" aria-live="polite"></aside>
+<section class="sayfa cam" id="sayfa"></section>
+
+<form class="komut cam" id="komut" autocomplete="off">
+  <span class="ceo-ikon">CEO</span>
+  <input id="komutGir" maxlength="600" placeholder="CEO'ya derdini anlat…">
+  <button class="gonder" id="komutGonder" type="submit">Gönder</button>
+</form>
+<div class="tost cam" id="tost"></div>
+<div class="mod" id="mod"><span class="nokta"></span><span id="modYazi">Canlı</span></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { createCat, ajanDeseni, ajanAksesuari } from './kedi.js';
+import { memeKur, memeBul } from './meme.js';
+import { portreleriUret } from './portre.js';
+import { dekorKur, masaLambasi } from './dekor.js';
+
+const PARAM = new URLSearchParams(location.search);
+const DEMO = PARAM.get('demo') === '1';
+const OTO = PARAM.get('oto') !== '0';
+const TOKEN = new Map();   // ajanId -> {toplam, girdi, cikti, onbellek_yazma, onbellek_okuma, ofis_toplam, terminal_toplam}
+const TOKEN_ALAN = ['input_tokens', 'output_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens'];
+const SAYFA_ACILIS = Date.now();
+const $ = id => document.getElementById(id);
+function el(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+
+/* ---------- odalar: ajanlar.json'dan türer (bilinen id = hazır tema, bilinmeyen id = tohumlu palet) ---------- */
+const ODA_W = 10.4, ODA_D = 8.4, MASA_ARA = 2.4, YAN_PAY = 2.8, SIRA_ARA = 3.1, KORIDOR = 1.6;
+const TEMALAR = {
+  yazi:{ hali1:'#c95c45', hali2:'#f6c35c', ad:'Yazı Odası', zemin:'#fbe0d4', duvar:'#f2876b', aciklama:'Blog yazıları, bültenler ve taslaklar. Yayınlamak senin işin; ajan taslakta durur.' },
+  kod:{ hali1:'#3f7fb5', hali2:'#f2c14e', ad:'Kod Odası', zemin:'#dcebf6', duvar:'#7fb3dd', aciklama:'Kod inceleme ve test yazımı. İnceleyici dosyaya yazmaz, yalnız raporlar.' },
+  tasarim:{ hali1:'#e07a3a', hali2:'#7fc8a9', ad:'Tasarım Stüdyosu', zemin:'#fde4cc', duvar:'#f5a463', aciklama:'Görsel brief, kapak fikri, arayüz notları. Duvarda ilham panosu.' },
+  sosyal:{ hali1:'#2f8f97', hali2:'#f28c6f', ad:'Sosyal Medya', zemin:'#d9f0f1', duvar:'#6cc3c8', aciklama:'Haftanın işini kısa postlara çevirir. Kendisi paylaşmaz.' },
+  arastirma:{ hali1:'#3f9a62', hali2:'#f5a463', ad:'Araştırma', zemin:'#ddf2e2', duvar:'#86cf9f', aciklama:'Anlık araştırma işleri. Her iddiaya kaynak linki.' },
+  ceo:{ hali1:'#e9805f', hali2:'#7fb3dd', ad:'CEO', w:21, d:ODA_D, zemin:'#fff2df', cam:true, aciklama:'Ana klasör. Derdini dinler, işi doğru ajana dağıtır. Ortadaki küre ofisin hafızası.' },
+  'gun-sonu':{ hali1:'#7a5cc4', hali2:'#f6c35c', ad:'Gün Sonu', zemin:'#ece3fb', duvar:'#b49be6', aciklama:'Akşam günün özetini çıkarır: ne bitti, ne kaldı, yarına ne var.' },
+  atolye:{ hali1:'#c48f1d', hali2:'#e9805f', ad:'Atölye', zemin:'#fcefc9', duvar:'#ecbc4a', altin:true, aciklama:'Prototip, demo sayfası, küçük araçlar. Push/deploy yok; yerel taslak ve inceleme.' },
+  bakim:{ hali1:'#5f8a3e', hali2:'#f2876b', ad:'Bakım & Güvenlik', zemin:'#e8efda', duvar:'#a8c486', kapi:true, aciklama:'Temizlikçi yer açma planı çıkarır, hiçbir şey silmez. Bekçi kapıda: indirilen dosyaları açılmadan denetler.' },
+  posta:{ hali1:'#c9566e', hali2:'#86cf9f', ad:'Posta Odası', zemin:'#fbdde3', duvar:'#ef8fa2', aciklama:'Gelen kutusunu okur, eler. Yalnız istekte “mail” geçince çalışır; cevap hep taslak.' },
+  veri:{ hali1:'#4b5bb0', hali2:'#6cc3c8', ad:'Veri Odası', zemin:'#e1e5f6', duvar:'#8a98d8', aciklama:'Link ve kaynak deposunu her sabah ayıklar.', not:'Dışarıdan gelen içerik ajana talimat olarak gitmez, veri olarak gelir. Ajan web’de gözü kapalı gezinmez.\nİki yan masa (kaynak taraması, link deposu) aynı Veri ajanının alt masalarıdır.' },
+};
+// bilinmeyen oda id'si için krem-pastel setler: [hali1, hali2, zemin, duvar]
+const PALET = [['#c97a45', '#7fc8a9', '#fbe6d2', '#f0a878'], ['#4f8f8a', '#f2c14e', '#dff0ec', '#86c2b8'], ['#a0567a', '#f6c35c', '#f6e0ea', '#d996b6'],
+  ['#5b7fb5', '#f28c6f', '#e1e9f6', '#93b0dc'], ['#8a7a3a', '#e9805f', '#f3edd2', '#c9b878'], ['#b5603f', '#6cc3c8', '#f8e2d6', '#e2997a'],
+  ['#6a5cb0', '#86cf9f', '#e8e4f7', '#a99ce0'], ['#3f8a7a', '#f5a463', '#dcefe9', '#7cc4b2']];
+const odaIdGecerli = s => typeof s === 'string' && /^[\p{L}\p{N}_-]{1,40}$/u.test(s);
+const odaAdTuret = id => id.split(/[-_]+/).filter(Boolean).map(k => k[0].toLocaleUpperCase('tr-TR') + k.slice(1)).join(' ') || id;
+function odaTema(id) {
+  if (Object.hasOwn(TEMALAR, id)) return { ...TEMALAR[id] };
+  let h = 2166136261; for (const ch of id) h = Math.imul(h ^ ch.codePointAt(0), 16777619);
+  const [hali1, hali2, zemin, duvar] = PALET[(h >>> 0) % PALET.length];
+  return { hali1, hali2, zemin, duvar, ad:odaAdTuret(id), aciklama:'Bu odanın ajanları iş gelince uyanır, işi bitince uyur.' };
+}
+const elleYer = a => !!(a.yer && typeof a.yer.x === 'number');
+// oda ölçüsü: 2 ajana kadar taban oda; 4'e kadar tek sıra genişler; fazlası iki sıra masa (ön sıra ayaklı ekranlı, yarım adım kaydırılmış)
+function odaOlcu(oda, liste) {
+  oda.w0 = oda.w ?? ODA_W; oda.d0 = oda.d ?? ODA_D;
+  if (oda.cam) { oda.w = oda.w0; oda.d = oda.d0; return; }
+  const n = liste.filter(a => a.oda === oda.id && !elleYer(a)).length;
+  const k = n > 4 ? Math.ceil(n / 2) : n, esit = n > 4 && n - k === k;
+  oda.w = Math.max(ODA_W, (k + (esit ? .5 : 0)) * MASA_ARA + 2 * YAN_PAY);
+  oda.d = n > 4 ? ODA_D + 3.2 : ODA_D;
+}
+// yerleşim: CEO orta sırada ortada; diğer odalar üst sıra, CEO'nun iki yanı, alt sıra. Yan oda sayısı en geniş sırayı en dar tutacak biçimde seçilir.
+function yerlesimKur(odalar) {
+  const ceo = odalar.find(o => o.id === 'ceo'), digeri = odalar.filter(o => o !== ceo), N = digeri.length;
+  const gen = l => l.reduce((t, o) => t + o.w, 0) + Math.max(0, l.length - 1) * .6;
+  let en = null;
+  for (let s = 0; s <= N; s += 2) {
+    const t = Math.ceil((N - s) / 2), ust = digeri.slice(0, t), yan = digeri.slice(t, t + s), alt = digeri.slice(t + s);
+    const genislik = Math.max(gen(ust), gen(alt), ceo.w + yan.reduce((t, o) => t + o.w + .8, 0));
+    if (!en || genislik < en.genislik - .01) en = { genislik, ust, yan, alt };
+  }
+  const { ust, yan, alt } = en, sol = yan.slice(0, yan.length / 2), sag = yan.slice(yan.length / 2);
+  const dOrta = Math.max(ceo.d, ...yan.map(o => o.d));
+  Object.assign(ceo, { cx:0, cz:0 });
+  let x = -ceo.w / 2; [...sol].reverse().forEach(o => { x -= .8 + o.w; Object.assign(o, { cx:x + o.w / 2, cz:0 }); });
+  x = ceo.w / 2; sag.forEach(o => { Object.assign(o, { cx:x + .8 + o.w / 2, cz:0 }); x += .8 + o.w; });
+  const sira = (l, yon) => { let x = -gen(l) / 2; l.forEach(o => { Object.assign(o, { cx:x + o.w / 2, cz:yon * (dOrta / 2 + KORIDOR + o.d / 2) }); x += o.w + .6; }); };
+  sira(ust, -1); sira(alt, 1);
+}
+// ajan → masadaki yeri: config'te yer:{x, lz, ayak} verilirse o; yoksa oda içinde 2,4 aralıkla, 4'ten fazlası iki sıra
+function yerHesapla(a, liste) {
+  if (elleYer(a)) return { x:a.yer.x, lz:a.yer.lz, ayak:!!a.yer.ayak };
+  const ayni = liste.filter(x => x.oda === a.oda && !elleYer(x)), oda = odaBul(a.oda);
+  const n = ayni.length, i = ayni.indexOf(a), k = n > 4 ? Math.ceil(n / 2) : n, sira = i < k ? 0 : 1;
+  const m = sira ? n - k : k, j = sira ? i - k : i, kay = n > 4 && n - k === k ? MASA_ARA / 4 : 0;
+  const x = (j - (m - 1) / 2) * MASA_ARA + (sira ? kay : -kay);
+  return sira && !oda.cam ? { x, lz:-oda.d / 2 + 2.15 + SIRA_ARA, ayak:true } : { x };
+}
+let ODALAR = [];
+const ajanRenk = id => { const a = AJANLAR.find(x => x.id === id), o = a && ODALAR.find(x => x.id === a.oda); return a?.renk || o?.duvar || o?.hali1 || '#a3978a'; };
+const odaBul = id => ODALAR.find(o => o.id === id);
+let AJANLAR = [];
+const ajanBul = id => AJANLAR.find(a => a.id === id);
+
+/* ---------- ses ---------- */
+let ses = null;
+const sesAc = () => { if (!ses) { try { ses = new AudioContext(); } catch { ses = null; } } return ses; };
+function ton(frek, sure = .09, hacim = .05, tip = 'sine', gecikme = 0, kayma = 1) {
+  const c = ses; if (!c) return;
+  const t = c.currentTime + gecikme;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = tip; o.frequency.setValueAtTime(frek, t); o.frequency.exponentialRampToValueAtTime(frek * kayma, t + sure);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(hacim, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + sure);
+  o.connect(g).connect(c.destination); o.start(t); o.stop(t + sure + .02);
+}
+const SES = {
+  uzerinde: (() => { let son = 0; return () => { const t = performance.now(); if (t - son < 140) return; son = t; ton(1318, .07, .04, 'sine', 0, 1.12); }; })(),
+  tik: () => ton(720, .07, .05, 'triangle', 0, 1.3),
+  gonder: () => { ton(523, .12, .05, 'sine'); ton(784, .16, .045, 'sine', .07); },
+  uyan: () => ton(392, .18, .035, 'sine', 0, 1.6),
+  bitti: () => [523, 659, 784, 1047].forEach((f, i) => ton(f, .16, .04, 'sine', i * .06)),
+  hafiza: () => [880, 1320].forEach((f, i) => ton(f, .3, .03, 'sine', i * .09)),
+};
+addEventListener('pointerdown', sesAc);
+addEventListener('keydown', sesAc);
+addEventListener('pointerdown', () => { if (ses && ses.state === 'suspended') ses.resume(); });
+
+/* ---------- veri katmanı: gerçek API ya da demo ---------- */
+async function getJSON(yol) {
+  const r = await fetch(yol, { cache:'no-store' });
+  if (!r.ok) throw new Error(yol + ' ' + r.status);
+  return r.json();
+}
+async function postJSON(yol, govde) {
+  const r = await fetch(yol, { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(govde) });
+  const veri = await r.json().catch(() => ({}));
+  return { durum:r.status, veri };
+}
+
+/* ---------- three kurulum ---------- */
+const tuval = $('sahne');
+// Ekran kaydı gibi bellek baskısı olan durumlar için: varsayılan 1,5x; ?hafif=1 → 1x, küçük gölge, antialias yok.
+const HAFIF = new URLSearchParams(location.search).has('hafif');
+const renderer = new THREE.WebGLRenderer({ canvas:tuval, antialias:!HAFIF, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, HAFIF ? 1 : 1.5));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+// arka plan: şeftali → krem yumuşak gradyan
+scene.background = (() => {
+  const c = document.createElement('canvas'); c.width = 4; c.height = 256;
+  const x = c.getContext('2d'); const g = x.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0, '#ffd9bf'); g.addColorStop(.55, '#fbe9d6'); g.addColorStop(1, '#f6efe2');
+  x.fillStyle = g; x.fillRect(0, 0, 4, 256);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+scene.fog = new THREE.Fog('#f8e4d0', 95, 170);
+
+const camera = new THREE.PerspectiveCamera(26, innerWidth / innerHeight, 1, 400);
+const GENEL = { poz:new THREE.Vector3(36.5, 52.5, 65.5), hedef:new THREE.Vector3(.6, 0, 3.4) };
+camera.position.copy(GENEL.poz);
+function gorusKaydir() {
+  // sahneyi sağ kolon ile selamlama kartının arasındaki boşluğa ortala
+  camera.aspect = innerWidth / innerHeight;
+  camera.setViewOffset(innerWidth, innerHeight, Math.round(innerWidth * .085), -Math.round(innerHeight * .015), innerWidth, innerHeight);
+  camera.updateProjectionMatrix();
+}
+gorusKaydir();
+
+const controls = new OrbitControls(camera, tuval);
+controls.target.copy(GENEL.hedef);
+controls.enableDamping = true; controls.dampingFactor = .08;
+controls.minPolarAngle = .45; controls.maxPolarAngle = 1.05;
+controls.minDistance = 14; controls.maxDistance = 100;
+controls.screenSpacePanning = false;
+const SINIR = { x0:-24, x1:24, z0:-16, z1:16 };   // yerleşim kurulunca kaideye göre güncellenir
+controls.addEventListener('change', () => {
+  controls.target.x = THREE.MathUtils.clamp(controls.target.x, SINIR.x0, SINIR.x1);
+  controls.target.z = THREE.MathUtils.clamp(controls.target.z, SINIR.z0, SINIR.z1);
+  controls.target.y = THREE.MathUtils.clamp(controls.target.y, 0, 2);
+});
+
+// sıcak altın saat: güçlü yönlü güneş, daha az dolgu → kontrastlı gölge
+scene.add(new THREE.HemisphereLight('#fff1df', '#d9b08a', 1.05));
+const gunes = new THREE.DirectionalLight('#ffd29a', 3.4);
+gunes.position.set(-22, 40, 24);
+gunes.castShadow = true;
+gunes.shadow.mapSize.set(HAFIF ? 1024 : 2048, HAFIF ? 1024 : 2048);
+Object.assign(gunes.shadow.camera, { left:-32, right:32, top:26, bottom:-26, near:5, far:110 });
+gunes.shadow.bias = -.0004; gunes.shadow.normalBias = .03; gunes.shadow.radius = 4;
+scene.add(gunes);
+const dolgu = new THREE.DirectionalLight('#d6e2ff', .35); dolgu.position.set(30, 18, -10); scene.add(dolgu);
+
+/* ---------- yardımcılar ---------- */
+const malzemeler = new Map();
+const mat = (renk, ek = {}) => {
+  const k = renk + JSON.stringify(ek);
+  if (!malzemeler.has(k)) malzemeler.set(k, new THREE.MeshStandardMaterial({ color:renk, roughness:.86, metalness:0, ...ek }));
+  return malzemeler.get(k);
+};
+const geoCache = new Map();
+const yuvarlak = (w, h, d, r = .06, s = 2) => {
+  const k = [w, h, d, r, s].join('|');
+  if (!geoCache.has(k)) geoCache.set(k, new RoundedBoxGeometry(w, h, d, s, Math.min(r, w / 2 - .001, h / 2 - .001, d / 2 - .001)));
+  return geoCache.get(k);
+};
+function kutu(parent, w, h, d, renk, x, y, z, r = .06, golge = true) {
+  const m = new THREE.Mesh(yuvarlak(w, h, d, r), typeof renk === 'string' ? mat(renk) : renk);
+  m.position.set(x, y, z); m.castShadow = golge; m.receiveShadow = true; parent.add(m); return m;
+}
+function tuvalDoku(w, h) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return { c, ctx:c.getContext('2d'), t };
+}
+function yuvarlakDikdortgen(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+function kisalt(ctx, s, w) { if (ctx.measureText(s).width <= w) return s; while (s.length > 2 && ctx.measureText(s + '…').width > w) s = s.slice(0, -1); return s + '…'; }
+
+const golgeDoku = (() => {
+  const { ctx, t } = tuvalDoku(128, 128);
+  const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 62);
+  g.addColorStop(0, 'rgba(70,50,30,.42)'); g.addColorStop(1, 'rgba(70,50,30,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 128, 128); t.needsUpdate = true; return t;
+})();
+function aoLeke(parent, w, d, x, z, y = .115, guc = 1) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ map:golgeDoku, transparent:true, depthWrite:false, opacity:guc }));
+  m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); parent.add(m); return m;
+}
+
+await Promise.race([
+  Promise.all([document.fonts.load('600 40px "Space Grotesk"'), document.fonts.load('500 20px Inter'), document.fonts.load('600 20px Inter')]),
+  new Promise(r => setTimeout(r, 1800)),
+]).catch(() => {});
+
+/* ---------- ajan listesini al (sahne bundan kurulur) ---------- */
+let demoVeri = null;
+async function ajanlariYukle() {
+  if (DEMO) { demoVeri = await getJSON('demo-veri.json'); return demoVeri; }
+  return getJSON('/api/ajanlar');
+}
+let apiAjanlar = [], apiOdalar = [], apiAyarlar = {};
+try {
+  const v = await ajanlariYukle();
+  apiAjanlar = Array.isArray(v.ajanlar) ? v.ajanlar : [];
+  apiOdalar = Array.isArray(v.odalar) ? v.odalar : [];
+  apiAyarlar = v.ayarlar && typeof v.ayarlar === 'object' ? v.ayarlar : {};
+} catch { apiAjanlar = []; }
+// odalar: `odalar` listesinin sırası + ajanlarda geçip listede olmayan id'ler; yalnız ajanı olan odalar kurulur (CEO her zaman).
+// `oda` alanı eksik/geçersiz ajan "genel" odasına oturur. Config'teki ad/açıklama/not temanın üstüne yazılır.
+const yerlesecek = apiAjanlar.filter(a => a && typeof a.id === 'string').map(a => ({ ...a, oda:odaIdGecerli(a.oda) ? a.oda : 'genel' }));
+ODALAR = [...new Set(['ceo', ...apiOdalar.map(o => o?.id), ...yerlesecek.map(a => a.oda)])]
+  .filter(id => odaIdGecerli(id) && (id === 'ceo' || yerlesecek.some(a => a.oda === id)))
+  .map(id => {
+    const o = { id, ...odaTema(id) }, c = apiOdalar.find(x => x?.id === id);
+    if (c) ['ad', 'aciklama', 'not'].forEach(k => { if (typeof c[k] === 'string') o[k] = c[k].slice(0, k === 'ad' ? 40 : 600); });
+    odaOlcu(o, yerlesecek); return o;
+  });
+yerlesimKur(ODALAR);
+AJANLAR = yerlesecek.map(a => ({ ...a, ...yerHesapla(a, yerlesecek) }));
+const KULLANICI = String(apiAyarlar.kullanici || '').slice(0, 40);
+const MARKA = String(apiAyarlar.marka || 'Ajan Ofisi').slice(0, 40);
+const SEN = KULLANICI || 'Sen';
+document.title = MARKA; $('marka').textContent = MARKA;
+
+/* ---------- maket kaidesi + kamera/ışık: yerleşimin kutusundan (11 oda = 50×36 kaide, ölçek 1) ---------- */
+const KUTU = ODALAR.reduce((k, o) => ({ x0:Math.min(k.x0, o.cx - o.w / 2), x1:Math.max(k.x1, o.cx + o.w / 2), z0:Math.min(k.z0, o.cz - o.d / 2), z1:Math.max(k.z1, o.cz + o.d / 2) }), { x0:Infinity, x1:-Infinity, z0:Infinity, z1:-Infinity });
+const MERKEZ = new THREE.Vector3((KUTU.x0 + KUTU.x1) / 2, 0, (KUTU.z0 + KUTU.z1) / 2);
+const KAIDE_W = KUTU.x1 - KUTU.x0 + 6.6, KAIDE_D = KUTU.z1 - KUTU.z0 + 7.6;
+const OLCEK = Math.max(.62, KAIDE_W / 50, KAIDE_D / 46), BUYUK = Math.max(1, OLCEK);   // derinlik eğik bakışta kısalır
+kutu(scene, KAIDE_W, 1.4, KAIDE_D, '#e5d9c4', MERKEZ.x, -.7, MERKEZ.z, .35, false).receiveShadow = true;
+kutu(scene, KAIDE_W + 1.2, .5, KAIDE_D + 1.2, '#d8c9b1', MERKEZ.x, -1.55, MERKEZ.z, .2, false);
+aoLeke(scene, KAIDE_W * 1.56, KAIDE_D * 1.61, MERKEZ.x + 1, MERKEZ.z + 3, -1.79, .8);
+const zeminTaban = new THREE.Mesh(new THREE.PlaneGeometry(400 * BUYUK, 400 * BUYUK), new THREE.MeshStandardMaterial({ color:'#ebe2d3', roughness:1 }));
+zeminTaban.rotation.x = -Math.PI / 2; zeminTaban.position.set(MERKEZ.x, -1.8, MERKEZ.z); zeminTaban.receiveShadow = true; scene.add(zeminTaban);
+GENEL.hedef.copy(MERKEZ).add(new THREE.Vector3(.6, 0, 3.4).multiplyScalar(OLCEK));
+GENEL.poz.copy(GENEL.hedef).add(new THREE.Vector3(35.9, 52.5, 62.1).multiplyScalar(OLCEK));
+camera.position.copy(GENEL.poz); controls.target.copy(GENEL.hedef);
+camera.far = 400 * BUYUK; gorusKaydir();
+controls.maxDistance = 100 * BUYUK;
+SINIR.x0 = MERKEZ.x - KAIDE_W / 2 + 1; SINIR.x1 = MERKEZ.x + KAIDE_W / 2 - 1; SINIR.z0 = MERKEZ.z - KAIDE_D / 2 + 2; SINIR.z1 = MERKEZ.z + KAIDE_D / 2 - 2;
+scene.fog.near = 95 * BUYUK; scene.fog.far = 170 * BUYUK;
+gunes.position.copy(MERKEZ).add(new THREE.Vector3(-22, 40, 24).multiplyScalar(BUYUK));
+gunes.target.position.copy(MERKEZ); scene.add(gunes.target);
+const golgeK = Math.max(.6, OLCEK);
+Object.assign(gunes.shadow.camera, { left:-32 * golgeK, right:32 * golgeK, top:26 * golgeK, bottom:-26 * golgeK, far:110 * BUYUK });
+gunes.shadow.camera.updateProjectionMatrix();
+
+/* ---------- odalar ---------- */
+const secilebilir = [];
+function odaAltYazi(oda) {
+  const n = AJANLAR.filter(a => a.oda === oda.id).length;
+  if (oda.id === 'ceo') return 'Yalnız onunla konuşursun';
+  return n + ' ajan · ' + (AJANLAR.find(a => a.oda === oda.id)?.ne_zaman_metin || 'istek gelince');
+}
+function zeminCiz(oda) {
+  const { ctx, t } = oda.zeminDoku;
+  const n = AJANLAR.filter(a => a.oda === oda.id).length;
+  const m = AJANLAR.filter(a => a.oda === oda.id && a.durum && a.durum !== 'uyku' && a.durum !== 'bitti').length;
+  const anahtar = n + '|' + m; if (oda.zeminAnahtar === anahtar) return; oda.zeminAnahtar = anahtar;
+  ctx.clearRect(0, 0, 1024, 160);
+  ctx.fillStyle = 'rgba(59,52,44,.82)';
+  ctx.font = '600 60px "Space Grotesk"';
+  ctx.letterSpacing = '4px';
+  ctx.fillText(oda.ad.toLocaleUpperCase('tr-TR'), 8, 68);
+  ctx.letterSpacing = '0px';
+  // rozet: N ajan · M çalışıyor
+  const yazi = oda.id === 'ceo' ? 'Yalnız onunla konuşursun' : n + ' ajan · ' + m + ' çalışıyor';
+  ctx.font = '600 32px Inter';
+  const w = ctx.measureText(yazi).width + 44;
+  ctx.fillStyle = m ? 'rgba(255,122,89,.9)' : 'rgba(255,255,255,.75)';
+  yuvarlakDikdortgen(ctx, 8, 92, w, 52, 26); ctx.fill();
+  ctx.fillStyle = m ? '#fff' : (oda.altin ? 'rgba(150,108,24,.95)' : 'rgba(110,98,84,.95)');
+  ctx.fillText(yazi, 30, 129);
+  t.needsUpdate = true;
+}
+function zeminYazisi(oda, g) {
+  oda.zeminDoku = tuvalDoku(1024, 160);
+  const { t } = oda.zeminDoku;
+  zeminCiz(oda);
+  const gen = Math.min(oda.w - 1.2, 9.2);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(gen, gen * 160 / 1024), new THREE.MeshBasicMaterial({ map:t, transparent:true, depthWrite:false }));
+  m.rotation.x = -Math.PI / 2;
+  m.position.set(-oda.w / 2 + .6 + gen / 2, .125, oda.d / 2 - .85);
+  g.add(m);
+}
+function odaKur(oda) {
+  const g = new THREE.Group(); g.position.set(oda.cx, 0, oda.cz); scene.add(g); oda.grup = g;
+  const zeminMat = new THREE.MeshStandardMaterial({ color:oda.zemin, roughness:.92, emissive:'#ff7a59', emissiveIntensity:0 });
+  const zemin = new THREE.Mesh(yuvarlak(oda.w, .2, oda.d, .08), zeminMat);
+  zemin.position.y = .01; zemin.receiveShadow = true; zemin.userData.oda = oda.id; g.add(zemin);
+  oda.zemin3d = zemin; secilebilir.push(zemin);
+  if (oda.cam) camOda(oda, g); else duvarlar(oda, g);
+  zeminYazisi(oda, g);
+  oda.ilkDekor = g.children.length;   // bundan sonrası eşya: geniş odada kenara yaslanır
+}
+function duvarlar(oda, g) {
+  const H = 2.6, T = .24;
+  kutu(g, oda.w, H, T, oda.duvar, 0, H / 2 + .1, -oda.d / 2 + T / 2, .07);
+  kutu(g, T, H, oda.d - T, oda.duvar, -oda.w / 2 + T / 2, H / 2 + .1, T / 2, .07);
+  if (oda.kapi) {
+    // ön duvarda kapı boşluğu: sağ uçta 2 birim açık, eşikte mercan çizgi
+    kutu(g, oda.w - 2.6, .26, T, oda.duvar, -1.3, .23, oda.d / 2 - T / 2, .06);
+    kutu(g, 2.2, .04, .22, mat('#ff7a59', { emissive:'#ff7a59', emissiveIntensity:.25 }), oda.w / 2 - 1.4, .14, oda.d / 2 - T / 2, .02, false);
+  } else kutu(g, oda.w, .26, T, oda.duvar, 0, .23, oda.d / 2 - T / 2, .06);
+  kutu(g, T, .26, oda.d - T, oda.duvar, oda.w / 2 - T / 2, .23, T / 2, .06);
+  aoLeke(g, oda.w, 1.6, 0, -oda.d / 2 + .7, .118, .55);
+  if (oda.altin) {
+    const altin = mat('#d6ad52', { metalness:.65, roughness:.32 });
+    kutu(g, oda.w, .1, T + .04, altin, 0, H + .14, -oda.d / 2 + T / 2, .03);
+    kutu(g, T + .04, .1, oda.d - T, altin, -oda.w / 2 + T / 2, H + .14, T / 2, .03);
+    const hali = new THREE.Mesh(yuvarlak(oda.w - 4, .03, 3.2, .015), mat('#ead7a6'));
+    hali.position.set(0, .125, .9); hali.receiveShadow = true; g.add(hali);
+  }
+}
+function camOda(oda, g) {
+  const cam = new THREE.MeshStandardMaterial({ color:'#dff0f2', transparent:true, opacity:.22, roughness:.08, metalness:.1, depthWrite:false });
+  const cerceve = mat('#c9bfb1');
+  const H = 2.3;
+  [[0, -oda.d / 2, oda.w, .08], [0, oda.d / 2, oda.w, .08]].forEach(([x, z, w, d]) => {
+    const m = new THREE.Mesh(yuvarlak(w, H, d, .03), cam); m.position.set(x, H / 2 + .1, z); m.renderOrder = 2; g.add(m);
+    kutu(g, w, .08, .14, cerceve, x, H + .12, z, .03);
+  });
+  [[-oda.w / 2, 0], [oda.w / 2, 0]].forEach(([x, z]) => {
+    const m = new THREE.Mesh(yuvarlak(.08, H, oda.d, .03), cam); m.position.set(x, H / 2 + .1, z); m.renderOrder = 2; g.add(m);
+    kutu(g, .14, .08, oda.d, cerceve, x, H + .12, z, .03);
+  });
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => kutu(g, .16, H + .1, .16, cerceve, sx * oda.w / 2, H / 2 + .12, sz * oda.d / 2, .04));
+  kutu(g, 2.2, .04, .2, mat('#ff7a59', { emissive:'#ff7a59', emissiveIntensity:.25 }), 0, .14, oda.d / 2, .02, false);
+}
+ODALAR.forEach(odaKur);
+dekorKur(ODALAR);
+
+/* ---------- dekor ---------- */
+function bitki(g, x, z, s = 1) {
+  kutu(g, .5 * s, .5 * s, .5 * s, '#d9c3a5', x, .37 * s, z, .1);
+  const yaprak = mat('#9db58a', { flatShading:true, roughness:.9 });
+  [[0, .95, 0, .42], [.15, 1.25, .05, .3], [-.12, 1.15, -.08, .32]].forEach(([dx, y, dz, r]) => {
+    const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r * s, 0), yaprak);
+    m.position.set(x + dx * s, y * s, z + dz * s); m.castShadow = true; g.add(m);
+  });
+  aoLeke(g, 1.2 * s, 1.2 * s, x, z);
+}
+function raf(g, x, z, w = 2.2, renkler = ['#e7a58d', '#a9c1d6', '#d9c27a', '#b9cfb0', '#cdb8dc']) {
+  kutu(g, w, 1.9, .5, '#e9e1d4', x, 1.05, z, .05);
+  for (let s = 0; s < 3; s++) {
+    let px = x - w / 2 + .2;
+    for (let i = 0; i < 7 && px < x + w / 2 - .3; i++) {
+      const bw = .14 + ((i * 7 + s * 3) % 4) * .03, bh = .38 + ((i * 5 + s) % 3) * .06;
+      kutu(g, bw, bh, .32, renkler[(i + s) % renkler.length], px + bw / 2, .42 + s * .58 + bh / 2, z + .06, .02, false);
+      px += bw + .03;
+    }
+  }
+}
+function masaTek(g, x, z, w = 1.6) {
+  kutu(g, w, .08, .9, '#f3ece2', x, .82, z, .03);
+  kutu(g, .08, .72, .8, '#d8cdbd', x - w / 2 + .1, .44, z, .03);
+  kutu(g, .08, .72, .8, '#d8cdbd', x + w / 2 - .1, .44, z, .03);
+}
+/* LED rafları (veri + bakım) */
+const ledDoku = tuvalDoku(64, 160);
+function ledCiz(t) {
+  const { ctx } = ledDoku;
+  ctx.fillStyle = '#3a3f42'; ctx.fillRect(0, 0, 64, 160);
+  for (let r = 0; r < 10; r++) {
+    ctx.fillStyle = '#2c3033'; ctx.fillRect(4, 4 + r * 15.5, 56, 12);
+    for (let i = 0; i < 4; i++) {
+      const s = Math.sin(t * (2 + i) + r * 1.7 + i * 3.1);
+      ctx.fillStyle = s > .55 ? '#ff8a66' : s > -.2 ? '#9fd8b0' : '#4b5154';
+      ctx.fillRect(9 + i * 7, 8 + r * 15.5, 4, 4);
+    }
+    ctx.fillStyle = '#4b5154'; ctx.fillRect(40, 8 + r * 15.5, 16, 4);
+  }
+  ledDoku.t.needsUpdate = true;
+}
+ledCiz(0);
+function rafDizisi(g, x, zler, renk = '#4a4f53') {
+  zler.forEach(z => {
+    kutu(g, .95, 2.3, 1.1, renk, x, 1.28, z, .05);
+    const on = new THREE.Mesh(new THREE.PlaneGeometry(.95, 2.1), new THREE.MeshBasicMaterial({ map:ledDoku.t }));
+    on.rotation.y = Math.PI / 2; on.position.set(x + .49, 1.28, z); on.scale.set(1.04, 1, 1); g.add(on);
+    aoLeke(g, 1.8, 1.8, x + .05, z, .118, .8);
+  });
+}
+// hazır temalı odaların kendi eşyaları (taban oda 10.4×8.4'e göre; oda yoksa atlanır)
+const TEMA_DEKOR = {
+  yazi:g => { bitki(g, 4.2, 2.6); raf(g, -3.6, -3.3, 2.0); kutu(g, 1.2, .9, .9, '#e5a089', 4.0, .55, -2.8, .2); },
+  kod:g => bitki(g, -4.2, 2.6),
+  tasarim:g => {
+    const halka = new THREE.Mesh(new THREE.TorusGeometry(.55, .06, 10, 40), mat('#fff5e8', { emissive:'#fff1dc', emissiveIntensity:.6 }));
+    halka.position.set(3.6, 1.9, .6); halka.rotation.y = -.6; halka.castShadow = true; g.add(halka);
+    kutu(g, .05, 1.4, .05, '#8d8276', 3.6, 1.0, .6, .02); kutu(g, .7, .04, .7, '#8d8276', 3.6, .14, .6, .02);
+    bitki(g, -4.2, 2.6);
+  },
+  sosyal:g => { raf(g, -3.3, -3.3, 2.4); bitki(g, 4.2, 2.6); },
+  arastirma:g => {
+    const kure = new THREE.Mesh(new THREE.IcosahedronGeometry(.42, 1), mat('#a9c6d8', { flatShading:true }));
+    kure.position.set(3.4, 1.35, -2.2); kure.castShadow = true; g.add(kure);
+    kutu(g, .9, .82, .9, '#e9e1d4', 3.4, .51, -2.2, .1);
+    raf(g, -3.3, -3.3, 2.4, ['#b9cfb0', '#e7d6a8', '#a9c1d6']);
+  },
+  'gun-sonu':g => {
+    const ay = new THREE.Mesh(new THREE.SphereGeometry(.34, 20, 14), mat('#fff4dc', { emissive:'#ffe7b8', emissiveIntensity:.7 }));
+    ay.position.set(3.5, 1.2, -2.6); g.add(ay); kutu(g, .8, .8, .8, '#d5cce5', 3.5, .5, -2.6, .1);
+    bitki(g, -4, 2.5);
+  },
+  ceo:g => { kutu(g, 3.2, .5, 1.1, '#e3b9a6', -8.4, .45, 1.9, .2); kutu(g, 3.2, .7, .3, '#e3b9a6', -8.4, .8, 2.35, .14); bitki(g, -9.3, -3, 1.1); bitki(g, 9.3, -3, 1.1); },
+  atolye:g => {
+    raf(g, -3.4, -3.3, 2.2, ['#d6ad52', '#e7a58d', '#cdb8dc', '#a9c1d6']);
+    const kupa = new THREE.Mesh(new THREE.CylinderGeometry(.22, .1, .4, 18), mat('#d6ad52', { metalness:.7, roughness:.28 }));
+    kupa.position.set(-3.4, 2.25, -3.3); kupa.castShadow = true; g.add(kupa);
+    bitki(g, 4.2, 2.6); kutu(g, 1.4, .9, .9, '#ecd59a', 3.6, .55, -2.8, .15);
+  },
+  posta:g => {
+    [0, 1, 2].forEach(i => kutu(g, 1, .12, .7, i === 0 ? '#ff9b7e' : '#efe4d6', 3.6, .95 + i * .2, -2.6, .03));
+    kutu(g, 1.1, .82, .8, '#e3c5c4', 3.6, .5, -2.6, .1); bitki(g, -4.2, 2.6);
+  },
+  // veri: sunucu rafları + kablo
+  veri:g => { rafDizisi(g, -4.35, [-2.4, -1.15, .1, 1.35]); kutu(g, .18, .06, 5, '#ff7a59', -3.6, .13, -.5, .02, false); },
+  // bakım: disk rafı (sol duvar) + kapı fenerleri
+  bakim:g => {
+    rafDizisi(g, -4.35, [-2.4, -1.15], '#5a5650');
+    [-1.5, -.9, -.3].forEach((x, i) => kutu(g, .5, .32, .6, ['#cbbfae', '#b9ad9e', '#d8cdbd'][i], x - 1.6, .28 + i * .0, 2.6, .05));
+    bitki(g, -4.2, 2.7, .9);
+  },
+};
+ODALAR.forEach(o => TEMA_DEKOR[o.id]?.(o.grup));
+
+/* ---------- ilham panosu (tasarım stüdyosu): prosedürel kartlar, dosya yüklenmez ---------- */
+(() => {
+  const oda = odaBul('tasarim'); if (!oda) return;
+  const g = oda.grup;
+  const yerler = [-4.1, -3.15, -2.2, 2.2, 3.15, 4.1];
+  const paletler = [['#ff7a59', '#fff1e3', '#3b342c'], ['#7fc8a9', '#f6efe2', '#2f8f97'], ['#f2c14e', '#fff8e8', '#c95c45'],
+    ['#b49be6', '#f7f2ff', '#4b5bb0'], ['#6cc3c8', '#eefafa', '#e07a3a'], ['#ef8fa2', '#fff2f4', '#3f7fb5']];
+  yerler.forEach((x, i) => {
+    const d = tuvalDoku(270, 520), [a, zemin, b] = paletler[i];
+    d.ctx.fillStyle = zemin; d.ctx.fillRect(0, 0, 270, 520);
+    d.ctx.fillStyle = a; d.ctx.beginPath(); d.ctx.arc(135, 190 + (i % 2) * 40, 80 + (i % 3) * 14, 0, Math.PI * 2); d.ctx.fill();
+    d.ctx.fillStyle = b; d.ctx.fillRect(28, 380, 150 + (i % 3) * 30, 18); d.ctx.fillRect(28, 412, 110, 12);
+    d.ctx.globalAlpha = .5; d.ctx.fillRect(28, 438, 170, 10); d.ctx.globalAlpha = 1;
+    d.t.needsUpdate = true;
+    const w = .78, h = w * 520 / 270, z = -oda.d0 / 2 + .3;
+    kutu(g, w + .08, h + .08, .05, '#4a443d', x, 1.45, z, .02);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map:d.t, toneMapped:false }));
+    m.position.set(x, 1.45, z + .03); g.add(m);
+  });
+})();
+
+// genişleyen odada eşyalar kenara yaslanır: duvar/zemin dışındaki parça, taban ölçüden taşan kadar dışa kayar
+ODALAR.forEach(o => {
+  const ex = (o.w - o.w0) / 2, ez = (o.d - o.d0) / 2; if (!ex && !ez) return;
+  o.grup.children.slice(o.ilkDekor).forEach(c => {
+    if (Math.abs(c.position.x) > .6) c.position.x += Math.sign(c.position.x) * ex;
+    if (Math.abs(c.position.z) > .6) c.position.z += Math.sign(c.position.z) * ez;
+  });
+});
+
+/* ---------- hafıza çekirdeği (CEO odası) ---------- */
+const CEKIRDEK = new THREE.Vector3(-4.6, 1.75, .6);
+const cekirdek = (() => {
+  const g = new THREE.Group(); g.position.copy(CEKIRDEK); scene.add(g);
+  const kaide = new THREE.Mesh(new THREE.CylinderGeometry(.55, .7, .5, 32), mat('#efe4d6'));
+  kaide.position.y = -1.42; kaide.castShadow = true; kaide.receiveShadow = true; g.add(kaide);
+  const halka = new THREE.Mesh(new THREE.TorusGeometry(.62, .025, 8, 48), mat('#ffb39c', { emissive:'#ff9a7a', emissiveIntensity:.6 }));
+  halka.rotation.x = Math.PI / 2; halka.position.y = -1.15; g.add(halka);
+  const kristalMat = new THREE.MeshStandardMaterial({ color:'#fff3e8', emissive:'#ff9f80', emissiveIntensity:.35, roughness:.25, metalness:.05, flatShading:true, transparent:true, opacity:.94 });
+  const kristal = new THREE.Mesh(new THREE.IcosahedronGeometry(.62, 1), kristalMat);
+  kristal.castShadow = true; g.add(kristal);
+  const ic = new THREE.Mesh(new THREE.SphereGeometry(.3, 20, 16), new THREE.MeshBasicMaterial({ color:'#ffd2bf' }));
+  g.add(ic);
+  const isilti = (() => {
+    const { ctx, t } = tuvalDoku(128, 128);
+    const gr = ctx.createRadialGradient(64, 64, 6, 64, 64, 62);
+    gr.addColorStop(0, 'rgba(255,170,130,.55)'); gr.addColorStop(1, 'rgba(255,170,130,0)');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, 128, 128); t.needsUpdate = true;
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:t, transparent:true, depthWrite:false }));
+    s.scale.setScalar(3.2); g.add(s); return s;
+  })();
+  const isik = new THREE.PointLight('#ffb08f', 2, 7, 2); g.add(isik);
+  return { g, kristal, kristalMat, isilti, isik, parla:0, dusun:false };
+})();
+const cekirdekParla = (guc = 1) => { cekirdek.parla = Math.max(cekirdek.parla, guc); };
+
+/* çekirdekten odalara ince çizgiler + ışık akışı */
+const hatlar = new Map();
+const akanlar = [];
+const isikDoku = (() => {
+  const { ctx, t } = tuvalDoku(64, 64);
+  const gr = ctx.createRadialGradient(32, 32, 2, 32, 32, 30);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.35, 'rgba(255,140,100,.9)'); gr.addColorStop(1, 'rgba(255,122,89,0)');
+  ctx.fillStyle = gr; ctx.fillRect(0, 0, 64, 64); t.needsUpdate = true; return t;
+})();
+ODALAR.filter(o => o.id !== 'ceo').forEach(o => {
+  const son = new THREE.Vector3(o.cx, 2.95, o.cz + (o.cz < 0 ? 1.2 : -1.2));
+  const bas = CEKIRDEK.clone();
+  const orta = bas.clone().lerp(son, .5); orta.y = 4.6 + bas.distanceTo(son) * .06;
+  const egri = new THREE.QuadraticBezierCurve3(bas, orta, son);
+  const cizgi = new THREE.Line(new THREE.BufferGeometry().setFromPoints(egri.getPoints(60)),
+    new THREE.LineDashedMaterial({ color:'#c89a82', transparent:true, opacity:.5, dashSize:.35, gapSize:.22 }));
+  cizgi.computeLineDistances(); scene.add(cizgi);
+  const uc = new THREE.Mesh(new THREE.SphereGeometry(.09, 12, 8), new THREE.MeshBasicMaterial({ color:'#e9a68a' }));
+  uc.position.copy(son); scene.add(uc);
+  hatlar.set(o.id, { egri, cizgi, sonAkis:0 });
+});
+function isikAkit(odaId, ters = false, renk = '#ff7a59') {
+  const h = hatlar.get(odaId); if (!h) return;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:isikDoku, color:renk, transparent:true, depthWrite:false }));
+  s.scale.setScalar(.9); scene.add(s);
+  akanlar.push({ s, h, t:0, ters });
+}
+function akisGuncelle(dt) {
+  for (let i = akanlar.length - 1; i >= 0; i--) {
+    const a = akanlar[i];
+    a.t += dt / 1.4;
+    const k = a.ters ? 1 - a.t : a.t;
+    a.s.position.copy(a.h.egri.getPoint(THREE.MathUtils.clamp(k, 0, 1)));
+    a.s.material.opacity = Math.sin(Math.min(1, a.t) * Math.PI) * .95 + .05;
+    if (a.t >= 1) { scene.remove(a.s); a.s.material.dispose(); akanlar.splice(i, 1); if (a.ters) cekirdekParla(.35); }
+  }
+}
+
+/* ---------- duvar sayı panosu (CEO odası) ---------- */
+const pano = tuvalDoku(720, 400);
+const panoVeri = { kosu:0, calisan:0, uyuyan:0, maliyet:null };
+function panoCiz() {
+  const { ctx } = pano;
+  ctx.fillStyle = '#2f2a25'; ctx.fillRect(0, 0, 720, 400);
+  ctx.fillStyle = '#c7b9a6'; ctx.font = '600 24px Inter'; ctx.fillText(MARKA + ' · bugün', 36, 52);
+  ctx.fillStyle = '#ff9474'; ctx.beginPath(); ctx.arc(680, 44, 8, 0, Math.PI * 2); ctx.fill();
+  const kutucuk = (x, y, deger, etiket) => {
+    ctx.fillStyle = '#fff4e8'; ctx.font = '700 84px "Space Grotesk"'; ctx.fillText(String(deger), x, y);
+    ctx.fillStyle = '#a89c8c'; ctx.font = '500 22px Inter'; ctx.fillText(etiket, x, y + 34);
+  };
+  kutucuk(36, 172, panoVeri.kosu, 'iş bitti');
+  kutucuk(260, 172, panoVeri.calisan, 'çalışıyor');
+  kutucuk(484, 172, panoVeri.uyuyan, 'uyuyor');
+  ctx.fillStyle = '#3d3731'; ctx.fillRect(36, 246, 648, 2);
+  ctx.fillStyle = '#fff4e8'; ctx.font = '700 64px "Space Grotesk"'; ctx.fillText('0 token', 36, 336);
+  ctx.fillStyle = '#a89c8c'; ctx.font = '500 22px Inter'; ctx.fillText('boşta harcama · iş gelince uyanır', 36, 370);
+  pano.t.needsUpdate = true;
+}
+(() => {
+  const g = odaBul('ceo').grup;
+  const w = 3.4, h = w * 400 / 720;
+  kutu(g, .1, 1.9, .1, '#8d8276', 5.6, .95, -2.9, .03); kutu(g, .1, 1.9, .1, '#8d8276', 8.8, .95, -2.9, .03);
+  kutu(g, w + .16, h + .16, .08, '#4a443d', 7.2, 2.0, -2.9, .03);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map:pano.t, toneMapped:false }));
+  m.position.set(7.2, 2.0, -2.85); g.add(m);
+  const yt = new THREE.Mesh(new THREE.CylinderGeometry(.8, .8, .08, 40), mat('#f3ece2')); yt.position.set(7, .82, 1.6); yt.castShadow = true; g.add(yt);
+  const ya = new THREE.Mesh(new THREE.CylinderGeometry(.08, .2, .72, 16), mat('#d8cdbd')); ya.position.set(7, .45, 1.6); g.add(ya);
+  aoLeke(g, 2.4, 2.4, 7, 1.6);
+})();
+panoCiz();
+
+/* ---------- robot yüz dokuları ---------- */
+function yuzDoku(tip) {
+  const { ctx, t } = tuvalDoku(160, 96);
+  ctx.fillStyle = '#26231f'; ctx.fillRect(0, 0, 160, 96);
+  ctx.lineCap = 'round';
+  if (tip === 'uyku') {
+    ctx.strokeStyle = '#7a7166'; ctx.lineWidth = 7;
+    [[50, 50], [110, 50]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y - 6, 14, .2 * Math.PI, .8 * Math.PI); ctx.stroke(); });
+  } else if (tip === 'acik') {
+    ctx.shadowColor = '#ff7a59'; ctx.shadowBlur = 14; ctx.fillStyle = '#ff9474';
+    [[38, 26], [98, 26]].forEach(([x, y]) => { yuvarlakDikdortgen(ctx, x, y, 24, 40, 10); ctx.fill(); });
+  } else {
+    ctx.shadowColor = '#ff7a59'; ctx.shadowBlur = 14; ctx.strokeStyle = '#ff9474'; ctx.lineWidth = 8;
+    [[50, 58], [110, 58]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, 15, 1.15 * Math.PI, 1.85 * Math.PI); ctx.stroke(); });
+  }
+  t.needsUpdate = true; return t;
+}
+const YUZ = { uyku:yuzDoku('uyku'), acik:yuzDoku('acik'), mutlu:yuzDoku('mutlu') };
+const zDoku = (() => {
+  const { ctx, t } = tuvalDoku(64, 64);
+  ctx.font = '700 50px "Space Grotesk"'; ctx.fillStyle = '#7d7266'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('z', 32, 34); t.needsUpdate = true; return t;
+})();
+
+/* ---------- ekran çizimleri (gerçek durumdan) ---------- */
+const EW = 416, EH = 240;
+function ekranCiz(a) {
+  const { ctx } = a.ekran;
+  if (a.durum === 'uyku') {
+    const eg = ctx.createLinearGradient(0, 0, EW, EH); // uyuyan ekran da renkli, sakin parlar
+    eg.addColorStop(0, '#2a2440'); eg.addColorStop(1, ajanRenk(a.id));
+    ctx.fillStyle = eg; ctx.fillRect(0, 0, EW, EH);
+    ctx.fillStyle = '#f3e6ff'; ctx.font = '600 22px Inter'; ctx.fillText(kisalt(ctx, a.ad, EW - 52), 26, 48);
+    ctx.font = '500 18px Inter'; ctx.fillText(uykuMetni(a), 26, 78);
+    if (a.sonOzet) { ctx.fillStyle = 'rgba(255,240,230,.7)'; ctx.font = '500 15px Inter'; ctx.fillText(kisalt(ctx, 'son iş: ' + a.sonOzet, EW - 52), 26, 200); }
+    return;
+  }
+  ctx.fillStyle = '#fbf5ec'; ctx.fillRect(0, 0, EW, EH);
+  ctx.fillStyle = a.durum === 'bitti' ? '#5aa06e' : '#ff7a59'; ctx.fillRect(0, 0, EW, 46);
+  ctx.fillStyle = '#fff'; ctx.font = '600 20px Inter'; ctx.fillText(kisalt(ctx, a.ad, EW - 170), 22, 30);
+  ctx.font = '500 15px Inter'; ctx.textAlign = 'right';
+  ctx.fillText(a.durum === 'bitti' ? 'BİTTİ' : a.durum === 'dusunuyor' ? 'DÜŞÜNÜYOR' : 'ÇALIŞIYOR · ' + gecenSn(a) + ' sn', EW - 22, 29); ctx.textAlign = 'left';
+  if (a.durum === 'bitti') {
+    ctx.fillStyle = '#5aa06e'; ctx.font = '700 64px "Space Grotesk"'; ctx.fillText('✓', 22, 150);
+    ctx.fillStyle = '#3b342c'; ctx.font = '600 20px Inter'; ctx.fillText(kisalt(ctx, a.is || 'iş bitti', EW - 110), 86, 118);
+    ctx.fillStyle = '#6d6357'; ctx.font = '500 17px Inter'; ctx.fillText((a.sonSure ?? '?') + ' sn · uykuya dönüyor', 86, 146);
+    return;
+  }
+  ctx.fillStyle = '#8a7f72'; ctx.font = '500 16px Inter'; ctx.fillText(kisalt(ctx, a.is || '', EW - 44), 22, 76);
+  ctx.fillStyle = '#e9603f'; ctx.font = '600 21px Inter'; ctx.fillText(kisalt(ctx, a.eylem || 'başlıyor…', EW - 44), 22, 108);
+  ctx.fillStyle = '#8a7f72'; ctx.font = '500 15px ui-monospace, Menlo, monospace';
+  (a.adimlar || []).slice(-3).forEach((s, i) => ctx.fillText(kisalt(ctx, '· ' + s, EW - 44), 22, 142 + i * 22));
+  const yuz = (performance.now() / 1400) % 1;
+  ctx.fillStyle = '#eadfd0'; yuvarlakDikdortgen(ctx, 22, 214, EW - 44, 8, 4); ctx.fill();
+  ctx.fillStyle = '#ff7a59'; yuvarlakDikdortgen(ctx, 22 + (EW - 44 - 90) * yuz, 214, 90, 8, 4); ctx.fill();
+}
+function altMasaCiz(m) {
+  const { ctx } = m.ekran;
+  const v = ajanBul('veri'); const calisiyor = v && v.durum !== 'uyku';
+  ctx.fillStyle = '#1f2427'; ctx.fillRect(0, 0, EW, EH);
+  ctx.fillStyle = calisiyor ? '#ff7a59' : '#2c3337'; ctx.fillRect(0, 0, EW, 40);
+  ctx.fillStyle = calisiyor ? '#fff' : '#9fb0b6'; ctx.font = '600 17px Inter'; ctx.fillText(m.ad, 18, 26);
+  ctx.textAlign = 'right'; ctx.font = '500 14px Inter';
+  ctx.fillText(calisiyor ? 'Veri ajanı çalışıyor' : 'alt masa · uyuyor', EW - 18, 26); ctx.textAlign = 'left';
+  ctx.font = '500 15px ui-monospace, Menlo, monospace';
+  const satirlar = (v?.adimlar || []).slice(-7);
+  if (!satirlar.length) { ctx.fillStyle = '#6f8288'; ctx.fillText('olay yok · 0 token', 18, 72); return; }
+  satirlar.forEach((s, i, arr) => { ctx.fillStyle = i === arr.length - 1 ? '#ffb39c' : '#b9c7cc'; ctx.fillText(kisalt(ctx, s, EW - 36), 18, 70 + i * 23); });
+}
+const gecenSn = a => a.t0 ? Math.max(0, Math.round((Date.now() - a.t0) / 1000)) : 0;
+
+/* ---------- masa + robot kurulumu ---------- */
+function masaKur(g, oda, ez, ayak) {
+  masaTek(g, 0, .9, 1.9);
+  kutu(g, .66, .03, .44, '#d9d2c8', 0, .88, .82, .01);
+  const kapak = new THREE.Mesh(yuvarlak(.66, .42, .025, .01), mat('#d9d2c8'));
+  kapak.position.set(0, 1.08, 1.03); kapak.rotation.x = .22; kapak.castShadow = true; g.add(kapak);
+  kutu(g, .26, .14, .2, '#efe4d6', .62, .93, .82, .04);
+  kutu(g, .74, .12, .66, '#8d8276', 0, .5, 0, .05);
+  kutu(g, .74, .7, .1, '#8d8276', 0, .92, -.33, .05);
+  kutu(g, .1, .42, .1, '#6f665c', 0, .26, 0, .03);
+  aoLeke(g, 2.6, 2.4, 0, .5, .03, .9);
+  const ekran = tuvalDoku(EW, EH);
+  const ew = 1.75, eh = ew * EH / EW;
+  if (ayak) { kutu(g, .08, 1.4, .08, '#8d8276', 0, .75, ez - .05, .03); kutu(g, .7, .05, .5, '#8d8276', 0, .12, ez - .05, .02); }
+  kutu(g, ew + .14, eh + .14, .07, '#4a443d', 0, 1.75, ez, .03);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(ew, eh), new THREE.MeshBasicMaterial({ map:ekran.t, toneMapped:false }));
+  m.position.set(0, 1.75, ez + .04); g.add(m);
+  return ekran;
+}
+function lzHesap(oda, yer) { return yer.lz ?? (oda.cam ? -.6 : -oda.d / 2 + 2.15); }
+function ajanKur(a) {
+  const oda = odaBul(a.oda);
+  const g = new THREE.Group();
+  const lz = lzHesap(oda, a);
+  g.position.set(oda.cx + a.x, .1, oda.cz + lz);
+  scene.add(g); a.grup = g;
+  g.scale.setScalar(a.id === 'ceo' ? 1.25 : 1);
+  const ayak = oda.cam || a.ayak;
+  const ez = ayak ? -1.55 : -oda.d / 2 + .25 - lz;
+  a.ekran = masaKur(g, oda, ez, ayak);
+  a.lamba = new THREE.Mesh(new THREE.CircleGeometry(.05, 16), new THREE.MeshBasicMaterial({ color:'#b9ad9e' }));
+  a.lamba.position.set(0, 1.1, 1.055); a.lamba.rotation.x = .22; g.add(a.lamba);
+  // ajan figürü = kedi (oda başına desen, aynı odadakiler hafif ton farkı)
+  const ton = AJANLAR.filter(x => x.oda === a.oda).indexOf(a) * .5 - .25;
+  a.kedi = createCat({ desen:ajanDeseni(a.id, a.oda), ton, aksesuar:ajanAksesuari(a.id, a.oda) });
+  a.kedi.group.position.set(0, .56, 0); g.add(a.kedi.group);
+  masaLambasi(g, .82, .52);
+  a.yuzMat = new THREE.MeshBasicMaterial(); // durum geçişleri hâlâ yüz dokusu atar; kedide görünmez
+  if (a.id === 'bekci') bekciEkle(g);
+  a.zler = [0, 1, 2].map(() => {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:zDoku, transparent:true, depthWrite:false }));
+    s.scale.setScalar(.3); g.add(s); return s;
+  });
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(1.9, 2.4, 2.4), new THREE.MeshBasicMaterial());
+  hit.visible = false; hit.position.set(0, 1.2, .4); hit.userData.ajan = a.id; g.add(hit); secilebilir.push(hit);
+  Object.assign(a, { durum:'uyku', is:'', eylem:'', adimlar:[], faz:Math.random() * 6, ekranZaman:0 });
+  ekranCiz(a); a.ekran.t.needsUpdate = true;
+}
+function bekciEkle(g) {
+  // masada fener (kalkan rozeti kedinin göğsünde, kedi.js); sol köşe uyuyan kedinin yeri
+  const x = .72, z = 1.17;
+  kutu(g, .2, .04, .2, '#4a443d', x, .88, z, .02);
+  const fener = new THREE.Mesh(new THREE.CylinderGeometry(.08, .1, .24, 14), mat('#fff1c9', { emissive:'#ffcf7a', emissiveIntensity:.9 }));
+  fener.position.set(x, 1.02, z); g.add(fener);
+  kutu(g, .24, .04, .24, '#4a443d', x, 1.15, z, .02);
+}
+AJANLAR.forEach(ajanKur);
+// panel avatarları: her ajanın kendi kedisi, meme pozunda (açılışta bir kez)
+const PORTRE = portreleriUret(AJANLAR, {
+  desen:a => ajanDeseni(a.id, a.oda), aksesuar:a => ajanAksesuari(a.id, a.oda),
+  renk:a => odaBul(a.oda)?.duvar || '#f3dcc8',
+});
+// veri odası alt masaları: robotsuz, aynı ajanın olaylarını gösterir
+const altMasalar = [];
+if (ajanBul('veri')?.oda === 'veri' && AJANLAR.filter(a => a.oda === 'veri').length === 1) {
+  const oda = odaBul('veri');
+  [['Kaynak taraması', -1.5], ['Link deposu', 3.8]].forEach(([ad, x]) => {
+    const g = new THREE.Group(); const lz = -oda.d / 2 + 2.15;
+    g.position.set(oda.cx + x, .1, oda.cz + lz); scene.add(g);
+    const ekran = masaKur(g, oda, -oda.d / 2 + .25 - lz, false);
+    altMasalar.push({ ad, ekran, zaman:0 });
+  });
+}
+
+/* ---------- arayüz durumu ---------- */
+let sayac = { bugun_kosu:0, aktif_ajan:0, toplam_maliyet_usd:0, kosular:[] };
+/* ---------- günlük token sayacı (yalnız gerçek usage; maliyet yok) ---------- */
+function kisaSayi(n) {
+  n = Math.max(0, Math.round(n || 0));
+  const kes = (x, ek) => x.toFixed(1).replace('.', ',').replace(/,0$/, '') + ek;
+  if (n < 1000) return String(n);
+  if (n < 999950) return kes(n / 1000, 'k');
+  return kes(n / 1e6, 'M');
+}
+function tokenDisari(g) {          // olaydaki {ofis:{4 alan}, terminal:{4 alan}} → API biçimi
+  const o = g?.ofis || {}, t = g?.terminal || {};
+  const al = (u, k) => Number(u[k]) || 0, top = u => TOKEN_ALAN.reduce((s, k) => s + al(u, k), 0);
+  const h = k => al(o, k) + al(t, k);
+  return { girdi:h('input_tokens'), cikti:h('output_tokens'), onbellek_yazma:h('cache_creation_input_tokens'),
+    onbellek_okuma:h('cache_read_input_tokens'), ofis_toplam:top(o), terminal_toplam:top(t), toplam:top(o) + top(t) };
+}
+function tokenAl(id) { return TOKEN.get(id) || { toplam:0, girdi:0, cikti:0, onbellek_yazma:0, onbellek_okuma:0, ofis_toplam:0, terminal_toplam:0 }; }
+function tokenGenel() { let t = 0; TOKEN.forEach(v => { t += v.toplam || 0; }); return t; }
+let tokenZamanlayici = null;
+function tokenTazele() {
+  if (tokenZamanlayici) return;
+  tokenZamanlayici = setTimeout(() => {
+    tokenZamanlayici = null;
+    ustGuncelle();
+    if (panel.classList.contains('acik')) {
+      if (panelAjan) { const k = panel.querySelector('.token-kart'); if (k) k.replaceWith(tokenKarti(panelAjan)); }
+      else if (panelOda) odaPaneli(odaBul(panelOda));
+    }
+    AJANLAR.forEach(a => { if (a.durum === 'uyku') ekranYenile(a); });
+  }, 400);
+}
+async function tokenYukle() {
+  if (DEMO) return;
+  try {
+    const v = await getJSON('/api/token');
+    TOKEN.clear();
+    Object.entries(v.ajanlar || {}).forEach(([id, d]) => TOKEN.set(id, d));
+    tokenTazele();
+  } catch { /* sayaç yoksa etiketler eskisi gibi */ }
+}
+function uykuMetni(a) { const t = tokenAl(a.id).toplam; return t ? 'uyuyor · bugün ' + kisaSayi(t) : 'uyuyor · 0 token'; }
+function tokenKarti(id) {
+  const t = tokenAl(id), a = ajanBul(id);
+  const kart = el('div', 'token-kart');
+  const ust = el('div', 'tk-ust'); ust.append(el('span', null, 'Bugün'));
+  if (a && a.durum !== 'uyku' && a.durum !== 'bitti') ust.append(el('i', null, '● canlı artıyor'));
+  const sayi = el('div', 'tk-sayi', kisaSayi(t.toplam)); sayi.append(el('small', null, 'token'));
+  const ince = el('div', 'tk-ince');
+  const okunan = el('abbr', null, 'önbellekten okunan ' + kisaSayi(t.onbellek_okuma));
+  okunan.title = 'Önbellekten okunan token tekrar okunan bağlam; yeni işlenen değil.';
+  ince.append('girdi ' + kisaSayi(t.girdi) + ' · çıktı ' + kisaSayi(t.cikti) + ' · ', okunan, ' · önbelleğe yazılan ' + kisaSayi(t.onbellek_yazma));
+  kart.title = 'Önbellekten okunan token tekrar okunan bağlam; yeni işlenen değil.';
+  kart.append(ust, sayi, ince, el('div', 'tk-ince', 'ofis ' + kisaSayi(t.ofis_toplam) + ' · terminal ' + kisaSayi(t.terminal_toplam)));
+  return kart;
+}
+const calisanlar = () => AJANLAR.filter(a => a.durum === 'calisiyor' || a.durum === 'bekliyor' || a.durum === 'dusunuyor');
+function saatYazi(tarih = new Date()) { return String(tarih.getHours()).padStart(2, '0') + ':' + String(tarih.getMinutes()).padStart(2, '0'); }
+function ustGuncelle() {
+  const n = calisanlar().length;
+  $('aktif').textContent = n;
+  $('aktifNokta').classList.toggle('canli', n > 0);
+  const toplam = AJANLAR.length;
+  const uyuyan = toplam - n;
+  const kosu = sayac.bugun_kosu ?? 0;
+  const bekleyen = kartlar.filter(k => !k.onay).length;
+  const p = $('selamMetin'); p.replaceChildren();
+  const b = t => el('b', null, String(t));
+  const nTerm = calisanlar().filter(a => a.terminal).length;
+  const nOfis = n - nTerm;
+  const acikTerminal = terminaller.size;
+  p.append('Bugün ajanlar ', b(kosu + ' iş'), ' yaptı. ');
+  if (nOfis) p.append('Ofiste ', b(nOfis + ' ajan'), ' koşuyor, ', b(uyuyan + ' ajan'), ' uyuyor; ofisin boşta harcaması ', b('0 token'), '.');
+  else if (uyuyan === toplam) p.append(b(uyuyan + ' ajanın hepsi'), ' uyuyor; boşta harcama ', b('0 token'), '.');
+  else p.append('Ofisin kendi koşusu yok, ', b(uyuyan + ' ajan'), ' uyuyor; ofisin boşta harcaması ', b('0 token'), '.');
+  if (acikTerminal) p.append(' Ayrıca ', b(acikTerminal + ' terminal oturumu'), ' açık' + (nTerm ? ' (' + nTerm + ' ajan şu an terminalde çalışıyor)' : '') + '; onlar senin oturumların, bu sayaca girmez.');
+  if (tokenGenel()) p.append(' Token sayacı (ofis + terminal): bugün toplam ', b(kisaSayi(tokenGenel()) + ' token'), '.');
+  if (bekleyen) p.append(' CEO’nun ', b(bekleyen + ' sorusu'), ' var.');
+  Object.assign(panoVeri, { kosu, calisan:n, uyuyan });
+  panoCiz();
+  ODALAR.forEach(zeminCiz);
+}
+function selamla() {
+  const s = new Date().getHours();
+  const metin = s < 5 ? 'İyi geceler' : s < 12 ? 'Günaydın' : s < 18 ? 'İyi günler' : s < 22 ? 'İyi akşamlar' : 'İyi geceler';
+  $('selamBaslik').textContent = metin + (KULLANICI ? ' ' + KULLANICI : '') + '.';
+  $('tarih').textContent = new Date().toLocaleDateString('tr-TR', { weekday:'long', day:'numeric', month:'long' });
+  $('saat').textContent = saatYazi();
+}
+selamla(); setInterval(selamla, 30000);
+
+/* akış */
+function avatar(ajanId, sinif = '') {
+  const a = ajanBul(ajanId), foto = PORTRE.get(ajanId);
+  const d = el('span', 'avatar' + (foto ? ' foto' : '') + (sinif ? ' ' + sinif : ''), foto ? null : (a?.ad || ajanId || '?').slice(0, 1).toLocaleUpperCase('tr-TR'));
+  if (foto) d.style.backgroundImage = 'url(' + foto + ')'; else d.style.background = ajanRenk(ajanId);
+  return d;
+}
+function akisEkle(ajanId, metin, alt = '', tip = '', zaman = new Date()) {
+  const li = el('li', tip);
+  const d = el('div'); d.append(el('p', null, metin), el('small', null, [ajanBul(ajanId)?.ad, saatYazi(zaman), alt].filter(Boolean).join(' · ')));
+  li.append(avatar(ajanId), d);
+  const ul = $('akis'); ul.prepend(li);
+  while (ul.children.length > 14) ul.lastChild.remove();
+}
+
+/* CEO soruyor kartları (yerel durum) */
+const ONAY_ANAHTAR = 'ajan-ofisi-onaylar';
+const onaylar = (() => { try { return new Set(JSON.parse(localStorage.getItem(ONAY_ANAHTAR) || '[]')); } catch { return new Set(); } })();
+const onayKaydet = () => { try { localStorage.setItem(ONAY_ANAHTAR, JSON.stringify([...onaylar].slice(-200))); } catch { /* tarayıcı depolaması yoksa yalnız bu oturumda */ } };
+let kartlar = [];
+const terminaller = new Map();               // canlı terminal köprüsü: oturum_adi -> {ajan, durum, son_arac, son_hedef, pencere_adi}
+const temizMetin = s => String(s || '').replace(/[#*`>_|]/g, ' ').replace(/\s+/g, ' ').trim();
+function kartEkle(o) {
+  if (!o.kosu_id || kartlar.some(k => k.kosu_id === o.kosu_id)) return;
+  const onay = onaylar.has(o.kosu_id);
+  kartlar = [{ kosu_id:o.kosu_id, ajan:o.ajan, ozet:temizMetin(o.ozet), sure:o.sure_sn, onay, sonra:false, zaman:o.zaman }, ...kartlar].slice(0, 12);
+  kartlariCiz();
+}
+function kartlariCiz() {
+  const kok = $('kartlar');
+  const sirali = [...kartlar.filter(k => !k.onay && !k.sonra), ...kartlar.filter(k => !k.onay && k.sonra)];
+  const bekleyen = sirali.length;
+  $('ceoAlt').textContent = bekleyen ? bekleyen + ' çıktı gözden geçirmeni bekliyor' : 'gözden geçirmeni bekleyen yok';
+  $('hepsiniOnayla').style.display = bekleyen > 1 ? '' : 'none';
+  if (!bekleyen) { kok.replaceChildren(el('div', 'bos', 'Bitmiş bir koşu olunca çıktısı burada “Gözden geçir” kartı olarak belirir.')); ustGuncelle(); return; }
+  kok.replaceChildren(...sirali.slice(0, 5).map(k => {
+    const a = ajanBul(k.ajan);
+    const kart = el('div', 'kart' + (k.sonra ? ' sonra-k' : ''));
+    const ust = el('div', 'ust'); ust.append(avatar(k.ajan), document.createTextNode((a?.ad || k.ajan) + ' · ' + (k.zaman ? saatYazi(new Date(k.zaman)) : '') + (k.sure ? ' · ' + Math.round(k.sure) + ' sn' : '')));
+    const dug = el('div', 'dugmeler');
+    const onayB = el('button', 'onay', 'Onayla'); const sonraB = el('button', 'sonra', 'Sonra');
+    onayB.onclick = () => { SES.tik(); kartOnayla(k); };
+    sonraB.onclick = () => { SES.tik(); k.sonra = true; kartlariCiz(); };
+    dug.append(onayB, sonraB);
+    kart.append(ust, el('h4', null, 'Gözden geçir: ' + (a?.ad || k.ajan) + ' çıktısı'), el('p', null, k.ozet || '(özet yok)'), dug);
+    return kart;
+  }));
+  ustGuncelle();
+}
+function kartOnayla(k) {
+  k.onay = true; onaylar.add(k.kosu_id); onayKaydet();
+  akisEkle(k.ajan, 'Onaylandı: ' + (ajanBul(k.ajan)?.ad || k.ajan) + ' çıktısı', '', 'ok');
+  kartlariCiz();
+}
+$('hepsiniOnayla').onclick = () => { SES.tik(); kartlar.filter(k => !k.onay).forEach(kartOnayla); };
+
+/* ---------- insan dili: araç olayları ---------- */
+function detayAyir(detay) {
+  const s = String(detay || ''); const i = s.indexOf('=');
+  return i < 0 ? { anahtar:'', deger:s } : { anahtar:s.slice(0, i), deger:s.slice(i + 1) };
+}
+const dosyaAdi = yol => String(yol).split('/').filter(Boolean).pop() || String(yol);
+const kisa = (s, n = 34) => (s = String(s)).length > n ? s.slice(0, n - 1) + '…' : s;
+function eylemYaz(arac, detay) {
+  const { deger } = detayAyir(detay);
+  const dosya = kisa(dosyaAdi(deger), 30);
+  switch (arac) {
+    case 'Read': return { simdi:'okuyor: ' + dosya, gecmis:dosya + ' dosyasını okudu' };
+    case 'Write': return { simdi:'yazıyor: ' + dosya, gecmis:dosya + ' dosyasını yazdı' };
+    case 'Edit': case 'MultiEdit': case 'NotebookEdit': return { simdi:'yazıyor: ' + dosya, gecmis:dosya + ' dosyasını düzenledi' };
+    case 'Grep': case 'Glob': return { simdi:'arıyor: ' + kisa(deger, 30), gecmis:'“' + kisa(deger, 40) + '” aradı' };
+    case 'Bash': return { simdi:'komut çalıştırıyor', gecmis:'komut çalıştırdı' };
+    case 'WebSearch': case 'WebFetch': return { simdi:'araştırıyor', gecmis:'web’de araştırdı' };
+    case 'Task': case 'Agent': return { simdi:'alt-ajana iş veriyor', gecmis:'alt-ajana iş verdi' + (deger ? ': ' + kisa(deger, 40) : '') };
+    case 'TodoWrite': return { simdi:'plan yapıyor', gecmis:'iş planı yaptı' };
+    case 'YeniGorev': return { simdi:'yeni görev aldı', gecmis:'yeni görev aldı' };
+    default: return { simdi:(arac || 'araç') + ' kullanıyor', gecmis:(arac || 'araç') + ' kullandı' };
+  }
+}
+
+/* ---------- iş zarfı ---------- */
+const zarflar = [];
+const zarfGeo = yuvarlak(.5, .1, .34, .03);
+function zarfGonder(hedef, bitince = () => {}) {
+  const ceo = ajanBul('ceo');
+  if (!ceo || hedef.id === 'ceo') { bitince(); return; }
+  const bas = new THREE.Vector3(ceo.grup.position.x, 2.4, ceo.grup.position.z + .4);
+  const son = new THREE.Vector3(hedef.grup.position.x, 2.3, hedef.grup.position.z + .2);
+  const orta = bas.clone().lerp(son, .5); orta.y = 7 + bas.distanceTo(son) * .12;
+  const egri = new THREE.QuadraticBezierCurve3(bas, orta, son);
+  const iz = new THREE.Line(new THREE.BufferGeometry().setFromPoints(egri.getPoints(80)), new THREE.LineBasicMaterial({ color:'#ff7a59', transparent:true, opacity:.85 }));
+  iz.geometry.setDrawRange(0, 0); scene.add(iz);
+  const z = new THREE.Mesh(zarfGeo, new THREE.MeshStandardMaterial({ color:'#fff3ea', emissive:'#ff7a59', emissiveIntensity:.55 }));
+  z.castShadow = true; scene.add(z);
+  z.add(new THREE.PointLight('#ff8a66', 6, 6, 2));
+  zarflar.push({ egri, iz, z, t:0, sure:1.5, bitince, son:false, solma:0 });
+}
+function zarfGuncelle(dt) {
+  for (let i = zarflar.length - 1; i >= 0; i--) {
+    const e = zarflar[i];
+    if (!e.son) {
+      e.t = Math.min(1, e.t + dt / e.sure);
+      const k = e.t < .5 ? 2 * e.t * e.t : 1 - Math.pow(-2 * e.t + 2, 2) / 2;
+      e.z.position.copy(e.egri.getPoint(k)); e.z.rotation.y += dt * 3;
+      e.iz.geometry.setDrawRange(0, Math.floor(k * 81));
+      if (e.t >= 1) { e.son = true; e.bitince(); scene.remove(e.z); }
+    } else {
+      e.solma += dt;
+      e.iz.material.opacity = Math.max(0, .85 - e.solma * 1.4);
+      if (e.solma > .7) { scene.remove(e.iz); e.iz.geometry.dispose(); e.iz.material.dispose(); e.z.material.dispose(); zarflar.splice(i, 1); }
+    }
+  }
+}
+
+/* ---------- ajan durum geçişleri ---------- */
+function ekranYenile(a) { ekranCiz(a); a.ekran.t.needsUpdate = true; }
+function ajanUyandir(a, is, kosuId, zaman) {
+  clearTimeout(a.uykuZamanlayici);
+  const yeni = a.durum !== 'calisiyor';
+  Object.assign(a, { durum:'calisiyor', is:is || a.is || 'iş', kosuId, t0:zaman || Date.now(), eylem:'başlıyor…', adimlar:[], terminal:false });
+  a.yuzMat.map = YUZ.acik;
+  if (yeni) SES.uyan();
+  ekranYenile(a); ustGuncelle(); panelYenile();
+}
+function ajanUyut(a) {
+  Object.assign(a, { durum:'uyku', is:'', eylem:'', kosuId:null, terminal:false });
+  a.yuzMat.map = YUZ.uyku; ekranYenile(a); ustGuncelle(); panelYenile();
+}
+function ajanBitir(a, o) {
+  Object.assign(a, { durum:'bitti', sonSure:Math.round(o.sure_sn ?? gecenSn(a)), sonOzet:temizMetin(o.ozet).slice(0, 120) });
+  a.yuzMat.map = o.durum === 'hata' ? YUZ.uyku : YUZ.mutlu;
+  ekranYenile(a); ustGuncelle(); panelYenile();
+  clearTimeout(a.uykuZamanlayici);
+  a.uykuZamanlayici = setTimeout(() => ajanUyut(a), 6000);
+}
+
+/* ---------- olay işleyici (SSE ve demo aynı yoldan) ---------- */
+const gorulen = new Set();
+const kosuEtiket = new Map();
+let sayacZamanlayici = null;
+function sayacTazele() { clearTimeout(sayacZamanlayici); sayacZamanlayici = setTimeout(sayacYukle, 600); }
+function olayIsle(o) {
+  if (o.tur === 'token') { if (o.ajan && o.ajan_gun) { TOKEN.set(o.ajan, tokenDisari(o.ajan_gun)); tokenTazele(); } return; }
+  const anahtar = [o.zaman, o.tur, o.kosu_id, o.oturum_adi, o.durum, o.arac, o.detay].join('|');
+  if (gorulen.has(anahtar)) return;
+  gorulen.add(anahtar);
+  const zaman = o.zaman ? new Date(o.zaman) : new Date();
+  const tekrar = zaman.getTime() < SAYFA_ACILIS - 3000;
+  const a = ajanBul(o.ajan);
+  const ad = a?.ad || o.ajan || 'Ajan';
+  const isler = {
+    kosu_basladi() {
+      kosuEtiket.set(o.kosu_id, o.etiket || '');
+      if (!tekrar) akisEkle(o.ajan, ad + ' işe başladı' + (o.etiket ? ': ' + o.etiket : ''), '', '', zaman);
+      if (tekrar || !a) return;
+      ajanUyandir(a, o.etiket || 'senin görevin', o.kosu_id, zaman.getTime());
+      isikAkit(a.oda);
+    },
+    ilerledi() {
+      const e = eylemYaz(o.arac, o.detay);
+      if (a && a.durum === 'calisiyor' && (!a.kosuId || a.kosuId === o.kosu_id)) {
+        a.eylem = e.simdi; a.adimlar = [...(a.adimlar || []), saatYazi(zaman) + ' ' + e.simdi].slice(-8);
+        if ((o.arac === 'Task' || o.arac === 'Agent') && !tekrar) altAjanEkle(a, o.detay);
+        ekranYenile(a); panelYenile();
+      }
+      if (!tekrar) akisEkle(o.ajan, ad + ', ' + e.gecmis, '', '', zaman);
+    },
+    kosu_bitti() {
+      const etiket = kosuEtiket.get(o.kosu_id);
+      const sure = o.sure_sn != null ? Math.round(o.sure_sn) + ' sn' : '';
+      akisEkle(o.ajan, o.durum === 'hata' ? ad + ' işi bitiremedi' : ad + ' işi bitirdi' + (etiket ? ': ' + etiket : ''), sure, o.durum === 'hata' ? '' : 'ok', zaman);
+      const hafiza = Array.isArray(o.hafiza_eklendi) ? o.hafiza_eklendi : [];
+      hafiza.forEach(m => akisEkle(o.ajan, 'Hafızaya eklendi: ' + kisa(m, 90), '', 'hafiza', zaman));
+      if (o.durum !== 'hata') kartEkle(o);
+      if (a) altAjanTemizle(a.id);
+      if (a && !tekrar) {
+        ajanBitir(a, o); SES.bitti(); isikAkit(a.oda, true, hafiza.length ? '#e0a53a' : '#ff7a59');
+        if (hafiza.length) setTimeout(() => { cekirdekParla(1.4); SES.hafiza(); }, 1300);
+      } else if (a && o.ozet) a.sonOzet = temizMetin(o.ozet).slice(0, 120);
+      sayacTazele();
+    },
+    ceo_basladi() {
+      if (tekrar || !a) return;
+      Object.assign(a, { durum:'dusunuyor', is:'seni dinliyor', eylem:'düşünüyor…', t0:zaman.getTime() });
+      a.yuzMat.map = YUZ.acik; cekirdek.dusun = true; ekranYenile(a); ustGuncelle();
+    },
+    ceo_bitti() {
+      if (o.durum === 'hata') { if (!tekrar) akisEkle('ceo', 'CEO geçerli bir plan çıkaramadı, koşu başlatılmadı', '', '', zaman); }
+      else {
+        akisEkle('ceo', 'CEO: ' + kisa(o.cevap || '', 140), '', '', zaman);
+        (o.reddedilen || []).forEach(r => akisEkle(r.ajan, 'CEO atamadı: ' + (ajanBul(r.ajan)?.ad || r.ajan) + ' · ' + (r.neden || ''), '', '', zaman));
+      }
+      if (tekrar || !a) return;
+      cekirdek.dusun = false; cekirdekParla(.8);
+      a.balon = o.durum === 'hata' ? 'Plan çıkaramadım; hiçbir koşu başlatmadım.' : (o.cevap || '');
+      a.balonBitis = Date.now() + 16000;
+      ajanBitir(a, { sure_sn:o.sure_sn, ozet:o.cevap, durum:o.durum });
+      (o.baslatilan || []).forEach((b, i) => {
+        const h = ajanBul(b.ajan); if (!h) return;
+        setTimeout(() => { SES.gonder(); zarfGonder(h); if (h.durum === 'uyku') { h.durum = 'bekliyor'; h.eylem = 'iş yolda…'; ustGuncelle(); } }, 300 + i * 450);
+      });
+      sayacTazele();
+    },
+    hata() { akisEkle(o.ajan, ad + ': hata · ' + kisa(o.detay || '', 80), '', '', zaman); },
+    terminal_durum() {
+      if (tekrar || !o.oturum_adi) return;
+      if (o.durum === 'kapandi') terminaller.delete(o.oturum_adi);
+      else terminaller.set(o.oturum_adi, { ...(terminaller.get(o.oturum_adi) || {}), ...o });
+      terminalSenkron();
+    },
+    terminal_arac() {
+      if (tekrar || !o.oturum_adi) return;
+      const e = eylemYaz(o.arac, o.detay);
+      const onceki = terminaller.get(o.oturum_adi) || { ajan:o.ajan, oda:o.oda, oturum_adi:o.oturum_adi };
+      const yeniGorev = o.arac === 'YeniGorev';
+      terminaller.set(o.oturum_adi, { ...onceki, durum:'calisiyor', ...(yeniGorev ? {} : { son_arac:o.arac, son_hedef:o.detay }) });
+      terminalSenkron();
+      if (a && a.terminal) {
+        a.adimlar = [...(a.adimlar || []), saatYazi(zaman) + ' ' + e.simdi].slice(-8);
+        ekranYenile(a); panelYenile();
+      }
+      // akış: ajan başına en fazla 1 satır / 5 sn
+      const simdi = Date.now();
+      if (simdi - (terminalAkisZaman.get(o.ajan) || 0) < TERMINAL_AKIS_SN * 1000) return;
+      terminalAkisZaman.set(o.ajan, simdi);
+      akisEkle(o.ajan, ad + ' (terminal) ' + e.gecmis, 'terminal', '', zaman);
+    },
+  };
+  (isler[o.tur] || (() => {}))();
+}
+/* alt-ajan doğuşu: Task/Agent aracında masanın önünde yarı saydam kopya */
+const altAjanlar = [];
+const ALT_OLCEK = .6;
+function altAjanEkle(a, detay) {
+  const kendi = altAjanlar.filter(x => x.ana === a.id);
+  if (kendi.length >= 4) return;
+  const g = new THREE.Group();
+  const i = kendi.length;
+  g.position.copy(a.grup.position).add(new THREE.Vector3(-1.1 + i * 1.1, 0, 2.05));
+  g.scale.setScalar(ALT_OLCEK);
+  // yavru kedi: ananın deseni, yarı saydam
+  const kedi = createCat({ desen:a.kedi?.desen || 'tekir', yavru:true });
+  kedi.setDurum('calisiyor'); g.add(kedi.group);
+  scene.add(g);
+  const { deger } = detayAyir(detay);
+  const alt = { id:'alt-' + a.id + '-' + Date.now() + '-' + i, ana:a.id, alt:true, ad:'alt-ajan', grup:g, durum:'calisiyor', eylem:kisa(deger || 'görev', 30), faz:Math.random() * 6, dogus:performance.now(), kedi };
+  altAjanlar.push(alt);
+  return alt;
+}
+function altAjanTemizle(anaId, yalnizTerminal = false) {
+  for (let i = altAjanlar.length - 1; i >= 0; i--) {
+    const x = altAjanlar[i]; if (x.ana !== anaId || (yalnizTerminal && !x.terminal)) continue;
+    scene.remove(x.grup); altAjanlar.splice(i, 1);
+    const e = etiketler.get(x.id); if (e) { e.d.remove(); etiketler.delete(x.id); }
+  }
+}
+function altAjanAnimasyon(t, dt) {
+  altAjanlar.forEach(x => {
+    const k = Math.min(1, (performance.now() - x.dogus) / 500);
+    x.grup.scale.setScalar(ALT_OLCEK * k);
+    x.grup.position.y = .1 + Math.abs(Math.sin(t * 3 + x.faz)) * .03;
+    x.kedi?.update(dt);
+  });
+}
+/* ---------- canlı terminal köprüsü: kendi elle açtığın Claude Code oturumları ---------- */
+const terminalAkisZaman = new Map();
+const TERMINAL_AKIS_SN = 5;
+function terminalEylem(t) {
+  return t.son_arac ? eylemYaz(t.son_arac, t.son_hedef).simdi : 'çalışıyor';
+}
+function terminalSenkron() {
+  AJANLAR.forEach(a => {
+    if (a.id === 'ceo') return;
+    const hepsi = [...terminaller.values()].filter(t => t.ajan === a.id);
+    const calisan = hepsi.filter(t => t.durum === 'calisiyor');
+    a.terminalSay = hepsi.length;
+    const ofisKosusu = a.durum !== 'uyku' && !a.terminal;   // ofisin kendi koşusu her zaman önce gelir
+    if (calisan.length && !ofisKosusu) {
+      if (!a.terminal) { ajanUyandir(a, 'terminal oturumu', null, Date.now()); a.terminal = true; }
+      a.eylem = 'terminal · ' + terminalEylem(calisan[0]);
+      a.is = 'terminal · ' + (calisan[0].pencere_adi && calisan[0].pencere_adi !== 'claude.exe' ? calisan[0].pencere_adi : calisan[0].oturum_adi);
+    } else if (a.terminal && !calisan.length) {
+      ajanUyut(a);
+    }
+    // ana figür ilk oturum; diğer çalışan oturumlar yarı saydam alt figür (en fazla 4)
+    const istenen = a.terminal ? calisan.slice(1, 5) : [];
+    const mevcut = altAjanlar.filter(x => x.ana === a.id && x.terminal);
+    if (mevcut.length !== istenen.length) {
+      altAjanTemizle(a.id, true);
+      istenen.forEach(t => { const x = altAjanEkle(a, ''); if (x) { x.terminal = true; x.oturum = t.oturum_adi; } });
+    }
+    altAjanlar.filter(x => x.ana === a.id && x.terminal).forEach((x, i) => { if (istenen[i]) x.eylem = kisa(terminalEylem(istenen[i]), 30); });
+    if (a.terminal) ekranYenile(a);
+  });
+  ustGuncelle(); panelYenile();
+}
+const MODEL_ADI = { haiku:'Haiku 4.5', sonnet:'Sonnet 5.5', opus:'Opus 5.5', fable:'Fable 5.1' };
+function modelAdi(m) {
+  if (!m) return '';
+  if (MODEL_ADI[m]) return MODEL_ADI[m];
+  const e = String(m).match(/claude-(opus|sonnet|haiku|fable)-(\d+)-(\d+)/);
+  return e ? e[1][0].toUpperCase() + e[1].slice(1) + ' ' + e[2] + '.' + e[3] : String(m);
+}
+// Ofis koşusu ajanlar.json'daki modelle çalışır; terminal oturumu senin açtığın modelle (transkriptten okunur).
+function modelSatiri(a) {
+  const ofis = modelAdi(a.model);
+  const term = [...new Set([...terminaller.values()].filter(t => t.ajan === a.id && t.model).map(t => modelAdi(t.model)))];
+  return term.length ? `Ofis koşusu: ${ofis} · Terminal: ${term.join(', ')}` : ofis;
+}
+async function terminalleriYukle() {
+  if (DEMO) return;
+  try {
+    const { terminaller:liste } = await getJSON('/api/terminaller');
+    terminaller.clear();
+    (liste || []).forEach(t => terminaller.set(t.oturum_adi, t));
+    terminalSenkron();
+  } catch { /* köprü yoksa ofis eskisi gibi çalışır */ }
+}
+
+/* ---------- gerçek bağlantı ---------- */
+const TURLER = ['kosu_basladi', 'ilerledi', 'kosu_bitti', 'ceo_basladi', 'ceo_bitti', 'hata', 'terminal_durum', 'terminal_arac', 'token'];
+function modGoster(tip, yazi) { const m = $('mod'); m.className = 'mod ' + tip; $('modYazi').textContent = yazi; }
+async function sayacYukle() {
+  if (DEMO) { ustGuncelle(); return; }
+  try { sayac = await getJSON('/api/sayac'); ustGuncelle(); panelYenile(); if (aktifSekme === 'maliyet') sekmeAc('maliyet'); }
+  catch { modGoster('kopuk', 'Canlı · sayaç alınamadı'); }
+}
+function canliBaglan() {
+  modGoster('canli', 'Canlı');
+  const kaynak = new EventSource('/api/olaylar?son=30');
+  TURLER.forEach(t => kaynak.addEventListener(t, e => { try { olayIsle(JSON.parse(e.data)); } catch { /* bozuk satır atlanır */ } }));
+  kaynak.onopen = () => modGoster('canli', 'Canlı');
+  kaynak.onerror = () => modGoster('kopuk', 'Canlı · yeniden bağlanıyor');
+}
+function ilkDurum() {
+  apiAjanlar.forEach(x => {
+    const a = ajanBul(x.id); if (!a) return;
+    if (x.son_kosu?.ozet) a.sonOzet = temizMetin(x.son_kosu.ozet).slice(0, 120);
+    if (x.durum === 'calisiyor') { ajanUyandir(a, 'çalışıyor', x.son_kosu?.kosu_id || null, Date.now()); a.kosuId = null; a.eylem = 'çalışıyor'; }
+    ekranYenile(a);
+  });
+}
+async function gorevVer(ajanId, govde) {
+  const a = ajanBul(ajanId); if (!a) return;
+  SES.gonder();
+  if (DEMO) { demo.gorev(ajanId, govde); return; }
+  try {
+    const { durum, veri } = await postJSON('/api/gorev', { ajan:ajanId, ...govde });
+    if (durum === 202) {
+      akisEkle(ajanId, SEN + ' → ' + a.ad + ': ' + kisa(govde.etiket || govde.prompt, 80));
+      if (a.durum === 'uyku' || a.durum === 'bitti') { a.durum = 'bekliyor'; a.eylem = 'iş yolda…'; ustGuncelle(); }
+      zarfGonder(a);
+    } else if (durum === 409) tost(a.ad + ' zaten çalışıyor; bitince tekrar dene.');
+    else tost('Görev başlatılamadı: ' + (veri.hata || durum));
+  } catch { tost('Sunucuya ulaşılamadı.'); }
+}
+let ceoBekliyor = false;
+async function ceoyaSor(metin) {
+  const temiz = metin.trim().slice(0, 600); if (!temiz || ceoBekliyor) return;
+  SES.tik(); akisEkle('ceo', SEN + ' → CEO: ' + kisa(temiz, 120));
+  ceoBekliyor = true; $('komutGonder').disabled = true;
+  const ceo = ajanBul('ceo');
+  if (ceo) { Object.assign(ceo, { durum:'dusunuyor', is:'seni dinliyor', eylem:'düşünüyor…', t0:Date.now(), balon:null }); ceo.yuzMat.map = YUZ.acik; cekirdek.dusun = true; ekranYenile(ceo); ustGuncelle(); }
+  try {
+    if (DEMO) await demo.ceo(temiz);
+    else {
+      const { durum, veri } = await postJSON('/api/ceo', { metin:temiz });
+      if (durum !== 200) { tost('CEO: ' + (veri.hata || 'hata ' + durum)); if (ceo) { cekirdek.dusun = false; ajanUyut(ceo); } }
+    }
+  } catch { tost('CEO’ya ulaşılamadı.'); if (ceo) { cekirdek.dusun = false; ajanUyut(ceo); } }
+  ceoBekliyor = false; $('komutGonder').disabled = false;
+}
+let tostZaman = null;
+function tost(metin) { const t = $('tost'); t.textContent = metin; t.classList.add('goster'); clearTimeout(tostZaman); tostZaman = setTimeout(() => t.classList.remove('goster'), 3600); }
+
+/* ---------- demo motoru (arka uca istek yok, maliyet sıfır) ---------- */
+const DEMO_ADIM = {
+  'gun-sonu':[['Read','file_path=notlar/gunluk.md'],['Grep','pattern=^## bugün'],['Read','file_path=hafiza/gun-sonu.md']],
+  'tasarimci':[['Read','file_path=brief/kapak.md'],['Glob','pattern=gorseller/*.png'],['Write','file_path=cikti/kapak-fikirleri.md']],
+  'veri':[['Read','file_path=depo/linkler.jsonl'],['Read','file_path=depo/kaynaklar.jsonl'],['Grep','pattern=etiket:'],['Write','file_path=rapor/sabah.md']],
+  'blog-yazari':[['Read','file_path=notlar/proje.md'],['Read','file_path=taslaklar/onceki-yazi.md'],['Write','file_path=taslaklar/yeni-yazi.md']],
+  'editor':[['Read','file_path=taslaklar/yeni-yazi.md'],['Grep','pattern=TODO'],['Write','file_path=duzeltmeler.md']],
+  'kod-inceleyici':[['Bash','command=git diff'],['Read','file_path=src/api/routes.ts'],['Task','description=güvenlik taraması',600],['Task','description=tip kontrolü',600],['Task','description=test kapsamı',600],['Grep','pattern=TODO',5200],['Write','file_path=inceleme.md']],
+  'test-yazari':[['Read','file_path=src/utils/format.ts'],['Glob','pattern=tests/**/*.test.ts'],['Write','file_path=tests/format.test.ts']],
+  'sosyal-yazar':[['Read','file_path=notlar/haftalik.md'],['Write','file_path=taslak/post.md']],
+  'arastirmaci':[['WebSearch','query=claude code hooks'],['WebFetch','url=https://docs.claude.com'],['Write','file_path=notlar/arastirma.md']],
+  'gelistirici':[['Bash','command=git status'],['Read','file_path=README.md'],['Write','file_path=plan.md']],
+  'temizlikci':[['Bash','command=du -sh ~/Downloads'],['Glob','pattern=**/*.mov'],['Write','file_path=temizlik-plani.md']],
+  'bekci':[['Glob','pattern=~/Downloads/*'],['Bash','command=spctl --assess'],['Write','file_path=bekci-raporu.md']],
+  'posta':[['Read','file_path=gelen-kutusu.json'],['Write','file_path=taslak-cevaplar.md']],
+};
+const DEMO_OZET = {
+  'gun-sonu':'Bugün 3 iş bitti: blog taslağı, kod incelemesi, sabah raporu. Yarına 1 açık madde.',
+  'tasarimci':'Kapak için 3 fikir: renk paleti, başlık yerleşimi, ikon önerisi.',
+  'veri':'Sabah analizi: 9 link ayıklandı, 2’si blog konusu olarak Yazı Odası’na önerildi.',
+  'blog-yazari':'Yeni yazı taslağı hazır: 3 bölüm, sonunda kaynak listesi. Yayınlanmadı.',
+  'kod-inceleyici':'2 risk bulundu: doğrulanmamış girdi, eksik hata yakalama. Dosyaya yazılmadı.',
+  'sosyal-yazar':'Haftanın postu taslağı: iki varyasyon, paylaşılmadı.',
+  'arastirmaci':'3 kaynaklı kısa not: hooks ile koşu olayları.',
+};
+const demo = (() => {
+  const zamanla = (ms, f) => setTimeout(f, ms);
+  // demo token: yalnız çalışırken artar (her adım bir model turu), uyurken sabit; arka uca istek yok
+  const demoGun = new Map();
+  const tokenEkle = (ajanId, kaynak, girdi, cikti, yazma, okuma) => {
+    const g = demoGun.get(ajanId) || { ofis:{}, terminal:{} };
+    const u = g[kaynak], ek = { input_tokens:girdi, output_tokens:cikti, cache_creation_input_tokens:yazma, cache_read_input_tokens:okuma };
+    g[kaynak] = Object.fromEntries(TOKEN_ALAN.map(k => [k, (u[k] || 0) + ek[k]]));
+    demoGun.set(ajanId, g);
+    olayIsle({ tur:'token', ajan:ajanId, kaynak, ajan_gun:g });
+  };
+  const turToken = ajanId => tokenEkle(ajanId, 'ofis', 3 + Math.floor(Math.random() * 6), 180 + Math.floor(Math.random() * 520),
+    1500 + Math.floor(Math.random() * 4000), 18000 + Math.floor(Math.random() * 14000));
+  const kosu = (ajanId, etiket, kaynak) => {
+    const a = ajanBul(ajanId); if (!a || a.durum === 'calisiyor') return false;
+    const kosu_id = 'demo-' + Date.now() + '-' + ajanId; const oda = a.oda; const bas = Date.now();
+    const yay = (tur, ek = {}) => olayIsle({ zaman:new Date().toISOString(), tur, kosu_id, ajan:ajanId, oda, ...ek });
+    yay('kosu_basladi', { etiket, kaynak });
+    const adimlar = DEMO_ADIM[ajanId] || [['Read', 'file_path=README.md']];
+    let t = 900;
+    zamanla(500, () => turToken(ajanId));
+    adimlar.forEach(([arac, detay, ara]) => { zamanla(t, () => { yay('ilerledi', { arac, detay }); turToken(ajanId); }); t += ara ?? 1700 + Math.random() * 1500; });
+    zamanla(t + 600, () => {
+      const hafiza = Math.random() < .35 ? ['Kısa madde tercih ediliyor; en fazla 3 satır.'] : [];
+      yay('kosu_bitti', { durum:'basarili', sure_sn:(Date.now() - bas) / 1000, ozet:DEMO_OZET[ajanId] || etiket + ' tamamlandı.', maliyet_usd:0, hafiza_eklendi:hafiza });
+      sayac = { ...sayac, bugun_kosu:(sayac.bugun_kosu || 0) + 1 };
+    });
+    return true;
+  };
+  const YOL = [[/mail|posta|gelen kutusu/i,'posta'],[/tasarım|kapak|görsel|logo/i,'tasarimci'],[/kod|incele|review|bug/i,'kod-inceleyici'],
+    [/test/i,'test-yazari'],[/tweet|post|sosyal|linkedin/i,'sosyal-yazar'],[/prototip|demo|site|araç yap/i,'gelistirici'],[/disk|yer aç|temizle/i,'temizlikci'],
+    [/güvenlik|indir|port/i,'bekci'],[/blog|yazı|taslak/i,'blog-yazari'],[/düzelt|editör|redakte/i,'editor'],[/özet|gün sonu|bugün/i,'gun-sonu'],
+    [/link|sabah/i,'veri'],[/araştır|kaynak|bul/i,'arastirmaci']];
+  // tetik_kelime'li ajan (ör. posta) yalnız istekte o kelime geçince seçilir — sunucudaki kuralın aynısı
+  const tetikUygun = (id, metin) => { const k = ajanBul(id)?.tetik_kelime; return !k || metin.toLocaleLowerCase('tr-TR').includes(String(k).toLocaleLowerCase('tr-TR')); };
+  return {
+    gorev(ajanId, govde) {
+      const a = ajanBul(ajanId);
+      if (a.durum === 'calisiyor') { tost(a.ad + ' zaten çalışıyor; bitince tekrar dene.'); return; }
+      akisEkle(ajanId, SEN + ' → ' + a.ad + ': ' + kisa(govde.etiket || govde.prompt, 80));
+      a.durum = 'bekliyor'; a.eylem = 'iş yolda…'; ustGuncelle();
+      zarfGonder(a, () => kosu(ajanId, govde.etiket || kisa(govde.prompt, 60)));
+    },
+    ceo(metin) {
+      const kosu_id = 'demo-ceo-' + Date.now();
+      olayIsle({ zaman:new Date().toISOString(), tur:'ceo_basladi', kosu_id, ajan:'ceo', oda:'ceo' });
+      return new Promise(coz => zamanla(4200, () => {
+        const hedefler = [...new Set(YOL.filter(([re]) => re.test(metin)).map(([, id]) => id))].filter(id => ajanBul(id) && tetikUygun(id, metin)).slice(0, 2);
+        const secilen = hedefler.length ? hedefler : ['arastirmaci'].filter(id => ajanBul(id));
+        const adlar = secilen.map(id => ajanBul(id)?.ad).join(' ve ');
+        olayIsle({ zaman:new Date().toISOString(), tur:'ceo_bitti', kosu_id, ajan:'ceo', oda:'ceo', durum:'basarili', sure_sn:4.2,
+          cevap:adlar + ' bu işi alıyor. Bitince çıktıyı “CEO soruyor” kısmına koyarım, onayını beklerim.',
+          baslatilan:secilen.map(id => ({ ajan:id })), reddedilen:[] });
+        secilen.forEach((id, i) => zamanla(2200 + i * 450, () => kosu(id, kisa(metin, 60), 'ceo')));
+        coz();
+      }));
+    },
+    basla() {
+      const once = (dk, tur, ek) => olayIsle({ zaman:new Date(Date.now() - dk * 60000).toISOString(), tur, ...ek });
+      once(185, 'kosu_basladi', { kosu_id:'d-1', ajan:'veri', oda:'veri', etiket:'Sabah analizi' });
+      once(183, 'kosu_bitti', { kosu_id:'d-1', ajan:'veri', oda:'veri', durum:'basarili', sure_sn:96, ozet:'Sabah analizi: 9 link ayıklandı; 2’si blog konusu olabilir. Talimat içeren 1 metin veri olarak işaretlendi.', hafiza_eklendi:[] });
+      once(42, 'kosu_basladi', { kosu_id:'d-2', ajan:'sosyal-yazar', oda:'sosyal', etiket:'Haftanın postu' });
+      once(41, 'kosu_bitti', { kosu_id:'d-2', ajan:'sosyal-yazar', oda:'sosyal', durum:'basarili', sure_sn:51, ozet:'Haftanın postu taslağı hazır: “Ofisim boştayken 0 token harcıyor.” İki varyasyon, paylaşılmadı.', hafiza_eklendi:['Postlarda emoji yok, ilk cümle kanca.'] });
+      tokenEkle('veri', 'ofis', 41, 2310, 28400, 96200);
+      tokenEkle('sosyal-yazar', 'ofis', 22, 1180, 14900, 51300);
+      tokenEkle('blog-yazari', 'terminal', 380, 21400, 96500, 3412000);
+      sayac = { bugun_kosu:2, aktif_ajan:0, toplam_maliyet_usd:0, kosular:[
+        { kosu_id:'d-1', ajan:'veri', durum:'basarili', sure_sn:96, maliyet_usd:0, kullanim:null },
+        { kosu_id:'d-2', ajan:'sosyal-yazar', durum:'basarili', sure_sn:51, maliyet_usd:0, kullanim:null }] };
+      if (!OTO) return;
+      zamanla(300, () => kosu('tasarimci', 'Kapak fikirleri'));
+      zamanla(900, () => kosu('gun-sonu', 'Bugünün 3 maddesi'));
+      zamanla(1600, () => kosu('blog-yazari', 'Taslak yaz'));
+      zamanla(2400, () => kosu('bekci', 'İndirilenleri denetle'));
+      zamanla(1200, () => kosu('kod-inceleyici', 'Son değişiklikleri incele'));
+      setInterval(() => {
+        const uyuyan = AJANLAR.filter(a => a.durum === 'uyku' && a.id !== 'ceo' && !a.tetik_kelime);
+        if (calisanlar().length >= 4 || !uyuyan.length) return;
+        const a = uyuyan[Math.floor(Math.random() * uyuyan.length)];
+        kosu(a.id, a.hazir_gorevler?.[0]?.etiket || 'görev');
+      }, 7000);
+    },
+  };
+})();
+
+/* ---------- ajan / oda paneli ---------- */
+const panel = $('panel');
+let panelAjan = null, panelOda = null;
+function panelKapat() { panel.classList.remove('acik'); panelAjan = panelOda = null; odaVurgu(null); }
+function durumMetni(a) {
+  if (a.durum === 'uyku') { const m = uykuMetni(a); return m[0].toUpperCase() + m.slice(1); }
+  if (a.durum === 'bitti') return '✓ Bitti · ' + (a.sonSure ?? '?') + ' sn';
+  if (a.durum === 'bekliyor') return 'İş yolda…';
+  if (a.durum === 'dusunuyor') return 'Düşünüyor…';
+  return (a.eylem || 'Çalışıyor') + ' · ' + gecenSn(a) + ' sn';
+}
+function durumRozet(a) {
+  const d = el('span', 'durum' + (a.durum === 'uyku' ? '' : ' calisiyor'));
+  d.append(el('span', 'nokta'), document.createTextNode(durumMetni(a)));
+  return d;
+}
+function ajanPaneli(a) {
+  panelAjan = a.id; panelOda = a.oda;
+  const oda = odaBul(a.oda);
+  const kapat = el('button', 'kapat', '×'); kapat.onclick = () => { SES.tik(); panelKapat(); };
+  const satirlar = el('div', 'satirlar');
+  [['Görev', a.aciklama], ['Model', modelSatiri(a)], ['Ne zaman', a.ne_zaman_metin]].forEach(([k, v]) => { const s = el('div', 'satir'); s.append(el('span', null, k), el('span', null, v || '—')); satirlar.append(s); });
+  const baslik = el('div', 'portre-bas'); const bm = el('div');
+  bm.append(el('div', 'oda-etiket', oda.ad), el('h2', null, a.ad));
+  const yazi = memeBul(a.id, a.oda)?.yazi; if (yazi) bm.append(el('div', 'meme-alt', yazi));
+  baslik.append(avatar(a.id, 'buyuk'), bm);
+  const parcalar = [kapat, baslik, tokenKarti(a.id), durumRozet(a), satirlar];
+  if (oda.not) parcalar.push(el('div', 'not', oda.not));
+  if (a.id !== 'ceo') parcalar.push(el('h3', null, 'Bağlı araçlar'), aracCipleri(a.izinli_araclar));
+  if (a.sonOzet) parcalar.push(el('h3', null, 'Son iş'), el('div', 'not', a.sonOzet));
+  const form = el('form', 'yaz'); form.autocomplete = 'off';
+  const inp = el('input'); inp.maxLength = 600;
+  const gon = el('button', 'gonder', a.id === 'ceo' ? 'Sor' : 'Ver'); gon.type = 'submit';
+  form.append(inp, gon);
+  if (a.id === 'ceo') {
+    inp.placeholder = 'CEO’ya derdini anlat…';
+    form.onsubmit = e => { e.preventDefault(); ceoyaSor(inp.value); inp.value = ''; };
+    parcalar.push(el('h3', null, 'CEO’ya sor'), form);
+  } else {
+    const hazir = el('div', 'hazir');
+    (a.hazir_gorevler || []).forEach(g => {
+      const btn = el('button', null, g.etiket);
+      btn.onmouseenter = () => SES.uzerinde();
+      btn.onclick = () => gorevVer(a.id, { etiket:g.etiket });
+      hazir.append(btn);
+    });
+    inp.placeholder = 'Görev yaz…';
+    form.onsubmit = e => { e.preventDefault(); const v = inp.value.trim().slice(0, 600); if (v) { gorevVer(a.id, { prompt:v }); inp.value = ''; } };
+    parcalar.push(el('h3', null, 'Hazır görevler'), hazir, el('h3', null, 'Görev ver'), form);
+  }
+  panel.replaceChildren(...parcalar);
+  panel.classList.add('acik');
+}
+/* izinli araçları insan diline çevir */
+const ARAC_AD = [[/^Read$/, 'Dosya okuma'], [/^Glob$/, 'Dosya bulma'], [/^Grep$/, 'Arama'], [/^WebSearch$/, 'Web arama'], [/^WebFetch$/, 'Sayfa okuma'],
+  [/^Write$|^Edit$/, 'Dosya yazma'], [/^Bash\(git /, 'Git (salt okuma)'], [/^Bash\((du|df|ls|find):/, 'Disk ölçümü'],
+  [/^Bash\((codesign|spctl):/, 'İmza kontrolü'], [/^Bash\((xattr|shasum|file|mdls)/, 'Dosya denetimi'], [/^Bash\(launchctl/, 'Başlangıç öğeleri'],
+  [/^Bash\(lsof/, 'Açık portlar'], [/^Bash\(plutil/, 'Plist okuma'], [/^Bash/, 'Komut'], [/^Task$|^Agent$/, 'Alt-ajan']];
+function aracCipleri(araclar) {
+  const adlar = [...new Set((araclar || []).map(x => (ARAC_AD.find(([re]) => re.test(x)) || [null, x])[1]))];
+  const kok = el('div', 'cipler');
+  adlar.forEach(a => kok.append(el('span', 'cip', a)));
+  if (!adlar.length) kok.append(el('span', 'cip', 'araç yok (yalnız düşünür)'));
+  return kok;
+}
+function odaIstatistik(oda) {
+  const idler = new Set(AJANLAR.filter(a => a.oda === oda.id).map(a => a.id));
+  const kosular = (sayac.kosular || []).filter(k => idler.has(k.ajan));
+  const sureler = kosular.map(k => k.sure_sn).filter(s => typeof s === 'number');
+  const ort = sureler.length ? Math.round(sureler.reduce((t, s) => t + s, 0) / sureler.length) + ' sn' : '—';
+  const calisan = AJANLAR.filter(a => idler.has(a.id) && a.durum !== 'uyku' && a.durum !== 'bitti').length;
+  const kok = el('div', 'mini-sayilar');
+  const odaToken = [...idler].reduce((t, id) => t + tokenAl(id).toplam, 0);
+  [[kosular.length, 'Bugün iş'], [calisan, 'Çalışıyor'], [ort, 'Ort. süre'], [kisaSayi(odaToken), 'Bugün token']].forEach(([b, s]) => { const d = el('div'); d.append(el('b', null, String(b)), el('span', null, s)); kok.append(d); });
+  return kok;
+}
+function yeteneklerListesi(oda) {
+  const kok = el('div', 'yetenekler');
+  AJANLAR.filter(a => a.oda === oda.id).forEach(a => (a.hazir_gorevler || []).forEach(g => {
+    const calisiyor = a.durum === 'calisiyor' && a.is === g.etiket;
+    const b = el('button', 'yetenek' + (calisiyor ? ' aktif' : ''));
+    const ust = el('div'); ust.append(el('span', null, g.etiket), el('small', null, a.ad));
+    b.append(ust);
+    if (calisiyor) { const bar = el('div', 'ycubuk'); bar.append(el('i')); b.append(bar); }
+    b.onmouseenter = () => SES.uzerinde();
+    b.onclick = () => gorevVer(a.id, { etiket:g.etiket });
+    kok.append(b);
+  }));
+  if (!kok.children.length) kok.append(el('div', 'bos', 'Bu odada hazır görev yok; CEO’ya anlat.'));
+  return kok;
+}
+function odaPaneli(oda) {
+  panelAjan = null; panelOda = oda.id;
+  const kapat = el('button', 'kapat', '×'); kapat.onclick = () => { SES.tik(); panelKapat(); };
+  const liste = el('div', 'ajan-liste');
+  AJANLAR.filter(a => a.oda === oda.id).forEach(a => {
+    const b = el('button'); const ad = el('span', 'ad-avatar'); ad.append(avatar(a.id, 'orta'), document.createTextNode(a.ad));
+    b.append(ad, el('small', null, durumMetni(a)));
+    b.onmouseenter = () => SES.uzerinde();
+    b.onclick = () => { SES.tik(); ajanPaneli(a); };
+    liste.append(b);
+  });
+  const p = el('p', 'oda-etiket', oda.aciklama); p.style.cssText = 'font-size:13px;line-height:1.45;color:#6d6357;margin-bottom:6px';
+  const araclar = AJANLAR.filter(a => a.oda === oda.id).flatMap(a => a.izinli_araclar || []);
+  const parcalar = [kapat, el('div', 'oda-etiket', 'Oda'), el('h2', null, oda.ad), odaIstatistik(oda), p];
+  if (oda.not) parcalar.push(el('div', 'not', oda.not));
+  parcalar.push(el('h3', null, 'Ajanlar'), liste);
+  if (oda.id !== 'ceo') parcalar.push(el('h3', null, 'Bağlı araçlar'), aracCipleri(araclar), el('h3', null, 'Yetenekler'), yeteneklerListesi(oda));
+  panel.replaceChildren(...parcalar);
+  panel.classList.add('acik');
+}
+function panelYenile() {
+  if (!panel.classList.contains('acik')) return;
+  if (panelAjan) { const d = panel.querySelector('.durum'); const a = ajanBul(panelAjan); if (d && a) d.replaceWith(durumRozet(a)); }
+  else if (panelOda) odaPaneli(odaBul(panelOda));
+}
+
+/* ---------- sekmeler ---------- */
+let aktifSekme = 'ofis';
+const sayfa = $('sayfa');
+async function sekmeAc(ad) {
+  aktifSekme = ad;
+  document.querySelectorAll('#sekmeler button').forEach(b => b.classList.toggle('secili', b.dataset.sekme === ad));
+  if (ad === 'ofis') { sayfa.classList.remove('acik'); return; }
+  panelKapat();
+  const icerik = ad === 'odalar' ? odalarSayfasi() : ad === 'hafiza' ? await hafizaSayfasi() : maliyetSayfasi();
+  if (aktifSekme !== ad) return;
+  sayfa.replaceChildren(...icerik); sayfa.classList.add('acik');
+}
+function odalarSayfasi() {
+  const iz = el('div', 'izgara');
+  ODALAR.forEach(o => {
+    const k = el('div', 'kart');
+    const ul = el('ul');
+    AJANLAR.filter(a => a.oda === o.id).forEach(a => ul.append(el('li', null, a.ad + ' · ' + durumMetni(a))));
+    const git = el('button', 'git', 'Odaya git →');
+    git.onclick = () => { SES.tik(); sekmeAc('ofis'); odaVurgu(o.id); odayaGit(o); odaPaneli(o); };
+    k.append(el('h4', null, o.ad), el('p', null, o.aciklama), ul, git);
+    iz.append(k);
+  });
+  return [el('h2', null, 'Odalar'), el('p', 'alt', ODALAR.length + ' oda, ' + AJANLAR.length + ' ajan. Her oda iş gelince uyanır.'), iz];
+}
+async function hafizaSayfasi() {
+  let liste = [];
+  try { liste = DEMO ? demoVeri.hafiza : (await getJSON('/api/hafiza')).hafiza; }
+  catch { return [el('h2', null, 'Hafıza'), el('p', 'alt', 'Hafıza listesi alınamadı.')]; }
+  const sirali = [...liste].sort((x, y) => String(y.guncelleme).localeCompare(String(x.guncelleme)));
+  const iz = el('div', 'izgara');
+  sirali.forEach(h => {
+    const k = el('div', 'kart');
+    const ust = el('div', 'ust'); ust.append(avatar(h.ajan), document.createTextNode('hafiza/' + h.ajan + '.md · ' + h.madde_sayisi + ' madde'));
+    const ul = el('ul'); (h.son_maddeler || []).slice().reverse().forEach(m => ul.append(el('li', null, kisa(m, 160))));
+    if (!(h.son_maddeler || []).length) ul.append(el('li', null, 'henüz madde yok'));
+    k.append(ust, el('h4', null, ajanBul(h.ajan)?.ad || h.ajan), ul);
+    iz.append(k);
+  });
+  const toplam = liste.reduce((t, h) => t + (h.madde_sayisi || 0), 0);
+  return [el('h2', null, 'Hafıza'), el('p', 'alt', 'Her ajanın kalıcı hafızası: senin tercih ve revizelerin. Ajan işi bir kez öğrenir, koşu sonunda yeni madde ekler. Toplam ' + toplam + ' madde, son güncellenen önde.'), iz];
+}
+function maliyetSayfasi() {
+  const k = sayac.kosular || [];
+  const token = u => u ? (u.input_tokens || 0) + (u.output_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0) : null;
+  const ozet = el('div', 'ozet-sayilar');
+  [[sayac.bugun_kosu ?? 0, 'bugünkü ajan koşusu'], [sayac.bugun_ceo ?? 0, 'CEO kararı'], ['0', 'boşta harcanan token'], ['$' + Number(sayac.toplam_maliyet_usd || 0).toFixed(2), 'ölçülen (API liste fiyatı)']]
+    .forEach(([b, s]) => { const d = el('div'); d.append(el('b', null, String(b)), el('span', null, s)); ozet.append(d); });
+  const tablo = el('table'); const bas = el('tr');
+  [['Saat'], ['Ajan'], ['Durum'], ['Süre', 1], ['Token', 1], ['USD', 1]].forEach(([t, s]) => bas.append(el('th', s ? 'sayi' : '', t)));
+  tablo.append(bas);
+  [...k].reverse().forEach(r => {
+    const tr = el('tr');
+    const saat = /-(\d{2})(\d{2})\d{2}-/.exec(r.kosu_id || '');
+    [[saat ? saat[1] + ':' + saat[2] : '—'], [ajanBul(r.ajan)?.ad || r.ajan], [r.durum === 'basarili' ? 'bitti' : r.durum || '—'],
+      [r.sure_sn != null ? Math.round(r.sure_sn) + ' sn' : '—', 1], [token(r.kullanim)?.toLocaleString('tr-TR') ?? '—', 1],
+      [typeof r.maliyet_usd === 'number' ? r.maliyet_usd.toFixed(3) : '—', 1]].forEach(([v, s]) => tr.append(el('td', s ? 'sayi' : '', v)));
+    tablo.append(tr);
+  });
+  if (!k.length) { const tr = el('tr'); const td = el('td', null, 'Bugün henüz koşu yok.'); td.colSpan = 6; tr.append(td); tablo.append(tr); }
+  return [el('h2', null, 'Maliyet'), el('p', 'alt', sayac.maliyet_notu || 'Ajanlar yalnız iş gelince çalışır; boştayken model çağrısı yok.'), ozet, tablo];
+}
+document.querySelectorAll('#sekmeler button').forEach(b => { b.onclick = () => { SES.tik(); sekmeAc(b.dataset.sekme); }; b.onmouseenter = () => SES.uzerinde(); });
+
+/* ---------- kamera ---------- */
+let gecis = null;
+function kameraGit(poz, hedef, sure = 1.15, aninda = false) {
+  if (aninda) { camera.position.copy(poz); controls.target.copy(hedef); controls.update(); return; }
+  gecis = { p0:camera.position.clone(), h0:controls.target.clone(), p1:poz.clone(), h1:hedef.clone(), t:0, sure };
+}
+function odayaGit(oda, aninda = false) {
+  const hedef = new THREE.Vector3(oda.cx, .8, oda.cz + .3);
+  const k = Math.max(1, oda.w / 14.5, oda.d / 8.4);
+  kameraGit(hedef.clone().add(new THREE.Vector3(10 * k, 16 * k, 20 * k)), hedef, 1.15, aninda);
+}
+function gecisGuncelle(dt) {
+  if (!gecis) return;
+  gecis.t = Math.min(1, gecis.t + dt / gecis.sure);
+  const t = gecis.t, k = t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  camera.position.lerpVectors(gecis.p0, gecis.p1, k);
+  controls.target.lerpVectors(gecis.h0, gecis.h1, k);
+  if (t >= 1) gecis = null;
+}
+$('genel').onclick = () => { SES.tik(); panelKapat(); sekmeAc('ofis'); kameraGit(GENEL.poz, GENEL.hedef); };
+$('genel').onmouseenter = () => SES.uzerinde();
+
+/* ---------- kedi meme'leri (tıklanınca) ---------- */
+const meme = memeKur({ kameraGit, controls, iptal:a => odayaGit(odaBul(a.oda)) });
+
+/* ---------- seçim / hover ---------- */
+const ray = new THREE.Raycaster(), fare = new THREE.Vector2();
+let ustteki = null, secOda = null, basNokta = null;
+function odaVurgu(id) { secOda = id; ODALAR.forEach(o => { o.zemin3d.material.emissiveIntensity = o.id === secOda ? .12 : o.id === ustteki?.oda ? .06 : 0; }); }
+function hedefBul(e) {
+  fare.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(fare, camera);
+  const hits = ray.intersectObjects(secilebilir, false);
+  const aj = hits.find(h => h.object.userData.ajan);
+  if (aj) { const a = ajanBul(aj.object.userData.ajan); return { ajan:a.id, oda:a.oda }; }
+  return hits[0] ? { oda:hits[0].object.userData.oda } : null;
+}
+tuval.addEventListener('pointermove', e => {
+  const h = hedefBul(e);
+  const anahtar = h ? (h.ajan || h.oda) : null, eski = ustteki ? (ustteki.ajan || ustteki.oda) : null;
+  if (anahtar !== eski) { ustteki = h; if (h) SES.uzerinde(); odaVurgu(secOda); tuval.style.cursor = h ? 'pointer' : 'default'; }
+});
+tuval.addEventListener('pointerdown', e => { basNokta = [e.clientX, e.clientY]; });
+tuval.addEventListener('pointerup', e => {
+  if (!basNokta || Math.hypot(e.clientX - basNokta[0], e.clientY - basNokta[1]) > 5) return;
+  const h = hedefBul(e);
+  if (meme.aktif()) { const eski = meme.kapat(); if (!h) { if (eski) odayaGit(odaBul(eski.oda)); return; } }
+  if (!h) return;
+  SES.tik();
+  const oda = odaBul(h.oda);
+  odaVurgu(oda.id);
+  if (h.ajan) {
+    // önce kedinin meme'si, sonra panel
+    const a = ajanBul(h.ajan);
+    const ac = () => { odayaGit(oda); ajanPaneli(a); };
+    if (!meme.oynat(a, { bitince:ac })) ac();
+  } else { odayaGit(oda); odaPaneli(oda); }
+});
+$('komut').addEventListener('submit', e => { e.preventDefault(); const i = $('komutGir'); ceoyaSor(i.value); i.value = ''; });
+
+/* ---------- kalıcı ajan etiketleri (çakışmasız) ---------- */
+const etiketKok = $('etiketler');
+const etiketler = new Map();
+function etiketAl(a) {
+  if (!etiketler.has(a.id)) {
+    const d = el('div', 'etiket3d'); const ad = el('div', 'ad', a.ad); const ne = el('div', 'ne'); const sap = el('div', 'sap'); const balon = el('div', 'balon');
+    const rozet = el('span', 'rozet'); rozet.style.display = 'none'; ad.append(rozet);
+    const tok = el('div', 'tok'); tok.style.display = 'none';
+    balon.style.display = 'none'; d.append(ad, ne, tok, balon, sap); etiketKok.append(d);
+    etiketler.set(a.id, { d, ne, tok, sap, balon, rozet, rozetMetin:'', metin:'', tokMetin:'', sinif:'', balonMetin:null, w:0, h:0 });
+  }
+  return etiketler.get(a.id);
+}
+function etiketMetni(a) {
+  if (a.alt) return ['alt calisiyor', a.eylem];
+  if (a.durum === 'uyku') return ['uyku', uykuMetni(a)];
+  if (a.durum === 'bitti') return ['bitti', '✓ bitti · ' + (a.sonSure ?? '?') + ' sn'];
+  if (a.durum === 'bekliyor') return ['calisiyor', 'iş yolda…'];
+  if (a.durum === 'dusunuyor') return ['calisiyor', 'düşünüyor…'];
+  return ['calisiyor', a.eylem || 'çalışıyor'];
+}
+const tmpV = new THREE.Vector3();
+function etiketGuncelle() {
+  const ogeler = [];
+  [...AJANLAR, ...altAjanlar].forEach(a => {
+    const e = etiketAl(a);
+    const [sinif, metin] = etiketMetni(a);
+    const balonMetin = a.balon && Date.now() < a.balonBitis ? a.balon : null;
+    let degisti = false;
+    if (e.metin !== metin) { e.ne.textContent = metin; e.metin = metin; degisti = true; }
+    const rozetMetin = !a.alt && a.terminal && a.terminalSay > 1 ? a.terminalSay + ' terminal' : '';
+    if (e.rozet && e.rozetMetin !== rozetMetin) { e.rozet.textContent = rozetMetin; e.rozet.style.display = rozetMetin ? '' : 'none'; e.rozetMetin = rozetMetin; degisti = true; }
+    const tokMetin = !a.alt && sinif !== 'uyku' && tokenAl(a.id).toplam ? kisaSayi(tokenAl(a.id).toplam) + ' token' : '';
+    if (e.tok && e.tokMetin !== tokMetin) { e.tok.textContent = tokMetin; e.tok.style.display = tokMetin ? '' : 'none'; e.tokMetin = tokMetin; degisti = true; }
+    if (e.sinif !== sinif) { e.d.className = 'etiket3d ' + sinif; e.sinif = sinif; degisti = true; }
+    if (e.balonMetin !== balonMetin) { e.balon.textContent = balonMetin || ''; e.balon.style.display = balonMetin ? 'block' : 'none'; e.balonMetin = balonMetin; degisti = true; }
+    if (degisti || !e.w) { e.w = e.d.offsetWidth; e.h = e.d.offsetHeight; }
+    tmpV.set(0, a.alt ? .1 : 2.2, 0); a.grup.localToWorld(tmpV); tmpV.project(camera);
+    const x = (tmpV.x * .5 + .5) * innerWidth, y = (-tmpV.y * .5 + .5) * innerHeight;
+    ogeler.push({ e, x, y, alt:!!a.alt, oncelik:a.alt ? -1 : sinif === 'uyku' ? 0 : 1 });
+  });
+  // önce çalışanlar, sonra öndekiler yerleşir; çakışan etiket yakın bir boş yere (üst / yan) kayar
+  ogeler.sort((p, q) => q.oncelik - p.oncelik || q.y - p.y);
+  const yerlesen = [];
+  const carpar = (sol, ust, w, h) => yerlesen.some(r => sol < r.sol + r.w + 4 && sol + w + 4 > r.sol && ust < r.ust + r.h + 3 && ust + h + 3 > r.ust);
+  ogeler.forEach(o => {
+    const { w, h } = o.e;
+    const asagi = o.alt;
+    const sol0 = o.x - w / 2, ust0 = asagi ? o.y + 4 : o.y - h - 6;
+    const adim = (asagi ? 1 : -1) * (h + 4);
+    let secim = null;
+    for (const [dx, dy, c] of ADAYLAR) {
+      const sol = sol0 + dx * w, ust = ust0 + dy * adim;
+      if (!carpar(sol, ust, w, h)) { secim = [sol, ust, dx]; break; }
+    }
+    if (!secim) { let ust = ust0; for (let i = 0; i < 8 && carpar(sol0, ust, w, h); i++) ust += adim; secim = [sol0, ust, 0]; }
+    const [sol, ust, dx] = secim;
+    yerlesen.push({ sol, ust, w, h });
+    o.e.d.style.transform = `translate(${sol.toFixed(1)}px,${ust.toFixed(1)}px)`;
+    o.e.sap.style.height = (!asagi && dx === 0 ? Math.max(0, o.y - 6 - (ust + h)) : 0).toFixed(1) + 'px';
+  });
+}
+// aday konumlar: [yatay kayma (genişlik oranı), dikey basamak, maliyet] maliyete göre sıralı
+const ADAYLAR = [[0, 0], [0, 1], [.58, 0], [-.58, 0], [.58, 1], [-.58, 1], [0, 2], [1.08, 0], [-1.08, 0], [1.08, 1], [-1.08, 1], [0, 3]];
+const odaAdlari = ODALAR.map(o => {
+  const d = el('div', 'oda-ad', o.ad.toLocaleUpperCase('tr-TR'));
+  d.append(el('small', null, odaAltYazi(o))); etiketKok.append(d);
+  return { o, d, p:new THREE.Vector3(o.cx - o.w / 2 + .4, o.cam ? 2.7 : 3.05, o.cz - o.d / 2 + .1) };
+});
+function odaAdGuncelle() {
+  odaAdlari.forEach(({ o, d, p }) => {
+    const goster = o.id === ustteki?.oda && !ustteki?.ajan;
+    d.style.display = goster ? 'block' : 'none';
+    if (!goster) return;
+    tmpV.copy(p).project(camera);
+    const x = (tmpV.x * .5 + .5) * innerWidth, y = (-tmpV.y * .5 + .5) * innerHeight;
+    d.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(0,-100%)`;
+  });
+}
+
+/* ---------- döngü ---------- */
+const saat = new THREE.Clock();
+let ledZaman = 0, panelZaman = 0, hatZaman = 0;
+function ajanAnimasyon(a, t, dt) {
+  const uyku = a.durum === 'uyku' || a.durum === 'bekliyor';
+  a.kedi.setDurum(uyku ? 'uyuyor' : a.durum === 'bitti' || a.durum === 'dusunuyor' ? a.durum : 'calisiyor');
+  a.kedi.update(dt);
+  a.lamba.material.color.set(uyku ? '#b9ad9e' : '#ff7a59');
+  a.zler.forEach((s, i) => {
+    if (a.durum !== 'uyku' || a.memeAktif) { s.visible = false; return; }
+    s.visible = true;
+    const p = ((t * .45 + a.faz + i / 3) % 1);
+    s.position.set(-.5 + p * .35, 1.3 + p * 1.0, .9);
+    s.material.opacity = Math.sin(p * Math.PI) * .85;
+    s.scale.setScalar(.3 + p * .35);
+  });
+  if ((a.durum === 'calisiyor' || a.durum === 'dusunuyor') && t - a.ekranZaman > .25) { a.ekranZaman = t; ekranYenile(a); }
+}
+function cekirdekGuncelle(t, dt) {
+  cekirdek.parla = Math.max(0, cekirdek.parla - dt * .9);
+  const nabiz = cekirdek.dusun ? (Math.sin(t * 6) * .5 + .5) * .6 : 0;
+  const p = cekirdek.parla + nabiz;
+  cekirdek.kristal.rotation.y += dt * (.25 + p * 1.5);
+  cekirdek.kristal.position.y = Math.sin(t * 1.2) * .06;
+  cekirdek.kristalMat.emissiveIntensity = .35 + p * 1.4;
+  cekirdek.isilti.scale.setScalar(3.2 + p * 2.6);
+  cekirdek.isilti.material.opacity = .75 + Math.min(.25, p);
+  cekirdek.isik.intensity = 2 + p * 9;
+  cekirdek.g.scale.setScalar(1 + p * .12);
+}
+function dongu() {
+  const dt = Math.min(saat.getDelta(), .05), t = saat.elapsedTime;
+  gecisGuncelle(dt);
+  AJANLAR.forEach(a => ajanAnimasyon(a, t, dt));
+  zarfGuncelle(dt); akisGuncelle(dt); cekirdekGuncelle(t, dt); altAjanAnimasyon(t, dt);
+  if (t - ledZaman > .16) { ledZaman = t; ledCiz(t); }
+  if (t - hatZaman > 1.7) {
+    // çalışan odaya giden hatta ışık akmaya devam eder
+    hatZaman = t;
+    new Set(AJANLAR.filter(a => a.durum === 'calisiyor').map(a => a.oda)).forEach(id => isikAkit(id));
+  }
+  altMasalar.forEach(m => { if (t - m.zaman > .5) { m.zaman = t; altMasaCiz(m); m.ekran.t.needsUpdate = true; } });
+  if (t - panelZaman > .5) { panelZaman = t; if (panelAjan && ajanBul(panelAjan)?.durum !== 'uyku') panelYenile(); }
+  controls.update();
+  renderer.render(scene, camera);
+  etiketGuncelle();
+  odaAdGuncelle();
+  requestAnimationFrame(dongu);
+}
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); gorusKaydir(); });
+
+/* ---------- başlangıç ---------- */
+kartlariCiz();
+if (DEMO) { modGoster('demo', 'Demo · arka uç kapalı'); demo.basla(); ustGuncelle(); }
+else if (!apiAjanlar.length) { modGoster('kopuk', 'Sunucu yok · ?demo=1 ile dene'); tost('Sunucuya ulaşılamadı. Bağlamadan denemek için adrese ?demo=1 ekle.'); }
+else { ilkDurum(); await sayacYukle(); await tokenYukle(); await terminalleriYukle(); canliBaglan(); setInterval(sayacYukle, 30000); setInterval(terminalleriYukle, 15000); setInterval(tokenYukle, 60000); }
+const hash = new URLSearchParams(location.hash.slice(1));
+const hOda = odaBul(hash.get('oda') || ''), hAjan = ajanBul(hash.get('ajan') || '');
+if (hAjan) { odayaGit(odaBul(hAjan.oda), true); ajanPaneli(hAjan); odaVurgu(hAjan.oda); }
+else if (hOda) { odayaGit(hOda, true); odaPaneli(hOda); odaVurgu(hOda.id); }
+if (hash.get('sekme')) sekmeAc(hash.get('sekme'));
+const hMeme = ajanBul(hash.get('meme') || '');
+if (hMeme) setTimeout(() => meme.oynat(hMeme, { tut:true, aninda:true }), 900);
+if (hash.get('gorev') && DEMO) setTimeout(() => ceoyaSor(hash.get('gorev')), 600);
+ustGuncelle();
+controls.update();
+dongu();
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "_not": "Canlı terminal köprüsü eşlemesi. kopru.json olarak kopyala. Kendi açtığın Claude Code oturumu (cwd ya da tmux pencere adı) → ofis ajanı. Eşleşmeyen oturum gösterilmez. 'gizle' listesindeki parçayı cwd'sinde ya da tmux oturum adında taşıyan oturum hiçbir eşlemeyle gösterilmez.",
+  "cwd": {
+    "/path/to/your/project": "blog-yazari"
+  },
+  "pencere": {
+    "/path/to/your/monorepo": {
+      "tmux-pencere-adi": "kod-inceleyici"
+    }
+  },
+  "atla_cwd": [],
+  "gizle": []
+}
