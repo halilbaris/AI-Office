@@ -1,3 +1,5 @@
+![Ajan Ofisi](docs/kapak.jpg)
+
 # Ajan Ofisi
 
 Claude Code ajanlarını 3D bir ofiste gösteren yerel arayüz. Her ajan bir masada oturan bir kedi; iş gelince uyanır,
