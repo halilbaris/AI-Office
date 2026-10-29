@@ -11,7 +11,8 @@ Boştayken hiçbir model çağrılmaz: **0 token**.
 - **Arayüz:** three.js ile prosedürel 3D ofis (fotoğraf ya da model dosyası yok), tıklanınca meme pozuna geçen kediler,
   oda/ajan panelleri, canlı akış, token sayacı, Web Audio ile küçük sesler, demo modu.
 - **Sunucu:** yalnız Python standart kütüphanesi, yalnız `127.0.0.1`. Ajanları `claude -p` ile koşturur.
-- **Bağımlılık:** Python 3.10+, [Claude Code](https://docs.claude.com/en/docs/claude-code) (`claude` komutu), `tmux`.
+- **Bağımlılık:** Python 3.10+, [Claude Code](https://docs.claude.com/en/docs/claude-code) (`claude` komutu), `tmux` (yalnız ofisten görev verirken; kendi oturumlarını izlemek için
+  tmux gerekmez, düz terminal, VS Code ya da masaüstü uygulaması da görünür).
   Ön yüz three.js'i CDN'den (unpkg) yükler.
 
 ## Hızlı deneme (hiçbir şey bağlamadan)
