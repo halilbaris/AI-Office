@@ -169,8 +169,10 @@ The **Settings** tab edits the office without touching the file by hand:
   permanent because agents reference them, and a room holding agents cannot be removed.
 
 New agents are added from the same tab: id, name, room, folder, model, runtime and a **permission profile**
-(`read`, `review`, `build`, `research`). The profile is the only way to grant tools from the browser; an arbitrary
-tool list still has to be written into `agents.json` by hand. Adding a room or removing an empty one saves
+(`read`, `review`, `build`, `research`, `deploy`). The profile is the only way to grant tools from the browser; an
+arbitrary tool list still has to be written into `agents.json` by hand. `deploy` is the only profile that lifts a
+global denial: it allows `git push` (and the project's `deploy*.sh`) for that one agent via `denials_override`.
+Everything else — publishing, mail, payments — stays forbidden. Adding a room or removing an empty one saves
 immediately, and the page reloads so the scene picks the change up.
 
 Every save is written to `agents.json` atomically under a lock, after copying the previous file to

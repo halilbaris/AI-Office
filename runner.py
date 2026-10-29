@@ -85,7 +85,10 @@ def build_command(agent, default_denied, output_dir):
     allowed = agent.get("allowed_tools") or []
     if allowed:
         command += ["--allowedTools", *allowed]
-    denied = [*default_denied, *(agent.get("denied_tools") or [])]
+    # An agent may lift a specific global denial (e.g. the deploy agent lifts `git push`) with
+    # "denials_override": [...]. Nothing lifts silently: the list has to name the exact rule.
+    lifted = set(agent.get("denials_override") or [])
+    denied = [d for d in default_denied if d not in lifted] + list(agent.get("denied_tools") or [])
     if denied:
         command += ["--disallowedTools", *denied]
     return command

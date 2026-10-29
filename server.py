@@ -40,7 +40,15 @@ TOOL_PROFILES = {
     "build": ["Read", "Glob", "Grep", "Edit", "Write", "Bash(npm run typecheck:*)", "Bash(npm run lint:*)",
               "Bash(git diff:*)", "Bash(git status:*)"],
     "research": ["Read", "Glob", "Grep", "WebSearch", "WebFetch"],
+    # deploy: writes code, runs build/typecheck and pushes. Enabling it lifts the global `git push` denial
+    # for that one agent only (see denials_override below); publishing, mail and payments stay forbidden.
+    "deploy": ["Read", "Glob", "Grep", "Edit", "Write", "Bash(npm run typecheck:*)", "Bash(npm run lint:*)",
+               "Bash(npm run build:*)", "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)",
+               "Bash(git add:*)", "Bash(git commit:*)", "Bash(git push:*)", "Bash(./deploy.sh:*)",
+               "Bash(./deploy_VPS_production.sh:*)"],
 }
+# Tools a profile is allowed to lift from default_denied_tools. Only "deploy" lifts anything.
+PROFILE_DENIAL_OVERRIDES = {"deploy": ["Bash(git push:*)"]}
 MODEL_PATTERN = re.compile(r"^[a-z0-9][a-z0-9./#_-]{2,79}$")
 START_LOCK = threading.Lock()
 LIVE_BRIDGE = bridge.Bridge()
@@ -385,6 +393,8 @@ def update_settings(payload):
             }
             if row.get("lean"):
                 entry["lean"] = True
+            if profile in PROFILE_DENIAL_OVERRIDES:
+                entry["denials_override"] = list(PROFILE_DENIAL_OVERRIDES[profile])
             if runtime != "claude":
                 entry["runtime"] = runtime
             data["agents"].append(entry)
