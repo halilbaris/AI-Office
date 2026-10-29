@@ -189,9 +189,11 @@ same task through the OpenCode CLI instead:
 opencode run --model <provider>/<model> "<prompt>"
 ```
 
-The prompt still goes in as one argv element, never through a shell. OpenCode runs are plain text: there are no
-per-tool events and no usage numbers, so their tokens do not show up in the counter — only the output file and the
-finish event. Everything else (tmux window, output file, memory block, event stream) works the same.
+The prompt still goes in as one argv element, never through a shell. The runner reads OpenCode's `--format json`
+events, so tool calls appear in the live stream and tokens/cost are read from `opencode session export` (a
+single-step answer emits no usage event of its own). `--auto` is added only for agents whose tool list includes
+`Write`/`Edit`. Everything else — tmux window, output file, memory block, event stream, token counter — behaves
+the same as a Claude Code run. Pick the runtime per agent in **Settings → Agents**.
 
 ## API
 

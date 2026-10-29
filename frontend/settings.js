@@ -8,7 +8,7 @@ const CSS = `
            box-shadow: 0 10px 26px rgba(120, 92, 60, .08); }
 .st-card h3 { margin: 0 0 2px; font-size: 15px; letter-spacing: .02em; color: #4b4137; }
 .st-card p.st-hint { margin: 0 0 12px; font-size: 12px; color: #8b7c6b; }
-.st-row { display: grid; grid-template-columns: 1.1fr 1fr 1fr 1fr auto; gap: 8px; align-items: center;
+.st-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr .9fr auto; gap: 8px; align-items: center;
           padding: 8px 0; border-top: 1px dashed #efe2d2; }
 .st-row:first-of-type { border-top: 0; }
 .st-row.st-head { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #9b8b79;
@@ -154,7 +154,7 @@ export function renderSettings(root) {
     card.append(el("p", "st-hint",
       "Model, room and lean mode. cwd and tool permissions stay in agents.json on purpose."));
     const head = el("div", "st-row st-head");
-    ["Agent", "Name", "Room", "Model", "Lean"].forEach((t) => head.append(el("span", null, t)));
+    ["Agent", "Name", "Room", "Model", "Runtime", "Lean"].forEach((t) => head.append(el("span", null, t)));
     card.append(head);
     for (const agent of state.agents) {
       const row = el("div", "st-row");
@@ -193,6 +193,17 @@ export function renderSettings(root) {
       const modelField = el("label", "st-field");
       modelField.append(model);
 
+      const runtime = el("select");
+      for (const [value, label] of [["claude", "Claude Code"], ["opencode", "OpenCode"]]) {
+        const option = el("option", null, label);
+        option.value = value;
+        runtime.append(option);
+      }
+      runtime.value = agent.runtime || "claude";
+      runtime.addEventListener("change", () => { agent.runtime = runtime.value; });
+      const runtimeField = el("label", "st-field");
+      runtimeField.append(runtime);
+
       const lean = el("input");
       lean.type = "checkbox";
       lean.checked = Boolean(agent.lean);
@@ -200,7 +211,7 @@ export function renderSettings(root) {
       const leanField = el("label", "st-field");
       leanField.append(lean);
 
-      row.append(key, nameField, roomField, modelField, leanField);
+      row.append(key, nameField, roomField, modelField, runtimeField, leanField);
       card.append(row);
     }
     const list = el("datalist");

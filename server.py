@@ -260,6 +260,7 @@ def settings_response():
         "models": list(MODEL_ALIASES),
         "agents": [{"id": a["id"], "name": a.get("name") or a["id"], "room": a["room"],
                     "model": a.get("model") or "", "lean": bool(a.get("lean")),
+                    "runtime": "opencode" if a.get("runtime") == "opencode" else "claude",
                     "installed": a["installed"]} for a in table.values()],
         "rooms": rooms_view(data, table),
         "profiles": sorted(TOOL_PROFILES),
@@ -441,6 +442,18 @@ def update_settings(payload):
                         agent["model"] = model
                         touched = True
                         mark(agent["id"], "model")
+                if "runtime" in row:
+                    runtime = row["runtime"]
+                    if runtime not in ("claude", "opencode"):
+                        raise RequestError(400, f"invalid runtime for {agent.get('id')}: {runtime!r}")
+                    current = "opencode" if agent.get("runtime") == "opencode" else "claude"
+                    if current != runtime:
+                        if runtime == "claude":
+                            agent.pop("runtime", None)
+                        else:
+                            agent["runtime"] = runtime
+                        touched = True
+                        mark(agent["id"], "runtime")
                 if "lean" in row:
                     lean = bool(row["lean"])
                     if bool(agent.get("lean")) != lean:

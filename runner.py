@@ -70,10 +70,13 @@ def append_memory(agent_id, text):
 
 def build_command(agent, default_denied, output_dir):
     if agent.get("runtime") == "opencode":
-        # OpenCode runtime: `opencode run --model provider/model`. The prompt goes in as one argv element,
-        # never through a shell. Output is plain text, so there are no tool events and no usage numbers.
+        # OpenCode runtime: `opencode run --format json --model provider/model`. The prompt goes in as one
+        # argv element, never through a shell. --auto is only added for agents that may write files.
         opencode = shutil.which("opencode") or os.path.expanduser("~/.opencode/bin/opencode")
-        return [opencode, "run", "--model", agent["model"]]
+        command = [opencode, "run", "--format", "json", "--model", agent["model"]]
+        if any(t in (agent.get("allowed_tools") or []) for t in ("Write", "Edit")):
+            command.append("--auto")
+        return command
     claude = shutil.which("claude") or "/opt/homebrew/bin/claude"
     command = [claude, "-p", "--model", agent["model"], "--output-format", "stream-json",
                "--verbose", "--no-session-persistence", "--add-dir", output_dir]
@@ -92,6 +95,61 @@ def build_command(agent, default_denied, output_dir):
     if denied:
         command += ["--disallowedTools", *denied]
     return command
+
+
+def opencode_event(event, context, state):
+    """Maps one `opencode run --format json` event into the office event stream."""
+    kind = event.get("type")
+    part = event.get("part") or {}
+    session_id = event.get("sessionID") or part.get("sessionID")
+    if session_id:
+        state["session_id"] = session_id
+    if kind == "text":
+        text = (part.get("text") or "").strip()
+        if text:
+            print(text, flush=True)
+            state["texts"].append(text)
+    elif kind == "tool_use":
+        name = part.get("tool") or "tool"
+        summary = summarize_tool((part.get("state") or {}).get("input"))
+        print(f"  ⚙ {name} {summary}", flush=True)
+        common.write_event({**context, "type": "progress", "tool": name, "detail": summary})
+    elif kind == "step_finish":
+        tokens = part.get("tokens") or {}
+        cache = tokens.get("cache") or {}
+        state["usage"]["input_tokens"] += int(tokens.get("input") or 0)
+        state["usage"]["output_tokens"] += int(tokens.get("output") or 0)
+        state["usage"]["cache_read_input_tokens"] += int(cache.get("read") or 0)
+        state["usage"]["cache_creation_input_tokens"] += int(cache.get("write") or 0)
+        if isinstance(part.get("cost"), (int, float)):
+            state["cost"] += part["cost"]
+    elif kind == "error":
+        state["error"] = str(part.get("error") or part.get("message") or part)[:300]
+
+
+def opencode_session_usage(session_id):
+    """Usage from the OpenCode session export (a single-step answer emits no step_finish event)."""
+    if not session_id:
+        return None, None
+    opencode = shutil.which("opencode") or os.path.expanduser("~/.opencode/bin/opencode")
+    try:
+        done = subprocess.run([opencode, "session", "export", session_id], capture_output=True,
+                              text=True, timeout=25)
+        if done.returncode != 0:
+            return None, None
+        info = (json.loads(done.stdout) or {}).get("info") or {}
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None, None
+    tokens = info.get("tokens") or {}
+    cache = tokens.get("cache") or {}
+    usage = {
+        "input_tokens": int(tokens.get("input") or 0),
+        "output_tokens": int(tokens.get("output") or 0),
+        "cache_creation_input_tokens": int(cache.get("write") or 0),
+        "cache_read_input_tokens": int(cache.get("read") or 0),
+    }
+    cost = info.get("cost") if isinstance(info.get("cost"), (int, float)) else None
+    return (usage if any(usage.values()) else None), cost
 
 
 def summarize_tool(tool_input):
@@ -170,13 +228,16 @@ def run(argument_file):
             if not opencode:
                 process.stdin.write(prompt_full)
             process.stdin.close()
-            collected = []
+            oc_state = {"texts": [], "cost": 0.0, "error": None, "usage": token_counter.empty(),
+                        "session_id": None}
             for line in process.stdout:
                 log.write(line)
                 log.flush()
                 if opencode:
-                    print(line.rstrip(), flush=True)
-                    collected.append(line)
+                    try:
+                        opencode_event(json.loads(line), context, oc_state)
+                    except json.JSONDecodeError:
+                        print(line.rstrip(), flush=True)
                     continue
                 try:
                     event = json.loads(line)
@@ -186,10 +247,19 @@ def run(argument_file):
                 result = handle_line(event, context, counter) or result
             code = process.wait()
             if opencode:
-                text = "".join(collected).strip()
-                if text or code == 0:
-                    result = {"type": "result", "subtype": "success", "is_error": code != 0,
-                              "result": text, "usage": None, "total_cost_usd": None}
+                text = "\n\n".join(oc_state["texts"]).strip()
+                usage = oc_state["usage"]
+                if not any(usage.values()):
+                    usage, exported_cost = opencode_session_usage(oc_state["session_id"])
+                    usage = usage or token_counter.empty()
+                    if exported_cost is not None and not oc_state["cost"]:
+                        oc_state["cost"] = exported_cost
+                result = {"type": "result", "subtype": "success", "is_error": code != 0 or bool(oc_state["error"]),
+                          "result": text or (oc_state["error"] or ""),
+                          "usage": usage if any(usage.values()) else None,
+                          "total_cost_usd": round(oc_state["cost"], 6) if oc_state["cost"] else None}
+                if result["is_error"]:
+                    error = oc_state["error"] or f"opencode exit code {code}"
             elif code != 0 and not result:
                 error = f"claude exit code {code}"
     except Exception as e:  # a run must always end with a finish event
