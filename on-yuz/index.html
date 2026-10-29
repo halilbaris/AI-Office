@@ -116,6 +116,14 @@ h3.kucuk{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;l
 .durum{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px;background:rgba(59,52,44,.07);color:#6d6357;max-width:100%}
 .durum.calisiyor{background:rgba(255,122,89,.14);color:var(--mercan-k)}
 .durum .nokta{width:7px;height:7px;background:currentColor;box-shadow:none;animation:none}
+.canli-liste{display:flex;flex-direction:column;gap:8px}
+.canli-liste .oturum{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.7);border:1px solid rgba(59,52,44,.08)}
+.canli-liste .ust{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+.canli-liste .ust .nokta,.canli-liste .alt .nokta{width:7px;height:7px;border-radius:50%;background:#c9bfb2;flex:none}
+.canli-liste .calisiyor>.nokta{background:#5aa36a}
+.canli-liste small{display:block;font-size:12px;color:var(--soluk);margin-top:2px;line-height:1.35}
+.canli-liste .alt{display:flex;gap:8px;align-items:baseline;margin:8px 0 0 14px;font-size:12.5px}
+.canli-liste .bos{font-size:12.5px;color:var(--soluk)}
 .satirlar{margin:16px 0 4px;display:flex;flex-direction:column;gap:10px}
 .satir{display:grid;grid-template-columns:86px 1fr;gap:10px;font-size:13px;line-height:1.4}
 .satir span:first-child{color:var(--soluk)}
@@ -1320,9 +1328,12 @@ function altAjanEkle(a, detay) {
   // yavru kedi: ananın deseni, yarı saydam
   const kedi = createCat({ desen:a.kedi?.desen || 'tekir', yavru:true });
   kedi.setDurum('calisiyor'); g.add(kedi.group);
+  // yavruya basınca ananın paneli açılır (alt-ajanlar orada listelenir)
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(1.9, 2.4, 2.4), new THREE.MeshBasicMaterial());
+  hit.visible = false; hit.position.set(0, 1.2, .4); hit.userData.ajan = a.id; g.add(hit); secilebilir.push(hit);
   scene.add(g);
   const { deger } = detayAyir(detay);
-  const alt = { id:'alt-' + a.id + '-' + Date.now() + '-' + i, ana:a.id, alt:true, ad:'alt-ajan', grup:g, durum:'calisiyor', eylem:kisa(deger || 'görev', 30), faz:Math.random() * 6, dogus:performance.now(), kedi };
+  const alt = { id:'alt-' + a.id + '-' + Date.now() + '-' + i, ana:a.id, alt:true, ad:'alt-ajan', grup:g, hit, durum:'calisiyor', eylem:kisa(deger || 'görev', 30), faz:Math.random() * 6, dogus:performance.now(), kedi };
   altAjanlar.push(alt);
   return alt;
 }
@@ -1330,6 +1341,7 @@ function altAjanTemizle(anaId, yalnizTerminal = false) {
   for (let i = altAjanlar.length - 1; i >= 0; i--) {
     const x = altAjanlar[i]; if (x.ana !== anaId || (yalnizTerminal && !x.terminal)) continue;
     scene.remove(x.grup); altAjanlar.splice(i, 1);
+    const h = secilebilir.indexOf(x.hit); if (h >= 0) secilebilir.splice(h, 1);
     const e = etiketler.get(x.id); if (e) { e.d.remove(); etiketler.delete(x.id); }
   }
 }
@@ -1589,6 +1601,7 @@ function ajanPaneli(a) {
   const yazi = memeBul(a.id, a.oda)?.yazi; if (yazi) bm.append(el('div', 'meme-alt', yazi));
   baslik.append(avatar(a.id, 'buyuk'), bm);
   const parcalar = [kapat, baslik, tokenKarti(a.id), durumRozet(a), satirlar];
+  if (a.id !== 'ceo') parcalar.push(el('h3', null, 'Şu an'), canliListe(a));
   if (oda.not) parcalar.push(el('div', 'not', oda.not));
   if (a.id !== 'ceo') parcalar.push(el('h3', null, 'Bağlı araçlar'), aracCipleri(a.izinli_araclar));
   if (a.sonOzet) parcalar.push(el('h3', null, 'Son iş'), el('div', 'not', a.sonOzet));
@@ -1614,6 +1627,29 @@ function ajanPaneli(a) {
   }
   panel.replaceChildren(...parcalar);
   panel.classList.add('acik');
+}
+/* panel "Şu an": bu ajana bağlı açık oturumlar ve her birinin alt-ajanları (görev başlığı, tür, model, son araç) */
+function oturumAdi(t) { return t.pencere_adi && !/^claude(\.exe)?$/.test(t.pencere_adi) ? t.pencere_adi : t.oturum_adi; }
+function canliListe(a) {
+  const kok = el('div', 'canli-liste');
+  const liste = [...terminaller.values()].filter(t => t.ajan === a.id);
+  liste.forEach(t => {
+    const kutu = el('div', 'oturum');
+    const ust = el('div', 'ust' + (t.durum === 'calisiyor' ? ' calisiyor' : ''));
+    ust.append(el('span', 'nokta'), el('span', null, oturumAdi(t)));
+    kutu.append(ust, el('small', null, [t.durum === 'calisiyor' ? terminalEylem(t) : 'Bekliyor', modelAdi(t.model)].filter(Boolean).join(' · ')));
+    (t.alt_ajanlar || []).forEach(x => {
+      const satir = el('div', 'alt' + (x.durum === 'calisiyor' ? ' calisiyor' : ''));
+      const yazi = el('div');
+      const eylem = x.durum === 'calisiyor' ? (x.son_arac ? eylemYaz(x.son_arac, x.son_hedef).simdi : 'çalışıyor') : 'Bitti';
+      yazi.append(el('span', null, '↳ ' + (x.gorev || x.tur)), el('small', null, [x.tur, modelAdi(x.model), eylem].filter(Boolean).join(' · ')));
+      satir.append(el('span', 'nokta'), yazi);
+      kutu.append(satir);
+    });
+    kok.append(kutu);
+  });
+  if (!liste.length) kok.append(el('div', 'bos', a.durum === 'uyku' ? 'Açık terminal oturumu yok.' : 'Ofis koşusu: ' + durumMetni(a)));
+  return kok;
 }
 /* izinli araçları insan diline çevir */
 const ARAC_AD = [[/^Read$/, 'Dosya okuma'], [/^Glob$/, 'Dosya bulma'], [/^Grep$/, 'Arama'], [/^WebSearch$/, 'Web arama'], [/^WebFetch$/, 'Sayfa okuma'],
@@ -1675,7 +1711,11 @@ function odaPaneli(oda) {
 }
 function panelYenile() {
   if (!panel.classList.contains('acik')) return;
-  if (panelAjan) { const d = panel.querySelector('.durum'); const a = ajanBul(panelAjan); if (d && a) d.replaceWith(durumRozet(a)); }
+  if (panelAjan) {
+    const a = ajanBul(panelAjan); if (!a) return;
+    const d = panel.querySelector('.durum'); if (d) d.replaceWith(durumRozet(a));
+    const c = panel.querySelector('.canli-liste'); if (c) c.replaceWith(canliListe(a));
+  }
   else if (panelOda) odaPaneli(odaBul(panelOda));
 }
 
@@ -1938,7 +1978,7 @@ addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); go
 kartlariCiz();
 if (DEMO) { modGoster('demo', 'Demo · arka uç kapalı'); demo.basla(); ustGuncelle(); }
 else if (!apiAjanlar.length) { modGoster('kopuk', 'Sunucu yok · ?demo=1 ile dene'); tost('Sunucuya ulaşılamadı. Bağlamadan denemek için adrese ?demo=1 ekle.'); }
-else { ilkDurum(); await sayacYukle(); await tokenYukle(); await terminalleriYukle(); canliBaglan(); setInterval(sayacYukle, 30000); setInterval(terminalleriYukle, 15000); setInterval(tokenYukle, 60000); }
+else { ilkDurum(); await sayacYukle(); await tokenYukle(); await terminalleriYukle(); canliBaglan(); setInterval(sayacYukle, 30000); setInterval(terminalleriYukle, 8000); setInterval(tokenYukle, 60000); }
 const hash = new URLSearchParams(location.hash.slice(1));
 const hOda = odaBul(hash.get('oda') || ''), hAjan = ajanBul(hash.get('ajan') || '');
 if (hAjan) { odayaGit(odaBul(hAjan.oda), true); ajanPaneli(hAjan); odaVurgu(hAjan.oda); }

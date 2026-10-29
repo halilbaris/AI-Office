@@ -36,6 +36,9 @@ MASAUSTU_TAZELE_SN = 10         # masaüstü transkript taraması aralığı
 MASAUSTU_ACIK_SN = 30 * 60      # transkripti bu kadar süredir yazılmayan masaüstü oturumu kapandı sayılır
 MASAUSTU_BAS = 64_000           # entrypoint/cwd için okunan baş kısım
 MASAUSTU_GIRIS = "claude-desktop"
+KAYITLI_GIRIS = "cli"           # ~/.claude/sessions'a kayıt bırakan tek giriş (terminal, tmux, VS Code terminali)
+ALT_KUYRUK = 256_000            # alt-ajanın son aracı için okunan kuyruk
+ALT_MAKS = 8                    # oturum başına gösterilen en fazla alt-ajan
 MESAJ_TURU = re.compile(r'"type"\s*:\s*"(user|assistant)"')
 
 
@@ -121,15 +124,16 @@ def model_bul(ham):
     return son
 
 
-def satirlari_coz(ham):
-    """Ham JSONL parçasından (araç, hedef) olayları ve yeni-prompt bayrağını çıkarır."""
+def satirlari_coz(ham, yan_dal=False):
+    """Ham JSONL parçasından (araç, hedef) olayları ve yeni-prompt bayrağını çıkarır.
+    yan_dal=False: alt-ajan (isSidechain) satırları atlanır; alt-ajanın kendi transkripti için True."""
     araclar, yeni_gorev = [], False
     for satir in ham.splitlines():
         try:
             d = json.loads(satir)
         except (json.JSONDecodeError, UnicodeDecodeError):
             continue
-        if not isinstance(d, dict) or d.get("isSidechain"):
+        if not isinstance(d, dict) or (d.get("isSidechain") and not yan_dal):
             continue
         if d.get("type") == "assistant":
             for p in (d.get("message") or {}).get("content") or []:
@@ -225,6 +229,31 @@ def gecmisi_tara(k, boyut):
         k["token_bekleyen"].add(bugun)
 
 
+def alt_ajan_ozeti(jsonl, meta_yol):
+    """Alt-ajanın meta.json'undaki tür/görev başlığı/model + transkript kuyruğundan son araç. Mesaj metni okunmaz."""
+    try:
+        with open(meta_yol, encoding="utf-8") as f:
+            meta = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        meta = {}
+    if not isinstance(meta, dict):
+        meta = {}
+    son_arac = son_hedef = None
+    try:
+        boyut = os.path.getsize(jsonl)
+        with open(jsonl, "rb") as f:
+            f.seek(max(0, boyut - ALT_KUYRUK))
+            parca = f.read().decode("utf-8", "replace")
+        araclar, _ = satirlari_coz(parca.split("\n", 1)[-1] if boyut > ALT_KUYRUK else parca, yan_dal=True)
+        if araclar:
+            son_arac, son_hedef = araclar[-1]
+    except OSError:
+        parca = ""
+    return {"tur": _temiz(meta.get("agentType") or "alt-ajan", 40), "gorev": _temiz(meta.get("description") or "", 80),
+            "model": _temiz(meta.get("model") or model_bul(parca) or "", 40),
+            "son_arac": son_arac, "son_hedef": son_hedef}
+
+
 class Kopru:
     def __init__(self):
         self.kilit = threading.Lock()
@@ -240,6 +269,7 @@ class Kopru:
         self.bas_onbellek = {}       # transkript yolu -> (entrypoint, cwd)
         self.zaman_onbellek = {}     # transkript yolu -> (mtime, son mesaj zamanı)
         self.uyarilan = set()        # eşlenmedi uyarısı verilmiş sessionId'ler
+        self.alt_onbellek = {}       # alt-ajan transkripti -> (mtime, özet)
 
     # ---------- yapılandırma ----------
     def esleme_yukle(self):
@@ -331,9 +361,9 @@ class Kopru:
         return sonuc
 
     def masaustu_oturumlari(self):
-        """Claude masaüstü uygulamasının oturumları ~/.claude/sessions'a kayıt bırakmaz; yalnız transkript yazar.
-        Son MASAUSTU_ACIK_SN içinde yazılmış ve entrypoint'i claude-desktop olan transkriptler açık oturum sayılır.
-        Masaüstünde tmux penceresi olmadığından yalnız kopru.json `cwd` eşlemesiyle bağlanır."""
+        """Terminal dışı oturumlar (Claude masaüstü uygulaması, IDE eklentileri) ~/.claude/sessions'a kayıt bırakmaz;
+        yalnız transkript yazar. Son MASAUSTU_ACIK_SN içinde mesaj yazılmış, entrypoint'i `cli` ya da `sdk-*`
+        olmayan transkriptler açık oturum sayılır. tmux penceresi olmadığından `cwd` / `varsayilan` ile bağlanır."""
         if time.time() - self.masaustu_zaman < MASAUSTU_TAZELE_SN:
             return self.masaustu
         self.masaustu_zaman = time.time()
@@ -358,12 +388,14 @@ class Kopru:
                 giris, cwd = self.bas_onbellek.get(dosya.path) or transkript_basi(dosya.path)
                 if giris and cwd:            # eksik baş (yeni açılmış dosya) önbelleğe girmez, sonraki turda yeniden okunur
                     gorulen[dosya.path] = (giris, cwd)
-                if giris != MASAUSTU_GIRIS or not cwd or proje_klasoru(cwd) != klasor.name:
+                if not giris or giris == KAYITLI_GIRIS or giris.startswith("sdk") or not cwd \
+                        or proje_klasoru(cwd) != klasor.name:
                     continue
                 if self.mesaj_zamani(dosya) < sinir:      # yalnız meta satırı eklenmiş eski sohbet
                     continue
-                yeni[f"masaustu:{sid}"] = {"sessionId": sid, "cwd": cwd,
-                                           "name": f"masaüstü · {os.path.basename(cwd) or cwd}"}
+                kaynak = "masaüstü" if giris == MASAUSTU_GIRIS else giris.replace("claude-", "")
+                yeni[f"masaustu:{sid}"] = {"sessionId": sid, "cwd": cwd, "entrypoint": giris,
+                                           "name": f"{kaynak} · {os.path.basename(cwd) or cwd}"}
         self.bas_onbellek = gorulen
         self.zaman_onbellek = {y: v for y, v in self.zaman_onbellek.items() if y in gorulen}
         self.masaustu = yeni
@@ -511,10 +543,37 @@ class Kopru:
                             "oturum_adi": k["oturum_adi"], "ajan_gun": ajan_gun})
         return olaylar
 
+    def alt_ajanlar(self, k):
+        """Oturumun son MASAUSTU_ACIK_SN içinde yazılmış alt-ajanları (<sid>/subagents/agent-*.jsonl), yeniden eskiye."""
+        if not k["yol"]:
+            return []
+        klasor = os.path.join(k["yol"][:-6], "subagents")
+        try:
+            girdiler = [g for g in os.scandir(klasor) if g.name.startswith("agent-") and g.name.endswith(".jsonl")]
+        except OSError:
+            return []
+        simdi, sonuc = time.time(), []
+        for g in girdiler:
+            try:
+                mtime = g.stat().st_mtime
+            except OSError:
+                continue
+            if simdi - mtime > MASAUSTU_ACIK_SN:
+                continue
+            onceki = self.alt_onbellek.get(g.path)
+            ozet = onceki[1] if onceki and onceki[0] == mtime else alt_ajan_ozeti(g.path, g.path[:-6] + ".meta.json")
+            self.alt_onbellek[g.path] = (mtime, ozet)
+            sonuc.append({**ozet, "durum": "calisiyor" if simdi - mtime < CALISIYOR_SN else "bitti",
+                          "zaman": time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(mtime))})
+        return sorted(sonuc, key=lambda x: x["zaman"], reverse=True)[:ALT_MAKS]
+
     def liste(self):
         with self.kilit:
-            return sorted((self.disari(k) for k in self.oturumlar.values()),
-                          key=lambda x: (x["ajan"], x["oturum_adi"]))
+            kayitlar = list(self.oturumlar.values())
+        sonuc = [{**self.disari(k), "alt_ajanlar": self.alt_ajanlar(k)} for k in kayitlar]
+        sinir = time.time() - MASAUSTU_ACIK_SN       # kapanmış alt-ajanlar önbellekte birikmez
+        self.alt_onbellek = {y: v for y, v in self.alt_onbellek.items() if v[0] >= sinir}
+        return sorted(sonuc, key=lambda x: (x["ajan"], x["oturum_adi"]))
 
     def dongu(self):
         while True:

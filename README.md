@@ -122,6 +122,13 @@ açtığın oturum da eşlenir) > `varsayilan`. `varsayilan` yazılmazsa eşleş
 eşleşmeyenler gizlenir. `gizle` listesindeki parçayı taşıyan oturum hiçbir eşlemeyle gösterilmez. Ofisin kendi
 `claude -p` koşuları ve diğer etkileşimsiz koşular varsayılana düşmez.
 
+**Kediye (ya da yanındaki yavruya) basınca** panelde "Şu an" bölümü açılır: o ajana bağlı her oturum, ne yaptığı ve
+o oturumun alt-ajanları (görev başlığı, tür, model, son araç; son 30 dakika). Alt-ajan bilgisi
+`<oturum>/subagents/agent-*.meta.json` ve transkript kuyruğundan okunur, mesaj metni okunmaz.
+
+Kapsam: düz terminal, VS Code / IDE terminali ve tmux (`~/.claude/sessions`); Claude masaüstü uygulaması ve diğer
+terminal dışı girişler (transkript taraması).
+
 **Oturumum yanlış ajanda / hiç görünmüyor:** sunucu günlüğüne bak. Eşlenemeyen her oturum için bir kez
 `köprü: oturum hiçbir ajana eşlenmedi (cwd=…, tmux penceresi=…)` satırı ve eklenecek eşleme yazılır. tmux pencereye
 ad vermezsen adı `claude` / `claude.exe` olur; `pencere` eşlemesi kullanıyorsan pencereyi adlandır (`Ctrl-b ,`) ya da
@@ -214,7 +221,9 @@ and goes back to sleep. Nothing runs while idle: **0 tokens**.
   30 minutes are picked up too; they map by `cwd` only (no tmux window name on desktop). Every interactive session
   shows up even without `kopru.json`: mapping order is tmux window name > `cwd` (folder or any parent) >
   `varsayilan` (defaults to the first agent; `""` hides unmapped sessions). Unmapped sessions are logged once
-  with the mapping line to add.
+  with the mapping line to add. Works in a plain terminal, an IDE terminal or tmux; desktop app and other non-terminal
+  entrypoints are found by transcript scan. Clicking an agent lists its live sessions and their subagents (task title,
+  type, model, last tool) from `subagents/*.meta.json`; message text is never read.
 - **Token counter:** per-agent daily usage, de-duplicated by message id; "cache read" tokens are re-read context,
   not new work.
 - **Security:** localhost only (Host/Origin checked), no string concatenation into a shell, external content is
