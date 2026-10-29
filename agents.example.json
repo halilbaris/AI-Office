@@ -1,0 +1,71 @@
+{
+  "version": 2,
+  "settings": {
+    "user": "",
+    "brand": "MyOffice"
+  },
+  "rooms": [
+    { "id": "soc", "name": "Security Operations", "description": "Exposure monitoring, triage and security review." },
+    { "id": "code", "name": "Code Room", "description": "Product code and UI work." },
+    { "id": "writing", "name": "Writing Room", "description": "Course, blog and report drafts." }
+  ],
+  "default_denied_tools": [
+    "Read(**/.env)",
+    "Read(**/.env.*)",
+    "Read(~/.env)",
+    "Bash(rm:*)",
+    "Bash(git push:*)",
+    "Bash(curl:*)",
+    "Bash(open:*)"
+  ],
+  "agents": [
+    {
+      "id": "ceo",
+      "name": "CEO",
+      "room": "ceo",
+      "cwd": ".",
+      "model": "sonnet",
+      "trigger": "request",
+      "trigger_label": "When you speak",
+      "description": "You only talk to it; it hands the work to the right agent. Tool-less, produces a plan only.",
+      "allowed_tools": [],
+      "preset_tasks": []
+    },
+    {
+      "id": "analyst",
+      "name": "Analyst",
+      "room": "soc",
+      "cwd": "/path/to/your/security-project",
+      "model": "sonnet",
+      "trigger": "request",
+      "trigger_label": "On request",
+      "description": "Security eye over the project: reads code and recent changes, reports risks with file:line. Read-only.",
+      "allowed_tools": ["Read", "Glob", "Grep", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git status:*)"],
+      "preset_tasks": []
+    },
+    {
+      "id": "engineer",
+      "name": "Engineer",
+      "room": "code",
+      "cwd": "/path/to/your/product-project",
+      "model": "sonnet",
+      "trigger": "request",
+      "trigger_label": "On request",
+      "description": "Builds and fixes product code and UI. Writes only inside its own project; never pushes or deploys.",
+      "allowed_tools": ["Read", "Glob", "Grep", "Edit", "Write", "Bash(npm run typecheck:*)", "Bash(npm run lint:*)"],
+      "preset_tasks": []
+    },
+    {
+      "id": "writer",
+      "name": "Writer",
+      "room": "writing",
+      "cwd": "/path/to/your/content-project",
+      "model": "sonnet",
+      "trigger": "request",
+      "trigger_label": "On request",
+      "description": "Turns project notes into course, blog or report drafts, with a source for every claim. Never publishes.",
+      "allowed_tools": ["Read", "Glob", "Grep", "WebSearch", "WebFetch"],
+      "preset_tasks": []
+    }
+  ]
+}

@@ -1,0 +1,407 @@
+// MyOffice · procedural 3D cat (no external models or textures)
+// createCat({ pattern, tone, kitten, accessory }) → { group, nodes, setStatus, update, setMeme, setOutline }
+// Coordinates: root = top of the chair seat; the cat looks toward +z (same frame as the robot).
+import * as THREE from 'three';
+
+export const PATTERNS = {
+  'tabby':     { body:'#c98a4b', stripe:'#6a4326', belly:'#f2dfc4', muzzle:'#f5e7d2', cheek:'#d9a571', paw:'#f0dcc2', ear:'#b97a40', tail:'#c98a4b', eye:'#9cc24a', whisker:'#fffaf0', nose:'#d98583', inner:'#f0a8a6', striped:1 },
+  'grey-tabby': { body:'#9b9893', stripe:'#4a4744', belly:'#ebe7df', muzzle:'#f0ece5', cheek:'#b5b2ad', paw:'#e6e2da', ear:'#8a8783', tail:'#9b9893', eye:'#d9b23e', whisker:'#fffaf0', nose:'#c98a8c', inner:'#eaa6a8', striped:1 },
+  'ginger':    { body:'#e49a50', stripe:'#bf6c2c', belly:'#f7dfbb', muzzle:'#f9e9d2', cheek:'#efb072', paw:'#f6d9b0', ear:'#d98a42', tail:'#e49a50', eye:'#a8c84a', whisker:'#fffaf0', nose:'#e08c86', inner:'#f2aaa4', striped:.55 },
+  'black':     { body:'#2b2828', belly:'#322e2e', muzzle:'#3a3434', cheek:'#302c2c', paw:'#2b2828', ear:'#2b2828', tail:'#2b2828', eye:'#dcc43a', whisker:'#f4f1ea', nose:'#b9767c', inner:'#8a5e62' },
+  'tuxedo':    { body:'#272424', belly:'#f8f5ef', muzzle:'#f8f5ef', cheek:'#f8f5ef', paw:'#f8f5ef', ear:'#272424', tail:'#272424', eye:'#b9cd3e', whisker:'#fffdf8', nose:'#e8999f', inner:'#e3a2a6', mask:1 },
+  'grey-white': { body:'#8d9196', belly:'#f7f5f1', muzzle:'#f7f5f1', cheek:'#f7f5f1', paw:'#f7f5f1', ear:'#8d9196', tail:'#8d9196', eye:'#e3b548', whisker:'#fffdf8', nose:'#eaa0a6', inner:'#eeaab0', mask:1 },
+  'siamese':   { body:'#efe3cd', point:'#57402f', belly:'#f6eedf', muzzle:'#5f4635', cheek:'#a88a6e', paw:'#57402f', ear:'#57402f', tail:'#57402f', eye:'#5aa2e6', whisker:'#fffaf0', nose:'#5a3f36', inner:'#b08478', siamese:1 },
+};
+
+/* ---------- shared geometry ---------- */
+const GEO = (() => {
+  const sphere = new THREE.SphereGeometry(1, 30, 22);
+  const leg = new THREE.CapsuleGeometry(.055, .34, 6, 14); leg.translate(0, -.22, 0);
+  const tail = new THREE.CapsuleGeometry(.046, .1, 5, 12); tail.translate(0, .06, 0);
+  const ear = new THREE.ConeGeometry(.1, .2, 18); ear.translate(0, .1, 0);
+  const innerEar = new THREE.ConeGeometry(.064, .14, 14); innerEar.translate(0, .07, 0);
+  const arc = new THREE.TorusGeometry(.05, .011, 6, 16, Math.PI);
+  const whiskers = new THREE.BufferGeometry();
+  const points = [];
+  [-1, 1].forEach(s => [[-.03, .04], [-.075, .0], [-.12, -.04]].forEach(([dy, dz]) => {
+    points.push(s * .085, -.08, .25, s * .34, -.08 + dy, .19 + dz);
+  }));
+  whiskers.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+  const bowtie = new THREE.ConeGeometry(.06, .11, 4); bowtie.rotateZ(Math.PI / 2); bowtie.translate(-.055, 0, 0);
+  const collar = new THREE.TorusGeometry(.15, .022, 8, 28);
+  const shieldShape = new THREE.Shape();
+  shieldShape.moveTo(0, .09); shieldShape.lineTo(.075, .065); shieldShape.lineTo(.065, -.03); shieldShape.lineTo(0, -.09); shieldShape.lineTo(-.065, -.03); shieldShape.lineTo(-.075, .065); shieldShape.closePath();
+  const shield = new THREE.ExtrudeGeometry(shieldShape, { depth:.02, bevelEnabled:true, bevelSize:.006, bevelThickness:.006, bevelSegments:2 });
+  return { sphere, leg, tail, ear, innerEar, arc, whiskers, bowtie, collar, shield };
+})();
+
+/* ---------- textures (one per pattern) ---------- */
+function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return { canvas:c, ctx:c.getContext('2d') }; }
+function textureOf(canvas) { const t = new THREE.CanvasTexture(canvas); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }
+function furNoise(ctx, w, h, color, count = 2600) {
+  ctx.globalAlpha = .07; ctx.fillStyle = color;
+  for (let i = 0; i < count; i++) { const px = Math.random() * w, py = Math.random() * h; ctx.fillRect(px, py, 1 + Math.random() * 2, 3 + Math.random() * 5); }
+  ctx.globalAlpha = 1;
+}
+// SphereGeometry UV: u=.25 is the front (+z), u=.75 the back; the top of the canvas is the top of the sphere
+function bodyTexture(p) {
+  const W = 512, H = 256, { canvas, ctx } = makeCanvas(W, H);
+  ctx.fillStyle = p.body; ctx.fillRect(0, 0, W, H);
+  if (p.siamese) {
+    const g = ctx.createLinearGradient(0, 0, W, 0);
+    g.addColorStop(0, 'rgba(120,90,60,.10)'); g.addColorStop(.25, 'rgba(255,255,255,0)'); g.addColorStop(.75, 'rgba(110,80,55,.22)'); g.addColorStop(1, 'rgba(120,90,60,.10)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  if (p.striped) {
+    ctx.strokeStyle = p.stripe; ctx.lineCap = 'round'; ctx.globalAlpha = p.striped;
+    for (let i = 0; i < 9; i++) {
+      const y0 = 30 + i * 24; ctx.lineWidth = 7 + (i % 3) * 2;
+      ctx.beginPath();
+      for (let u = .42; u <= 1.08; u += .01) { const px = u * W, py = y0 + Math.sin(u * 22 + i) * 6; u === .42 ? ctx.moveTo(px, py) : ctx.lineTo(px, py); }
+      ctx.stroke();
+      ctx.beginPath();
+      for (let u = -.08; u <= .1; u += .01) { const px = u * W + (u < 0 ? W : 0), py = y0 + Math.sin(u * 22 + i) * 6; ctx.lineTo(px, py); }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (p.belly && !p.mask) { // lighter belly in front
+    const g = ctx.createRadialGradient(.25 * W, .62 * H, 10, .25 * W, .62 * H, 110);
+    g.addColorStop(0, p.belly); g.addColorStop(.6, p.belly); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  furNoise(ctx, W, H, p.siamese || p.mask || !p.stripe ? '#ffffff' : p.stripe);
+  return textureOf(canvas);
+}
+function headTexture(p) {
+  const W = 512, H = 256, { canvas, ctx } = makeCanvas(W, H);
+  ctx.fillStyle = p.body; ctx.fillRect(0, 0, W, H);
+  const cx = .25 * W;
+  if (p.siamese) {
+    const g = ctx.createRadialGradient(cx, .62 * H, 8, cx, .6 * H, 95);
+    g.addColorStop(0, p.point); g.addColorStop(.55, p.point); g.addColorStop(1, 'rgba(87,64,47,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  if (p.mask) { // white inverted V on the face (tuxedo / grey-white)
+    ctx.fillStyle = p.muzzle; ctx.beginPath();
+    ctx.moveTo(cx, .38 * H); ctx.quadraticCurveTo(cx + 22, .55 * H, cx + 62, H); ctx.lineTo(cx - 62, H); ctx.quadraticCurveTo(cx - 22, .55 * H, cx, .38 * H); ctx.fill();
+  }
+  if (p.striped) { // M stripes on the forehead + cheek stripes
+    ctx.strokeStyle = p.stripe; ctx.lineCap = 'round'; ctx.lineWidth = 6; ctx.globalAlpha = Math.min(1, p.striped + .2);
+    [[-20, 24], [-7, 30], [7, 30], [20, 24]].forEach(([dx, len]) => { ctx.beginPath(); ctx.moveTo(cx + dx, .14 * H); ctx.lineTo(cx + dx * 1.15, .14 * H + len); ctx.stroke(); });
+    [-1, 1].forEach(s => [0, 1].forEach(k => { ctx.beginPath(); ctx.moveTo(cx + s * (70 + k * 6), (.5 + k * .07) * H); ctx.lineTo(cx + s * (110 + k * 10), (.47 + k * .07) * H); ctx.stroke(); }));
+    for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.moveTo(.45 * W + i * 40, 0); ctx.lineTo(.45 * W + i * 40 + 8, .4 * H); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  }
+  furNoise(ctx, W, H, '#ffffff', 1200);
+  return textureOf(canvas);
+}
+function ringTexture(p) {
+  const { canvas, ctx } = makeCanvas(64, 128);
+  ctx.fillStyle = p.tail; ctx.fillRect(0, 0, 64, 128);
+  if (p.striped) { ctx.fillStyle = p.stripe; ctx.globalAlpha = p.striped; [26, 80].forEach(y => ctx.fillRect(0, y, 64, 16)); ctx.globalAlpha = 1; }
+  return textureOf(canvas);
+}
+
+/* ---------- material cache ---------- */
+const MATERIALS = new Map();
+function fur(key, settings, translucent) {
+  const k = key + (translucent ? '|t' : '');
+  if (!MATERIALS.has(k)) {
+    const m = new THREE.MeshPhysicalMaterial({ roughness:.9, metalness:0, sheen:.6, sheenRoughness:.55, sheenColor:new THREE.Color('#fff4e6'), ...settings });
+    if (translucent) { m.transparent = true; m.opacity = .58; }
+    MATERIALS.set(k, m);
+  }
+  return MATERIALS.get(k);
+}
+const TEXTURES = new Map();
+function texture(pattern, kind, build) { const k = pattern + kind; if (!TEXTURES.has(k)) TEXTURES.set(k, build()); return TEXTURES.get(k); }
+function patternMaterials(pattern, tone, translucent) {
+  const p = PATTERNS[pattern] || PATTERNS.tabby;
+  const tk = Math.round(tone * 4) / 4; // round the tone difference to 9 steps so materials are shared
+  const shade = new THREE.Color(1, 1, 1).multiplyScalar(1 + tk * .08);
+  const tint = (c) => new THREE.Color(c).offsetHSL(0, 0, tk * .035);
+  const k = pattern + '|' + tk;
+  const m = {
+    body: fur(k + 'b', { map:texture(pattern, 'b', () => bodyTexture(p)), color:shade }, translucent),
+    head: fur(k + 'h', { map:texture(pattern, 'h', () => headTexture(p)), color:shade }, translucent),
+    ring: fur(k + 'r', { map:texture(pattern, 'r', () => ringTexture(p)), color:shade }, translucent),
+    belly: fur(k + 'e', { color:tint(p.belly) }, translucent),
+    muzzle: fur(k + 'm', { color:tint(p.muzzle) }, translucent),
+    cheek: fur(k + 'c', { color:tint(p.cheek) }, translucent),
+    paw: fur(k + 'p', { color:tint(p.paw) }, translucent),
+    ear: fur(k + 'a', { color:tint(p.ear) }, translucent),
+    inner: fur(pattern + 'i', { color:p.inner, roughness:.7, sheen:0 }, translucent),
+    nose: fur(pattern + 'n', { color:p.nose, roughness:.45, sheen:0 }, translucent),
+    eye: fur(pattern + 'e', { color:p.eye, roughness:.15, sheen:0, clearcoat:1, emissive:p.eye, emissiveIntensity:.12 }, translucent),
+    whisker: new THREE.LineBasicMaterial({ color:p.whisker, transparent:true, opacity:.85 }),
+    leg: p.siamese ? fur(k + 's', { color:tint(p.point) }, translucent) : fur(k + 'h', {}, translucent),
+  };
+  return { p, m };
+}
+const SHARED = {
+  pupil: new THREE.MeshPhysicalMaterial({ color:'#0d0b0b', roughness:.1, clearcoat:1 }),
+  highlight: new THREE.MeshBasicMaterial({ color:'#ffffff' }),
+  line: new THREE.MeshBasicMaterial({ color:'#2a2220' }),
+  lightLine: new THREE.MeshBasicMaterial({ color:'#b9aea4' }),
+  mouthInner: new THREE.MeshStandardMaterial({ color:'#5a2228', roughness:.6 }),
+  red: new THREE.MeshStandardMaterial({ color:'#d8433a', roughness:.55 }),
+  gold: new THREE.MeshStandardMaterial({ color:'#e2b54a', roughness:.25, metalness:.85 }),
+  shield: new THREE.MeshStandardMaterial({ color:'#4f6b5a', roughness:.4, metalness:.3 }),
+};
+
+/* ---------- poses: [px,py,pz, rx,ry,rz, sx,sy,sz] ---------- */
+const P = (p = [0, 0, 0], r = [0, 0, 0], s = [1, 1, 1]) => [...p, ...r, ...s];
+const mirror = (a) => [-a[0], a[1], a[2], a[3], -a[4], -a[5], a[6], a[7], a[8]];
+function completePose(p) {
+  const o = { ...p };
+  ['hip', 'foot', 'ear', 'arm'].forEach(n => { if (o[n + 'L'] && !o[n + 'R']) o[n + 'R'] = mirror(o[n + 'L']); });
+  return o;
+}
+const TAIL_SITTING = [P([0, .05, -.27], [-1.57, 0, 1.2]), P([0, .12, 0], [0, 0, .42]), P([0, .12, 0], [0, 0, .42]), P([0, .12, 0], [0, 0, .4]), P([0, .12, 0], [.35, 0, .3]), P([0, .12, 0], [.45, 0, .2])];
+const TAIL_CURLED = [P([0, .07, -.29], [-1.57, 0, 1.4]), P([0, .12, 0], [0, 0, .5]), P([0, .12, 0], [0, 0, .5]), P([0, .12, 0], [0, 0, .5]), P([0, .12, 0], [0, 0, .45]), P([0, .12, 0], [0, 0, .4])];
+export const POSE = {
+  sit: completePose({
+    root: P(), body: P([0, .36, -.02], [.1, 0, 0], [.3, .38, .29]), chest: P([0, .47, .17], [.15, 0, 0], [.19, .25, .13]),
+    hipL: P([-.16, .17, -.04], [0, 0, 0], [.15, .16, .21]), footL: P([-.15, .04, .16], [0, 0, 0], [.075, .05, .11]),
+    head: P([0, .86, .08]), earL: P([-.15, .16, -.01], [-.1, 0, .32]), armL: P([-.11, .52, .17], [-1.2, 0, .04]),
+    neck: P([0, .64, .17], [.25, 0, 0]),
+    ...Object.fromEntries(TAIL_SITTING.map((v, i) => ['tail' + i, v])),
+  }),
+  // sleeping: curled up in the empty left corner of the desk, next to the laptop
+  curl: completePose({
+    root: P([-.62, .3, .84], [0, -.2, 0]), body: P([0, .19, -.03], [0, 0, 0], [.34, .21, .3]), chest: P([0, .17, .15], [0, 0, 0], [.17, .12, .1]),
+    hipL: P([-.14, .13, -.1], [0, 0, 0], [.15, .12, .19]), footL: P([-.13, .05, .1], [0, 0, 0], [.06, .04, .08]),
+    head: P([.03, .25, .13], [.3, -.1, .22], [.95, .95, .95]), earL: P([-.15, .15, -.02], [-.35, 0, .6]), armL: P([-.09, .16, .06], [-1.5, 0, 0], [1, .5, 1]),
+    neck: P([.04, .25, .16], [.6, 0, 0], [.8, .8, .8]),
+    ...Object.fromEntries(TAIL_CURLED.map((v, i) => ['tail' + i, v])),
+  }),
+};
+// adds partial changes on top of a base pose (used by the meme poses)
+export function makePose(base, changes = {}) {
+  const t = POSE[base] || POSE.sit;
+  const o = { ...t };
+  Object.entries(changes).forEach(([n, v]) => { o[n] = v; });
+  return completePose(o);
+}
+
+/* ---------- cat ---------- */
+const FACE0 = { open:1, pupil:0, lookX:0, lookY:0, lid:0, mouth:0, brow:0, happy:0, wide:0, crossed:0 };
+export function createCat({ pattern = 'tabby', tone = 0, kitten = false, accessory = {} } = {}) {
+  const { p, m } = patternMaterials(pattern, tone, kitten);
+  const group = new THREE.Group();
+  const dark = new THREE.Color(p.body).getHSL({}).l < .25 && !p.mask || pattern === 'tuxedo';
+  const rootNode = new THREE.Group(); group.add(rootNode);
+  const nodes = { root: rootNode };
+  const shadowed = [];
+  const add = (parent, geometry, material, position = [0, 0, 0], scale = [1, 1, 1], shadow = true) => {
+    const x = new THREE.Mesh(geometry, material); x.position.set(...position); x.scale.set(...scale);
+    if (shadow) { x.castShadow = true; x.receiveShadow = true; shadowed.push(x); }
+    parent.add(x); return x;
+  };
+  const nodeGroup = (name, parent = rootNode) => { const g = new THREE.Group(); parent.add(g); nodes[name] = g; return g; };
+
+  // body parts: a node = a group, the scale lives on the group (sphere units)
+  add(nodeGroup('body'), GEO.sphere, m.body);
+  add(nodeGroup('chest'), GEO.sphere, m.belly);
+  ['L', 'R'].forEach(s => { add(nodeGroup('hip' + s), GEO.sphere, m.body); add(nodeGroup('foot' + s), GEO.sphere, m.paw); });
+
+  // head
+  const headNode = nodeGroup('head');
+  const headScale = kitten ? 1.18 : 1;
+  const skull = new THREE.Group(); skull.scale.setScalar(headScale); headNode.add(skull);
+  add(skull, GEO.sphere, m.head, [0, 0, 0], [.3, .26, .27]);
+  [-1, 1].forEach(s => add(skull, GEO.sphere, m.cheek, [s * .12, -.08, .12], [.14, .11, .13]));
+  [-1, 1].forEach(s => add(skull, GEO.sphere, m.muzzle, [s * .044, -.088, .222], [.068, .054, .06]));
+  add(skull, GEO.sphere, m.muzzle, [0, -.135, .2], [.05, .035, .05]);
+  add(skull, GEO.sphere, m.nose, [0, -.045, .272], [.033, .022, .02], false);
+  const mouth = add(skull, GEO.sphere, SHARED.mouthInner, [0, -.128, .238], [.045, .001, .02], false);
+  const whiskerLine = new THREE.LineSegments(GEO.whiskers, m.whisker); skull.add(whiskerLine);
+  const eyes = [-1, 1].map(s => {
+    const g = new THREE.Group(); g.position.set(s * .105, .03, .232); g.rotation.y = s * .36; skull.add(g);
+    const openGroup = new THREE.Group(); g.add(openGroup);
+    add(openGroup, GEO.sphere, m.eye, [0, 0, 0], [.062, .07, .03], false);
+    const pupil = add(openGroup, GEO.sphere, SHARED.pupil, [0, 0, .02], [.024, .056, .016], false);
+    const glint = add(openGroup, GEO.sphere, SHARED.highlight, [.018, .026, .034], [.014, .014, .008], false);
+    const glint2 = add(openGroup, GEO.sphere, SHARED.highlight, [-.016, -.022, .032], [.008, .008, .006], false);
+    const arc = new THREE.Mesh(GEO.arc, dark ? SHARED.lightLine : SHARED.line); arc.position.z = .02; arc.visible = false; g.add(arc);
+    const brow = add(g, GEO.sphere, SHARED.line, [-s * .005, .085, .015], [.055, .011, .01], false); brow.visible = false;
+    return { g, openGroup, pupil, glint, glint2, arc, brow, s };
+  });
+  ['L', 'R'].forEach(s => {
+    const k = nodeGroup('ear' + s, skull);
+    add(k, GEO.ear, m.ear, [0, 0, 0], [1, 1, .55]);
+    add(k, GEO.innerEar, m.inner, [0, .005, .028], [1, 1, .4], false);
+  });
+
+  // front legs (down from the shoulder) and the paw tip
+  ['L', 'R'].forEach(s => {
+    const o = nodeGroup('arm' + s);
+    add(o, GEO.leg, m.leg);
+    const paw = add(o, GEO.sphere, m.paw, [0, -.44, .015], [.072, .052, .088]);
+    nodes['paw' + s] = paw;
+  });
+
+  // tail chain
+  let upper = rootNode;
+  for (let i = 0; i < 6; i++) {
+    const g = nodeGroup('tail' + i, upper);
+    const r = 1 - i * .07;
+    const tailMaterial = p.siamese && i < 2 ? m.body : m.ring;
+    add(g, GEO.tail, tailMaterial, [0, 0, 0], [r, 1, r]);
+    upper = g;
+  }
+
+  // neck + accessory
+  const neck = nodeGroup('neck');
+  if (accessory.bowtie) {
+    [-1, 1].forEach(s => { const x = add(neck, GEO.bowtie, SHARED.red, [0, 0, .02]); x.scale.x = s; });
+    add(neck, GEO.sphere, SHARED.red, [0, 0, .03], [.03, .03, .03]);
+  }
+  if (accessory.collar) {
+    const c = add(neck, GEO.collar, SHARED.gold, [0, 0, -.08]); c.rotation.x = Math.PI / 2;
+    add(neck, GEO.sphere, SHARED.gold, [0, -.04, .07], [.035, .035, .035]);
+  }
+  if (accessory.shield) { const s = add(neck, GEO.shield, SHARED.shield, [0, -.17, .02]); s.rotation.x = -.25; }
+
+  // state machine
+  const NODES = Object.keys(POSE.sit);
+  const base = {};
+  NODES.forEach(n => { base[n] = POSE.curl[n].slice(); });
+  const face = { ...FACE0, open:0 };
+  let status = 'sleeping', t = Math.random() * 10, doneAt = -1, blinkTimer = 2 + Math.random() * 3, blink = 0;
+  let meme = null, memePose = null, wakeAt = -1;
+
+  let outer = 'sleeping'; // last status from outside; 'done' stretches once even if it arrives every frame
+  function setStatus(next) {
+    if (next === 'idle' || next === 'waiting') next = 'sleeping';
+    if (next === outer) return;
+    outer = next;
+    status = next;
+    if (next === 'done') doneAt = t;
+  }
+  function setMeme(spec, { instant = false } = {}) {
+    meme = spec || null;
+    memePose = spec ? makePose(spec.base || 'sit', spec.pose) : null;
+    wakeAt = spec && status === 'sleeping' && !instant ? t : -1; // a sleeping cat stretches awake first
+    if (instant && spec) { // preview: jump straight to the pose, no transition
+      NODES.forEach(n => { base[n] = memePose[n].slice(); });
+      Object.assign(face, FACE0, spec.face);
+    }
+  }
+  const waking = () => wakeAt >= 0 && t - wakeAt < 1.1;
+
+  function targetPose() {
+    if (meme && !waking()) return memePose;
+    if (meme || status !== 'sleeping') return POSE.sit;
+    return POSE.curl;
+  }
+  function targetFace() {
+    if (meme && !waking()) return { ...FACE0, ...meme.face };
+    if (status === 'sleeping' && !meme) return { ...FACE0, open:0 };
+    if (status === 'done' || waking()) return { ...FACE0, open:0, happy:1 };
+    if (status === 'thinking') return { ...FACE0, lookY:.6, lookX:.3 };
+    return FACE0;
+  }
+
+  function applyPose(n, arr, extra) {
+    const g = nodes[n];
+    g.position.set(arr[0], arr[1], arr[2]);
+    g.rotation.set(arr[3] + (extra?.rx || 0), arr[4] + (extra?.ry || 0), arr[5] + (extra?.rz || 0));
+    g.scale.set(arr[6] * (extra?.s || 1), arr[7] * (extra?.sy || extra?.s || 1), arr[8] * (extra?.s || 1));
+    if (extra?.py) g.position.y += extra.py;
+  }
+
+  function update(dt) {
+    t += dt;
+    if (status === 'done' && doneAt >= 0 && t - doneAt > 1.7 && !meme) { status = 'sleeping'; doneAt = -1; }
+    const k = 1 - Math.exp(-dt * 8);
+    const hp = targetPose();
+    NODES.forEach(n => { const a = base[n], b = hp[n]; for (let i = 0; i < 9; i++) a[i] += (b[i] - a[i]) * k; });
+    const hf = targetFace();
+    if (meme?.talking && !waking()) hf.mouth = .2 + Math.abs(Math.sin(t * 9)) * .55;
+    Object.keys(face).forEach(n => { face[n] += (hf[n] - face[n]) * Math.min(1, k * 1.6); });
+
+    const asleep = status === 'sleeping' && !meme;
+    const typing = (!meme && status === 'working') || (meme && meme.typing && !waking());
+    const extra = {};
+    if (asleep) {
+      const n = Math.sin(t * 1.7);
+      extra.body = { s:1 + n * .03 }; extra.head = { py:n * .006 }; extra.chest = { s:1 + n * .03 };
+    }
+    if (typing) {
+      const h = meme?.typingSpeed || 11;
+      extra.armL = { rx:Math.sin(t * h) * .16 }; extra.armR = { rx:Math.sin(t * h + Math.PI) * .16 };
+      extra.head = { rx:Math.sin(t * 2.3) * .03 };
+    }
+    if (!asleep) { extra.tail4 = { rz:Math.sin(t * 3.1) * .3 }; extra.tail5 = { rz:Math.sin(t * 3.1 - .6) * .45 }; }
+    const finishing = status === 'done' && doneAt >= 0 && !meme;
+    if (finishing || waking()) {
+      const tb = finishing ? t - doneAt : t - wakeAt, duration = finishing ? 1.6 : 1.1;
+      const e = Math.sin(Math.min(1, tb / duration) * Math.PI);
+      extra.armL = { rx:-1.4 * e, rz:.5 * e }; extra.armR = { rx:-1.4 * e, rz:-.5 * e };
+      extra.root = { py:finishing ? Math.abs(Math.sin(tb * 6)) * .1 * (1 - tb / duration) : 0 };
+      extra.body = { sy:1 + .12 * e }; extra.head = { rx:-.25 * e };
+    }
+    if (meme?.animate && !waking()) meme.animate(t, extra);
+    NODES.forEach(n => applyPose(n, base[n], extra[n]));
+
+    // blinking
+    if (!asleep && face.open > .8) {
+      blinkTimer -= dt;
+      if (blinkTimer < 0) { blink = .14; blinkTimer = 2 + Math.random() * 4; }
+    }
+    blink = Math.max(0, blink - dt);
+    const openness = face.open * (blink > 0 ? .08 : 1);
+    eyes.forEach(o => {
+      o.openGroup.visible = openness > .22;
+      o.openGroup.scale.set(1, Math.max(.05, openness * (1 - .48 * face.lid)), 1);
+      o.openGroup.position.y = -.022 * face.lid;
+      o.arc.visible = openness <= .22;
+      o.arc.rotation.z = face.happy > .5 ? 0 : Math.PI;
+      o.arc.position.y = face.happy > .5 ? -.02 : .01;
+      const b = face.pupil;
+      o.pupil.scale.set(.024 + b * .03, .056 + b * .006, .016);
+      o.pupil.position.x = face.lookX * .022 - o.s * face.crossed * .02;
+      o.g.scale.setScalar(1 + face.wide * .38);
+      o.glint2.visible = b > .5;
+      o.pupil.position.y = face.lookY * .02;
+      o.glint.scale.setScalar(.014 + b * .01);
+      o.brow.visible = face.brow > .1;
+      o.brow.rotation.z = -o.s * .45 * face.brow;
+    });
+    mouth.scale.set(.045, .001 + face.mouth * .045, .02);
+    mouth.visible = face.mouth > .02;
+  }
+
+  // outline: a back-facing inflated copy (meme glow)
+  let outline = null;
+  function setOutline(color) {
+    if (!outline && color) {
+      outline = new THREE.MeshBasicMaterial({ color, side:THREE.BackSide, transparent:true, opacity:.9, depthWrite:false });
+      shadowed.slice().forEach(x => {
+        const c = new THREE.Mesh(x.geometry, outline);
+        c.position.copy(x.position); c.scale.copy(x.scale).multiplyScalar(1.09); c.rotation.copy(x.rotation);
+        c.userData.outline = true; x.parent.add(c);
+      });
+    }
+    if (outline) { outline.visible = !!color; if (color) outline.color.set(color); }
+  }
+
+  update(0);
+  return { group, nodes, setStatus, setMeme, setOutline, update, get status() { return status; }, pattern };
+}
+
+/* ---------- role → pattern mapping ---------- */
+const ROOM_PATTERN = {
+  'ceo':'tuxedo', 'design':'ginger', 'writing':'tabby', 'code':'siamese', 'workshop':'black',
+  'mail':'grey-white', 'social':'grey-tabby', 'data':'black', 'research':'siamese', 'end-of-day':'grey-white',
+};
+const AGENT_PATTERN = { 'soc-analyst':'tuxedo', 'lab-builder':'ginger' };
+export function agentPattern(agentId, roomId) { return AGENT_PATTERN[agentId] || ROOM_PATTERN[roomId] || 'tabby'; }
+export function agentAccessory(agentId, roomId) {
+  if (agentId === 'ceo') return { bowtie:true };
+  if (agentId === 'soc-analyst') return { shield:true };
+  if (roomId === 'workshop') return { collar:true };
+  return {};
+}

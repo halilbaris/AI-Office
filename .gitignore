@@ -1,23 +1,24 @@
-# kişisel yapılandırma (örnekleri: *.example.json)
-ajanlar.json
-kopru.json
+# personal configuration (examples: *.example.json)
+agents.json
+bridge.json
 CLAUDE.local.md
 
-# çalışma verisi: koşu logları, olaylar, durum, çıktılar, hafıza içeriği
-olaylar.jsonl
-durum/
-kosular/
-cikti/
-hafiza/*
-!hafiza/.gitkeep
+# working data: run logs, events, state, outputs, memory content
+events.jsonl
+state/
+runs/
+output/
+memory/*
+!memory/.gitkeep
 port
 *.log
 
-# sırlar
+# secrets
 .env
 .env.*
 
-# python / sistem
+# python / system
 __pycache__/
 *.pyc
 .DS_Store
+agents.json.bak
