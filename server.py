@@ -185,6 +185,21 @@ def validate_ceo(data, table, text):
     return data["answer"], valid, rejected
 
 
+def opencode_text(output):
+    """Collects assistant text from `opencode run --format json` output."""
+    texts = []
+    for line in output.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == "text":
+            piece = (event.get("part") or {}).get("text") or ""
+            if piece.strip():
+                texts.append(piece.strip())
+    return "\n".join(texts)
+
+
 def run_ceo(text, dry=False):
     data, table = common.load_agents()
     ceo = table.get("ceo")
@@ -192,16 +207,27 @@ def run_ceo(text, dry=False):
         raise RequestError(404, "'ceo' is missing from agents.json")
     ceo_id = f"{datetime.now():%Y-%m-%d-%H%M%S}-ceo-{secrets.token_hex(2)}"
     common.write_event({"type": "ceo_started", "run_id": ceo_id, "agent": "ceo", "room": "ceo"})
-    claude = shutil.which("claude") or "/opt/homebrew/bin/claude"
-    command = [claude, "-p", "--model", ceo["model"], "--output-format", "json",
-               "--no-session-persistence", "--tools", "", "--json-schema", json.dumps(CEO_SCHEMA)]
+    prompt = ceo_prompt(text, table)
+    opencode_run = ceo.get("runtime") == "opencode"
+    if opencode_run:
+        binary = shutil.which("opencode") or os.path.expanduser("~/.opencode/bin/opencode")
+        # The office ships an OpenCode agent named "ceo" with every tool disabled (opencode.json),
+        # so the CEO stays tool-less on the OpenCode runtime too.
+        command = [binary, "run", "--agent", "ceo", "--format", "json", "--model", ceo["model"], prompt]
+        stdin_text = None
+    else:
+        binary = shutil.which("claude") or "/opt/homebrew/bin/claude"
+        command = [binary, "-p", "--model", ceo["model"], "--output-format", "json",
+                   "--no-session-persistence", "--tools", "", "--json-schema", json.dumps(CEO_SCHEMA)]
+        stdin_text = prompt
     started = time.time()
     try:
-        process = subprocess.run(command, cwd=common.ROOT, input=ceo_prompt(text, table), text=True,
+        process = subprocess.run(command, cwd=common.ROOT, input=stdin_text, text=True,
                                  capture_output=True, timeout=CEO_TIMEOUT)
         with open(os.path.join(common.RUNS_DIR, f"{ceo_id}.log"), "w", encoding="utf-8") as f:
             f.write(process.stdout + ("\n--- stderr ---\n" + process.stderr if process.stderr else ""))
-        result = json.loads(process.stdout)
+        result = {"result": opencode_text(process.stdout), "usage": None, "total_cost_usd": None} \
+            if opencode_run else json.loads(process.stdout)
         answer, valid, rejected = validate_ceo(parse_json(result), table, text)
     except (subprocess.TimeoutExpired, json.JSONDecodeError, ValueError) as e:
         common.write_event({"type": "ceo_finished", "run_id": ceo_id, "agent": "ceo", "room": "ceo",

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "ceo": {
+      "description": "MyOffice CEO: plans and assigns work, never touches tools or files",
+      "mode": "primary",
+      "tools": { "*": false }
+    }
+  }
+}

@@ -195,6 +195,17 @@ single-step answer emits no usage event of its own). `--auto` is added only for 
 `Write`/`Edit`. Everything else — tmux window, output file, memory block, event stream, token counter — behaves
 the same as a Claude Code run. Pick the runtime per agent in **Settings → Agents**.
 
+Two things differ on the OpenCode runtime:
+
+- **Tool permissions are OpenCode's, not ours.** `allowed_tools` / `default_denied_tools` are only enforced by
+  `claude -p`; on OpenCode an agent can use whatever the project's `opencode.json` allows. Use the Claude runtime
+  when the tool boundary has to be guaranteed.
+- **The CEO stays tool-less** through the `ceo` agent defined in this folder's `opencode.json`
+  (`"tools": { "*": false }`), so a plan-only call really cannot read or run anything.
+
+Some `opencode-go/*` models require a Global region setting in the provider workspace; if a run fails with
+`This Go model requires Global regions`, pick a different provider/model (for example `deepseek/deepseek-flash`).
+
 ## API
 
 | Endpoint | What |

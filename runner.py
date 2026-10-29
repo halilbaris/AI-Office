@@ -124,7 +124,11 @@ def opencode_event(event, context, state):
         if isinstance(part.get("cost"), (int, float)):
             state["cost"] += part["cost"]
     elif kind == "error":
-        state["error"] = str(part.get("error") or part.get("message") or part)[:300]
+        info = event.get("error") or part.get("error") or part
+        if isinstance(info, dict):
+            state["error"] = str(info.get("message") or info.get("type") or info)[:300]
+        else:
+            state["error"] = str(info)[:300]
 
 
 def opencode_session_usage(session_id):

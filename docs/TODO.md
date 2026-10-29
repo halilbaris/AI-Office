@@ -21,11 +21,16 @@ Still to decide:
   (`127.0.0.1:15721`), where `haiku`, `sonnet` and `opus` all map to one model. Until that mapping changes,
   switching aliases in `agents.json` changes little.
 
-## 3. Office UI polish (from the first screenshot)
+## 3. Tool enforcement on the OpenCode runtime
+`claude -p` enforces `allowed_tools`/`default_denied_tools`; `opencode run` only obeys the project's
+`opencode.json`. Options: keep security-critical agents on Claude, or add three shared agents in
+`~/.config/opencode/opencode.json` (`office-read`, `office-write`, `office-deploy`) and pass them with `--agent`.
+
+## 4. Office UI polish (from the first screenshot)
 - Default camera is too far: agents read as a blob and the labels carry all the information.
 - The right-hand cards overlap the scene; the third column needs to scale down or collapse.
 - Room names on the floor get clipped at the edges.
 
-## 4. Preset tasks
+## 5. Preset tasks
 The roster ships with empty `preset_tasks` on purpose. Fill them once the daily rhythm is clear (one or two per
 agent, each answering a question you actually ask every week).
