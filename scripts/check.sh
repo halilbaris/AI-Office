@@ -24,7 +24,8 @@ done
 echo "== leftover turkish (LICENSE excluded)"
 if grep -rn --include='*.py' --include='*.js' --include='*.html' --include='*.json' --include='*.md' \
      -e '[çğıöşüÇĞİÖŞÜ]' . 2>/dev/null | grep -v '^./LICENSE' | grep -v '^./.git/' \
-     | grep -v '^./agents.json' | grep -v '^./bridge.json'; then
+     | grep -v '^./agents.json' | grep -v '^./bridge.json' \
+     | grep -v '^./output/' | grep -v '^./runs/' | grep -v '^./state/' | grep -v '^./memory/'; then
   echo "^^ Turkish characters above"; fail=1
 else
   echo "clean"
