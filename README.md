@@ -119,6 +119,11 @@ bağlam ve token belirgin azalır).
 `kopru.json` bir oturumu (cwd ya da tmux pencere adıyla) bir ofis ajanına bağlar; eşleşmeyen oturum gösterilmez,
 `gizle` listesindeki parçayı taşıyan oturum hiçbir eşlemeyle gösterilmez.
 
+**Claude masaüstü uygulaması:** masaüstündeki Code oturumları `~/.claude/sessions`'a kayıt bırakmaz, yalnız transkript
+yazar. Köprü 10 saniyede bir, son 30 dakikada mesaj yazılmış ve `entrypoint`'i `claude-desktop` olan transkriptleri de
+açık oturum sayar. Masaüstünde tmux penceresi olmadığından bu oturumlar **yalnız `cwd` eşlemesiyle** bağlanır
+(`pencere` eşlemesi terminale özgüdür); ofiste "masaüstü · <klasör>" adıyla görünür, 30 dakika mesaj gelmezse kapanır.
+
 Olay akışına giden tek şey: **araç adı + kısa hedef** (dosya adı, arama deseni, araç açıklaması, Bash'in ilk kelimesi;
 `FOO=bar` atamaları atlanır), "yeni görev aldı" bilgisi ve **usage** sayıları. **Mesaj metni, prompt, dosya içeriği
 asla okunmaz, saklanmaz, loglanmaz.** Köprü Claude Code ayarlarına ya da hook'lara dokunmaz.
@@ -196,7 +201,9 @@ and goes back to sleep. Nothing runs while idle: **0 tokens**.
   `claude -p --json-schema` call whose JSON plan is validated before anything starts.
 - **Terminal bridge:** read-only view of Claude Code sessions you opened yourself, via `~/.claude/sessions` and the
   session transcript. Only tool name, a short target (file name, pattern) and usage numbers are forwarded; message
-  text, prompts and file contents are never read into the event log or stored.
+  text, prompts and file contents are never read into the event log or stored. Claude desktop app sessions don't
+  register in `~/.claude/sessions`, so transcripts with `entrypoint: claude-desktop` and a message in the last
+  30 minutes are picked up too; they map by `cwd` only (no tmux window name on desktop).
 - **Token counter:** per-agent daily usage, de-duplicated by message id; "cache read" tokens are re-read context,
   not new work.
 - **Security:** localhost only (Host/Origin checked), no string concatenation into a shell, external content is

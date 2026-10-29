@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import threading
 import time
+from datetime import datetime
 from urllib.parse import urlparse
 
 import ortak
@@ -30,6 +31,11 @@ ILK_KUYRUK = 256_000            # ilk görüşte son aracı bulmak için okunan 
 DETAY_MAKS = 80
 TMUX_TAZELE_SN = 6
 TOKEN_OLAY_SN = 3.0             # ajan başına en fazla 1 token olayı / 3 sn
+MASAUSTU_TAZELE_SN = 10         # masaüstü transkript taraması aralığı
+MASAUSTU_ACIK_SN = 30 * 60      # transkripti bu kadar süredir yazılmayan masaüstü oturumu kapandı sayılır
+MASAUSTU_BAS = 64_000           # entrypoint/cwd için okunan baş kısım
+MASAUSTU_GIRIS = "claude-desktop"
+MESAJ_TURU = re.compile(r'"type"\s*:\s*"(user|assistant)"')
 
 
 def gizli_mi(cwd, tmux_oturum, gizle):
@@ -153,6 +159,44 @@ def token_besle(k, ham, yalniz_tarih=None):
     return degisen
 
 
+def transkript_basi(yol):
+    """Transkriptin başından (entrypoint, cwd). Mesaj metni okunmaz; yalnız bu iki alan aranır."""
+    try:
+        with open(yol, "rb") as f:
+            bas = f.read(MASAUSTU_BAS).decode("utf-8", "replace")
+    except OSError:
+        return None, None
+    giris = re.search(r'"entrypoint"\s*:\s*"([a-z-]{1,40})"', bas)
+    cwd = re.search(r'"cwd"\s*:\s*"((?:[^"\\]|\\.){1,1000})"', bas)
+    if not giris or not cwd:
+        return (giris.group(1) if giris else None), None
+    try:
+        cwd_deger = json.loads(f'"{cwd.group(1)}"')
+    except json.JSONDecodeError:
+        return giris.group(1), None
+    return giris.group(1), cwd_deger
+
+
+def son_mesaj_zamani(yol):
+    """Transkriptteki son user/assistant satırının zamanı (epoch). Masaüstü uygulaması eski bir sohbeti açınca
+    dosyaya yalnız meta satırı ekler; dosya mtime'ı yerine bu kullanılır. Metin okunmaz, yalnız type + timestamp."""
+    try:
+        with open(yol, "rb") as f:
+            f.seek(max(0, os.path.getsize(yol) - ILK_KUYRUK))
+            kuyruk = f.read().decode("utf-8", "replace")
+    except OSError:
+        return 0.0
+    for satir in reversed(kuyruk.splitlines()):
+        if '"timestamp"' not in satir or not MESAJ_TURU.search(satir):
+            continue
+        try:
+            d = json.loads(satir)
+            return datetime.fromisoformat(str(d["timestamp"]).replace("Z", "+00:00")).timestamp()
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+            continue
+    return 0.0
+
+
 def gecmisi_tara(k, boyut):
     """Açılışta bir kez: transkripti baştan sona akıtarak YALNIZ bugünün usage'ını sayar (olay basmaz)."""
     bugun = ortak.bugun()
@@ -178,6 +222,10 @@ class Kopru:
         self.esleme_mtime = None
         self.ajanlar = {}
         self.token_zaman = {}        # ajan -> son token olayı zamanı
+        self.masaustu = {}           # "masaustu:<sid>" -> sahte oturum kaydı (cwd, sessionId, name)
+        self.masaustu_zaman = 0.0
+        self.bas_onbellek = {}       # transkript yolu -> (entrypoint, cwd)
+        self.zaman_onbellek = {}     # transkript yolu -> (mtime, son mesaj zamanı)
 
     # ---------- yapılandırma ----------
     def esleme_yukle(self):
@@ -247,7 +295,56 @@ class Kopru:
                 continue
             if isinstance(d, dict) and d.get("sessionId") and d.get("cwd"):
                 sonuc[pid] = d
+        sonuc.update(self.masaustu_oturumlari())
         return sonuc
+
+    def masaustu_oturumlari(self):
+        """Claude masaüstü uygulamasının oturumları ~/.claude/sessions'a kayıt bırakmaz; yalnız transkript yazar.
+        Son MASAUSTU_ACIK_SN içinde yazılmış ve entrypoint'i claude-desktop olan transkriptler açık oturum sayılır.
+        Masaüstünde tmux penceresi olmadığından yalnız kopru.json `cwd` eşlemesiyle bağlanır."""
+        if time.time() - self.masaustu_zaman < MASAUSTU_TAZELE_SN:
+            return self.masaustu
+        self.masaustu_zaman = time.time()
+        sinir, yeni, gorulen = time.time() - MASAUSTU_ACIK_SN, {}, {}
+        try:
+            klasorler = list(os.scandir(PROJE_DIZINI))
+        except OSError:
+            return {}
+        for klasor in klasorler:
+            if not klasor.is_dir(follow_symlinks=False):     # klasör mtime'ı dosya yazılınca değişmez, filtrelenmez
+                continue
+            try:
+                dosyalar = list(os.scandir(klasor.path))
+            except OSError:
+                continue
+            for dosya in dosyalar:
+                if not dosya.name.endswith(".jsonl") or dosya.stat().st_mtime < sinir:
+                    continue
+                sid = dosya.name[:-6]
+                if not re.fullmatch(r"[A-Za-z0-9-]+", sid):
+                    continue
+                giris, cwd = self.bas_onbellek.get(dosya.path) or transkript_basi(dosya.path)
+                if giris and cwd:            # eksik baş (yeni açılmış dosya) önbelleğe girmez, sonraki turda yeniden okunur
+                    gorulen[dosya.path] = (giris, cwd)
+                if giris != MASAUSTU_GIRIS or not cwd or proje_klasoru(cwd) != klasor.name:
+                    continue
+                if self.mesaj_zamani(dosya) < sinir:      # yalnız meta satırı eklenmiş eski sohbet
+                    continue
+                yeni[f"masaustu:{sid}"] = {"sessionId": sid, "cwd": cwd,
+                                           "name": f"masaüstü · {os.path.basename(cwd) or cwd}"}
+        self.bas_onbellek = gorulen
+        self.zaman_onbellek = {y: v for y, v in self.zaman_onbellek.items() if y in gorulen}
+        self.masaustu = yeni
+        return yeni
+
+    def mesaj_zamani(self, dosya):
+        """son_mesaj_zamani, dosya mtime'ı değişmedikçe önbellekten."""
+        mtime = dosya.stat().st_mtime
+        onceki = self.zaman_onbellek.get(dosya.path)
+        if not onceki or onceki[0] != mtime:
+            onceki = (mtime, son_mesaj_zamani(dosya.path))
+            self.zaman_onbellek[dosya.path] = onceki
+        return onceki[1]
 
     def kayit_kur(self, pid, d, ajan, tmux_oturum, pencere_adi):
         cwd, sid = d["cwd"], str(d["sessionId"])
