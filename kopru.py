@@ -12,6 +12,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import threading
 import time
 from datetime import datetime
@@ -42,6 +43,18 @@ def gizli_mi(cwd, tmux_oturum, gizle):
     """kopru.json `gizle`: bu parçalardan birini cwd'sinde ya da tmux oturum adında taşıyan oturum asla gösterilmez."""
     c, t = (cwd or "").lower(), (tmux_oturum or "").lower()
     return any(isinstance(p, str) and p.strip() and (p.lower() in c or p.lower() == t) for p in (gizle or []))
+
+
+def en_yakin(esleme, cwd):
+    """cwd'nin kendisine ya da en yakın üst klasörüne yazılmış eşleme değeri (alt klasörde açılan oturum da eşlenir)."""
+    yol = os.path.normpath(cwd or "/")
+    while True:
+        if yol in esleme:
+            return esleme[yol]
+        ust = os.path.dirname(yol)
+        if ust == yol:
+            return None
+        yol = ust
 
 
 def proje_klasoru(cwd):
@@ -226,6 +239,7 @@ class Kopru:
         self.masaustu_zaman = 0.0
         self.bas_onbellek = {}       # transkript yolu -> (entrypoint, cwd)
         self.zaman_onbellek = {}     # transkript yolu -> (mtime, son mesaj zamanı)
+        self.uyarilan = set()        # eşlenmedi uyarısı verilmiş sessionId'ler
 
     # ---------- yapılandırma ----------
     def esleme_yukle(self):
@@ -260,20 +274,38 @@ class Kopru:
             yeni[anahtar] = ad
         self.pencereler = yeni
 
-    def ajan_bul(self, cwd, tmux_oturum, pencere_adi):
+    def ajan_bul(self, cwd, tmux_oturum, pencere_adi, etkilesimli=True):
+        """(ajan, gizli): eşleme sırası tmux pencere adı > cwd (en yakın üst klasör dahil) > `varsayilan`
+        (yazılmamışsa ilk ajan; "" yazılırsa eşleşmeyen oturum gizlenir). `claude -p` gibi etkileşimsiz
+        koşular (ofisin kendi koşuları dahil) varsayılana düşmez, yalnız açık eşlemeyle görünür."""
         e = self.esleme
         if gizli_mi(cwd, tmux_oturum, e.get("gizle")):
-            return None
-        cwd_esleme = {os.path.expanduser(k): v for k, v in (e.get("cwd") or {}).items()}
-        pencere_esleme = {os.path.expanduser(k): v for k, v in (e.get("pencere") or {}).items()}
+            return None, True
         if cwd in {os.path.expanduser(x) for x in (e.get("atla_cwd") or [])}:
-            return None
-        ajan = cwd_esleme.get(cwd)
-        if not ajan:
-            ajan = (pencere_esleme.get(cwd) or {}).get(pencere_adi or "")
-        if not isinstance(ajan, str) or ajan == "ceo" or ajan not in self.ajanlar:
-            return None
-        return ajan
+            return None, True
+        cwd_esleme = {os.path.normpath(os.path.expanduser(k)): v for k, v in (e.get("cwd") or {}).items()}
+        pencere_esleme = {os.path.normpath(os.path.expanduser(k)): v for k, v in (e.get("pencere") or {}).items()}
+        pencereler = en_yakin(pencere_esleme, cwd)
+        adaylar = ((pencereler or {}).get(pencere_adi or "") if isinstance(pencereler, dict) else None,
+                   en_yakin(cwd_esleme, cwd), e.get("varsayilan", self.ilk_ajan()) if etkilesimli else None)
+        for ajan in adaylar:
+            if isinstance(ajan, str) and ajan != "ceo" and ajan in self.ajanlar:
+                return ajan, False
+        return None, False
+
+    def ilk_ajan(self):
+        """`varsayilan` yazılmamışsa eşleşmeyen oturum ilk ajanda görünür: hiçbir oturum sessizce kaybolmaz."""
+        return next((a for a in self.ajanlar if a != "ceo"), None)
+
+    def eslenmedi_uyar(self, sid, cwd, pencere_adi):
+        """Eşlenemeyen oturum için sunucu günlüğüne oturum başına bir kez ipucu (yalnız klasör ve pencere adı)."""
+        if sid in self.uyarilan:
+            return
+        self.uyarilan.add(sid)
+        dosya = os.path.basename(ESLEME_DOSYASI)
+        sys.stderr.write(f"köprü: oturum hiçbir ajana eşlenmedi (cwd={cwd}, tmux penceresi={pencere_adi or '-'}). "
+                         f"{dosya} içine \"cwd\": {{\"{cwd}\": \"<ajan-id>\"}} ya da \"varsayilan\": \"<ajan-id>\" ekle.\n")
+        sys.stderr.flush()
 
     # ---------- tarama ----------
     def canli_oturumlar(self):
@@ -423,8 +455,11 @@ class Kopru:
                 tmux = str(d.get("tmux") or "")
                 tmux_oturum = tmux.split(":", 1)[0] if tmux else ""
                 pencere_adi = self.pencereler.get(tmux.split(".", 1)[0], "") if tmux else ""
-                ajan = self.ajan_bul(d["cwd"], tmux_oturum, pencere_adi)
+                etkilesimli = not str(d.get("entrypoint") or "").startswith("sdk")
+                ajan, gizli = self.ajan_bul(d["cwd"], tmux_oturum, pencere_adi, etkilesimli)
                 k = self.oturumlar.get(pid)
+                if not ajan and not gizli and etkilesimli:
+                    self.eslenmedi_uyar(str(d["sessionId"]), d["cwd"], pencere_adi)
                 if not ajan:
                     if k:
                         self.oturumlar.pop(pid)

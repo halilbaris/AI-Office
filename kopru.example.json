@@ -1,5 +1,5 @@
 {
-  "_not": "Canlı terminal köprüsü eşlemesi. kopru.json olarak kopyala. Kendi açtığın Claude Code oturumu (cwd ya da tmux pencere adı) → ofis ajanı. Claude masaüstü uygulamasının oturumları yalnız 'cwd' ile eşlenir. Eşleşmeyen oturum gösterilmez. 'gizle' listesindeki parçayı cwd'sinde ya da tmux oturum adında taşıyan oturum hiçbir eşlemeyle gösterilmez.",
+  "_not": "Canlı terminal köprüsü eşlemesi. kopru.json olarak kopyala (dosya yoksa da çalışır). Açtığın her Claude Code oturumu (terminal, tmux ya da Claude masaüstü uygulaması) ofiste görünür. Eşleme sırası: 'pencere' (tmux pencere adı) > 'cwd' (klasör ya da üst klasörü; alt klasörde açılan oturum da eşlenir) > 'varsayilan'. 'varsayilan' yazılmazsa eşleşmeyen oturum ilk ajanda görünür; \"\" yazarsan eşleşmeyenler gizlenir. 'gizle' listesindeki parçayı cwd'sinde ya da tmux oturum adında taşıyan oturum hiçbir eşlemeyle gösterilmez; 'atla_cwd' tam klasörü atlar.",
   "cwd": {
     "/path/to/your/project": "blog-yazari"
   },
@@ -8,6 +8,7 @@
       "tmux-pencere-adi": "kod-inceleyici"
     }
   },
+  "varsayilan": "kod-inceleyici",
   "atla_cwd": [],
   "gizle": []
 }

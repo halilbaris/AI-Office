@@ -116,12 +116,20 @@ bağlam ve token belirgin azalır).
 ### Terminal köprüsü: kendi açtığın Claude Code oturumları
 `kopru.py` sunucuda 2 saniyelik bir iş parçacığıdır ve **salt okur**: `~/.claude/sessions/<pid>.json` canlı oturumları,
 `~/.claude/projects/<cwd>/<oturum>.jsonl` transkripti verir; transkript ofsetle yalnız yeni satırlardan okunur.
-`kopru.json` bir oturumu (cwd ya da tmux pencere adıyla) bir ofis ajanına bağlar; eşleşmeyen oturum gösterilmez,
-`gizle` listesindeki parçayı taşıyan oturum hiçbir eşlemeyle gösterilmez.
+**Açtığın her oturum ofiste görünür**, `kopru.json` olmasa da. `kopru.json` yalnız hangi oturumun hangi ajanda
+görüneceğini seçer. Sıra: `pencere` (tmux pencere adı) > `cwd` (klasörün kendisi ya da bir üst klasörü; alt klasörde
+açtığın oturum da eşlenir) > `varsayilan`. `varsayilan` yazılmazsa eşleşmeyen oturum ilk ajanda görünür; `""` yazarsan
+eşleşmeyenler gizlenir. `gizle` listesindeki parçayı taşıyan oturum hiçbir eşlemeyle gösterilmez. Ofisin kendi
+`claude -p` koşuları ve diğer etkileşimsiz koşular varsayılana düşmez.
+
+**Oturumum yanlış ajanda / hiç görünmüyor:** sunucu günlüğüne bak. Eşlenemeyen her oturum için bir kez
+`köprü: oturum hiçbir ajana eşlenmedi (cwd=…, tmux penceresi=…)` satırı ve eklenecek eşleme yazılır. tmux pencereye
+ad vermezsen adı `claude` / `claude.exe` olur; `pencere` eşlemesi kullanıyorsan pencereyi adlandır (`Ctrl-b ,`) ya da
+`cwd` eşlemesine geç.
 
 **Claude masaüstü uygulaması:** masaüstündeki Code oturumları `~/.claude/sessions`'a kayıt bırakmaz, yalnız transkript
 yazar. Köprü 10 saniyede bir, son 30 dakikada mesaj yazılmış ve `entrypoint`'i `claude-desktop` olan transkriptleri de
-açık oturum sayar. Masaüstünde tmux penceresi olmadığından bu oturumlar **yalnız `cwd` eşlemesiyle** bağlanır
+açık oturum sayar. Masaüstünde tmux penceresi olmadığından bu oturumlar `cwd` eşlemesiyle (ya da `varsayilan` ile) bağlanır
 (`pencere` eşlemesi terminale özgüdür); ofiste "masaüstü · <klasör>" adıyla görünür, 30 dakika mesaj gelmezse kapanır.
 
 Olay akışına giden tek şey: **araç adı + kısa hedef** (dosya adı, arama deseni, araç açıklaması, Bash'in ilk kelimesi;
@@ -203,7 +211,10 @@ and goes back to sleep. Nothing runs while idle: **0 tokens**.
   session transcript. Only tool name, a short target (file name, pattern) and usage numbers are forwarded; message
   text, prompts and file contents are never read into the event log or stored. Claude desktop app sessions don't
   register in `~/.claude/sessions`, so transcripts with `entrypoint: claude-desktop` and a message in the last
-  30 minutes are picked up too; they map by `cwd` only (no tmux window name on desktop).
+  30 minutes are picked up too; they map by `cwd` only (no tmux window name on desktop). Every interactive session
+  shows up even without `kopru.json`: mapping order is tmux window name > `cwd` (folder or any parent) >
+  `varsayilan` (defaults to the first agent; `""` hides unmapped sessions). Unmapped sessions are logged once
+  with the mapping line to add.
 - **Token counter:** per-agent daily usage, de-duplicated by message id; "cache read" tokens are re-read context,
   not new work.
 - **Security:** localhost only (Host/Origin checked), no string concatenation into a shell, external content is
