@@ -1870,8 +1870,21 @@ function describeTool(tool, detail) {
     case 'Task': case 'Agent': return { now:'giving work to a subagent', past:'handed work to a subagent' + (value ? ': ' + truncate(value, 40) : '') };
     case 'TodoWrite': return { now:'planning', past:'made a task plan' };
     case 'NewTask': return { now:'got a new task', past:'got a new task' };
-    default: return { now:(tool || 'tool') + ' in use', past:'used ' + (tool || 'a tool') };
+    default: {
+      const m = describeMcp(tool); if (m) return m;
+      return { now:(tool || 'tool') + ' in use', past:'used ' + (tool || 'a tool') };
+    }
   }
+}
+// tools from connected servers are called mcp__<server>__<tool>: say what they do in words, not the raw name
+const MCP_VERBS = { navigate:'opening a page', computer:'using the screen', screenshot:'taking a screenshot', find:'looking for an element', form_input:'filling a form',
+  get_page_text:'reading a page', read_page:'reading a page', read_console_messages:'checking the page for errors', read_network_requests:'checking network calls',
+  javascript_tool:'inspecting the page', resize_window:'resizing the window', tabs_create:'opening a tab', tabs_close:'closing a tab', tabs_context:'checking the tabs', batch:'running several steps' };
+function describeMcp(tool) {
+  const m = /^mcp__(.+?)__(.+)$/.exec(String(tool || '')); if (!m) return null;
+  const server = m[1].replace(/[_-]+/g, ' ').trim();
+  const action = MCP_VERBS[m[2].replace(/^browser_/, '')] || m[2].replace(/^browser_/, '').replace(/_/g, ' ');
+  return { now:truncate(action, 34), past:action + ' (' + server + ')' };
 }
 
 /* ---------- work envelope ---------- */
@@ -2088,7 +2101,7 @@ function syncTerminals() {
     const current = subAgents.filter(x => x.parent === a.id && x.terminal);
     if (current.length !== wanted.length) {
       clearSubAgents(a.id, true);
-      wanted.forEach(t => { const x = addSubAgent(a, ''); if (x) { x.terminal = true; x.session = t.session_name; } });
+      wanted.forEach((t, i) => { const x = addSubAgent(a, ''); if (x) { x.terminal = true; x.session = t.session_name; x.name = 'terminal ' + (i + 2); } });
     }
     subAgents.filter(x => x.parent === a.id && x.terminal).forEach((x, i) => { if (wanted[i]) x.action = truncate(terminalAction(wanted[i]), 30); });
     if (a.terminal) refreshScreen(a);
