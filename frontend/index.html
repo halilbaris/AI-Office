@@ -315,13 +315,21 @@ body{letter-spacing:-.004em}
 ::-webkit-scrollbar-thumb{background:rgba(59,52,44,.16);border-radius:99px}
 ::-webkit-scrollbar-track{background:transparent}
 @media (max-width:900px){
+  .topbar{gap:10px;padding:0 12px}
   .brand small{display:none}
-  .side{left:12px;right:12px;width:auto;top:auto;bottom:86px;max-height:46vh}
-  #needsSec{max-height:44%}
+  .tabs{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;-ms-overflow-style:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{padding:6px 10px;font-size:12px;white-space:nowrap}
+  .side{left:10px;right:10px;width:auto;top:auto;bottom:76px;max-height:54vh;overflow:auto;gap:8px}
+  .sec{flex:0 0 auto}
+  #needsSec{max-height:none;min-height:0}
+  .sec-body{padding-bottom:10px}
   .greeting{display:none}
-  .command{left:12px;right:12px;width:auto;transform:none;bottom:12px}
-  .tabs button{padding:6px 10px;font-size:12px}
+  .command{left:10px;right:10px;width:auto;transform:none;bottom:10px;padding:6px}
+  .command input{font-size:13.5px}
+  .command .kbd{display:none}
   .clock{display:none}
+  #overview{display:none}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -413,6 +421,7 @@ body{letter-spacing:-.004em}
 <div class="mode" id="mode"><span class="dot"></span><span id="modeText">Live</span></div>
 
 <script type="module">
+
 
 
 import * as THREE from 'three';
