@@ -441,6 +441,22 @@ td.number,th.number{text-align:right}
 .token-card .tk-fine{font-size:11.5px;line-height:1.5;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .token-card .tk-fine+.tk-fine{color:var(--muted);margin-top:2px}
 .token-card .tk-fine abbr{text-decoration:underline dotted rgba(var(--ink-rgb),.35);cursor:help}
+/* a working (or just finished) label opens on click and tells what is really going on */
+.label3d.working:not(.sub),.label3d.done{pointer-events:auto;cursor:pointer}
+.label3d.working:not(.sub) .name::after,.label3d.done .name::after{content:"▾";margin-left:6px;color:var(--muted);font-size:10px}
+.label3d.open .name::after{content:"▴"}
+.label3d .detail{display:none}
+.label3d.open{max-width:none}
+.label3d.open .detail{display:block;width:300px;white-space:normal;margin-top:6px;padding-top:6px;border-top:1px solid rgba(var(--ink-rgb),.1);font-size:11.5px;line-height:1.4;color:var(--ink-2);cursor:default}
+.label3d .detail h5{margin:7px 0 2px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.label3d .detail h5:first-child{margin-top:0}
+.label3d .detail p,.label3d .detail li{margin:0;overflow-wrap:anywhere}
+.label3d .detail ul{margin:0;padding:0;list-style:none}
+.label3d .detail li{padding:1px 0}
+.label3d .detail li.sub{padding-left:12px;color:var(--muted)}
+.label3d .detail li.on::before{content:"●";color:var(--coral);margin-right:5px;font-size:8px;vertical-align:1px}
+.label3d .detail li.off::before{content:"○";color:var(--muted);margin-right:5px;font-size:8px;vertical-align:1px}
+.label3d .detail button{margin-top:8px;font:inherit;font-size:11.5px;font-weight:600;color:var(--coral-dark);background:none;border:0;padding:0;cursor:pointer}
 .label3d .stem{position:absolute;left:50%;top:100%;width:1px;background:rgba(var(--ink-rgb),.35);height:0}
 .label3d .bubble{white-space:normal;width:300px;font-size:12.5px;line-height:1.42;color:var(--ink);background:var(--paper);border-radius:8px;padding:8px 10px;margin-top:6px;border:1px solid rgba(var(--coral-rgb),.35)}
 .room-name{position:absolute;left:0;top:0;pointer-events:none;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap;will-change:transform;text-shadow:0 1px 0 var(--text-halo)}
@@ -2839,10 +2855,51 @@ function labelFor(a) {
     const d = el('div', 'label3d'); const name = el('div', 'name', a.name); const what = el('div', 'what'); const stem = el('div', 'stem'); const bubble = el('div', 'bubble');
     const badge = el('span', 'badge'); badge.style.display = 'none'; name.append(badge);
     const tokens = el('div', 'tokens'); tokens.style.display = 'none';
-    bubble.style.display = 'none'; d.append(name, what, tokens, bubble, stem); labelRoot.append(d);
-    labels.set(a.id, { d, what, tokens, stem, bubble, badge, badgeText:'', text:'', tokensText:'', cls:'', bubbleText:null, w:0, h:0 });
+    const detail = el('div', 'detail');
+    bubble.style.display = 'none'; d.append(name, what, tokens, detail, bubble, stem); labelRoot.append(d);
+    if (!a.sub) d.addEventListener('click', ev => {
+      if (ev.target.closest('.detail')) return;      // reading the text or pressing its button is not a toggle
+      SOUND.click(); expandedLabels.has(a.id) ? expandedLabels.delete(a.id) : expandedLabels.add(a.id);
+    });
+    labels.set(a.id, { d, what, tokens, detail, detailKey:null, stem, bubble, badge, badgeText:'', text:'', tokensText:'', cls:'', bubbleText:null, w:0, h:0 });
   }
   return labels.get(a.id);
+}
+const expandedLabels = new Set();
+// what the agent is doing, in lines: [kind, text]; the label shows them as a small list
+function detailLines(a) {
+  const L = [];
+  if (a.status === 'done') {
+    L.push(['h', 'Finished']); L.push(['p', (a.lastSummary || 'Done') + ' · ' + (a.lastDuration ?? '?') + 's']);
+  } else {
+    L.push(['h', 'Now']); L.push(['p', (a.task && !a.terminal ? truncate(a.task, 90) + ' · ' : '') + (a.action || 'working')]);
+  }
+  if (a.steps?.length && !a.terminal) { L.push(['h', 'Recent steps']); a.steps.slice(-6).forEach(x => L.push(['li', x])); }
+  const sessions = [...terminals.values()].filter(t => t.agent === a.id);
+  if (sessions.length) {
+    L.push(['h', sessions.length + (sessions.length === 1 ? ' terminal' : ' terminals')]);
+    sessions.slice(0, 7).forEach(t => {
+      const on = t.status === 'working';
+      L.push([on ? 'on' : 'off', sessionName(t) + ' · ' + (on ? terminalAction(t) : 'waiting')]);
+      (t.subagents || []).slice(0, 3).forEach(x => L.push(['sub', '↳ ' + truncate(x.task || x.type || 'task', 60) + (x.status === 'working' ? '' : ' · done')]));
+    });
+    if (sessions.length > 7) L.push(['p', '+ ' + (sessions.length - 7) + ' more']);
+  }
+  const subs = subAgents.filter(x => x.parent === a.id && !x.terminal);
+  if (subs.length) { L.push(['h', 'Subagents']); subs.forEach(x => L.push(['on', x.action])); }
+  return L;
+}
+function fillDetail(box, a, lines) {
+  box.replaceChildren();
+  let ul = null;
+  lines.forEach(([kind, text]) => {
+    if (kind === 'h') { ul = null; box.append(el('h5', null, text)); }
+    else if (kind === 'p') { ul = null; box.append(el('p', null, text)); }
+    else { if (!ul) { ul = el('ul'); box.append(ul); } ul.append(el('li', kind === 'li' ? null : kind, text)); }
+  });
+  const open = el('button', null, 'Open full panel →'); open.type = 'button';
+  open.onclick = () => { SOUND.click(); goRoom(findRoom(a.room)); agentPanel(a); };
+  box.append(open);
 }
 function labelText(a) {
   if (a.sub) return ['sub working', a.action];
@@ -2865,7 +2922,11 @@ function updateLabels() {
     if (e.badge && e.badgeText !== badgeText) { e.badge.textContent = badgeText; e.badge.style.display = badgeText ? '' : 'none'; e.badgeText = badgeText; changed = true; }
     const tokensText = !a.sub && cls !== 'sleeping' && agentTokens(a.id).total ? shortNumber(agentTokens(a.id).total) + ' tokens' : '';
     if (e.tokens && e.tokensText !== tokensText) { e.tokens.textContent = tokensText; e.tokens.style.display = tokensText ? '' : 'none'; e.tokensText = tokensText; changed = true; }
-    if (e.cls !== cls) { e.d.className = 'label3d ' + cls; e.cls = cls; changed = true; }
+    const open = !a.sub && cls !== 'sleeping' && expandedLabels.has(a.id);
+    const fullCls = cls + (open ? ' open' : '');
+    if (e.cls !== fullCls) { e.d.className = 'label3d ' + fullCls; e.cls = fullCls; changed = true; }
+    if (open) { const lines = detailLines(a), key = JSON.stringify(lines); if (e.detailKey !== key) { fillDetail(e.detail, a, lines); e.detailKey = key; changed = true; } }
+    else e.detailKey = null;
     // a sleeping desk shows its name only under the mouse or while its panel is open; busy ones always show theirs
     const hidden = !a.sub && cls === 'sleeping' && hovered?.agent !== a.id && panelAgent !== a.id;
     if (e.hidden !== hidden) { e.d.style.opacity = hidden ? '0' : ''; e.hidden = hidden; }
@@ -2873,7 +2934,7 @@ function updateLabels() {
     if (changed || !e.w) { e.w = e.d.offsetWidth; e.h = e.d.offsetHeight; }
     tmpV.set(0, a.sub ? .1 : 2.2, 0); a.group.localToWorld(tmpV); tmpV.project(camera);
     const x = (tmpV.x * .5 + .5) * innerWidth, y = (-tmpV.y * .5 + .5) * innerHeight;
-    if (!hidden) items.push({ e, x, y, sub:!!a.sub, priority:a.sub ? -1 : cls === 'sleeping' ? 0 : 1 });
+    if (!hidden) items.push({ e, x, y, sub:!!a.sub, priority:a.sub ? -1 : open ? 2 : cls === 'sleeping' ? 0 : 1, open });
   });
   // working labels place first, then the ones in front; an overlapping label slides to a nearby free spot (above / beside)
   items.sort((p, q) => q.priority - p.priority || q.y - p.y);
@@ -2890,7 +2951,13 @@ function updateLabels() {
       if (!overlaps(left, top, w, h)) { choice = [left, top, dx]; break; }
     }
     if (!choice) { let top = top0; for (let i = 0; i < 8 && overlaps(left0, top, w, h); i++) top += step; choice = [left0, top, 0]; }
-    const [left, top, dx] = choice;
+    let [left, top, dx] = choice;
+    if (o.open) {
+      // an open label is tall: when it would leave the top of the screen it goes under the figure instead, and never past the bottom
+      if (top < 64) top = o.y + 46;
+      top = Math.max(64, Math.min(top, innerHeight - h - 24));
+      left = Math.max(8, Math.min(left, innerWidth - w - 8)); dx = 1;
+    }
     placed.push({ left, top, w, h });
     o.e.d.style.transform = `translate(${left.toFixed(1)}px,${top.toFixed(1)}px)`;
     o.e.stem.style.height = (!below && dx === 0 ? Math.max(0, o.y - 6 - (top + h)) : 0).toFixed(1) + 'px';
