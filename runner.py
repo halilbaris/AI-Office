@@ -11,8 +11,10 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
+import threading
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -214,6 +216,7 @@ def run(argument_file):
         command = [*command, prompt_full]
 
     started = time.time()
+    timeout_s = int(agent.get("timeout_s") or 900)      # a hung run must never keep the agent busy forever
     common.write_state(agent["id"], {"status": "running", "run_id": run_id, "pid": os.getpid(),
                                      "started": common.now_iso(), "started_ts": started,
                                      "label": args.get("label")})
@@ -228,7 +231,24 @@ def run(argument_file):
             work_dir = LEAN_DIR if agent.get("lean") else agent["cwd"]
             os.makedirs(work_dir, exist_ok=True)
             process = subprocess.Popen(command, cwd=work_dir, stdin=subprocess.PIPE,
-                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                                       start_new_session=True)
+            timed_out = {"hit": False}
+
+            def stop_run():
+                # kill the whole process group: a CLI that spawns children (a shell, a server) keeps the
+                # stdout pipe open and would otherwise hold the runner hostage
+                timed_out["hit"] = True
+                for sig in (signal.SIGTERM, signal.SIGKILL):
+                    try:
+                        os.killpg(os.getpgid(process.pid), sig)
+                    except OSError:
+                        pass
+                    time.sleep(3 if sig == signal.SIGTERM else 0)
+
+            watchdog = threading.Timer(timeout_s, stop_run)
+            watchdog.daemon = True
+            watchdog.start()
             if not opencode:
                 process.stdin.write(prompt_full)
             process.stdin.close()
@@ -249,11 +269,12 @@ def run(argument_file):
                     print(line.rstrip(), flush=True)
                     continue
                 result = handle_line(event, context, counter) or result
+            watchdog.cancel()
             code = process.wait()
             if opencode:
                 text = "\n\n".join(oc_state["texts"]).strip()
                 usage = oc_state["usage"]
-                if not any(usage.values()):
+                if not any(usage.values()) and not timed_out["hit"]:
                     usage, exported_cost = opencode_session_usage(oc_state["session_id"])
                     usage = usage or token_counter.empty()
                     if exported_cost is not None and not oc_state["cost"]:
@@ -266,6 +287,9 @@ def run(argument_file):
                     error = oc_state["error"] or f"opencode exit code {code}"
             elif code != 0 and not result:
                 error = f"claude exit code {code}"
+            if timed_out["hit"]:
+                error = f"run timed out after {timeout_s}s"
+                result = None if not (result or {}).get("result") else result
     except Exception as e:  # a run must always end with a finish event
         error = f"{type(e).__name__}: {e}"
 

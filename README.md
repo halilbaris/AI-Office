@@ -115,6 +115,9 @@ The server streams `events.jsonl` to the frontend over SSE. No timer, loop or he
 idle office costs nothing. An agent with `"lean": true` runs without the global CLAUDE.md/rules/MCP, which cuts
 context and tokens for small, frequent jobs.
 
+Every run has a watchdog (`"timeout_s"` per agent, 900 seconds by default): when it fires, the runner kills the
+whole process group and the run ends as an error, so a hung CLI can never leave an agent "running" forever.
+
 ### Terminal bridge: the sessions you opened yourself
 
 `bridge.py` is a 2-second thread in the server and **read-only**: `~/.claude/sessions/<pid>.json` for live
