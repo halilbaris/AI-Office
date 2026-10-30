@@ -13,6 +13,28 @@ to sleep. Nothing runs while idle: **0 tokens**.
   and `tmux` (only needed to give work from the office; watching your own sessions works without tmux).
 - **License:** PolyForm Noncommercial 1.0.0 — personal, noncommercial use only. See `LICENSE`.
 
+## In plain words (no technical background needed)
+
+MyOffice is a small company of AI helpers that you watch on screen. Every helper is an animal sitting at a desk
+in its own room, and each one has one kind of job: researching, teaching, writing, drawing, checking quality,
+reviewing security. You only talk to the **CEO**, in everyday language. The CEO decides who should do the work and
+hands it over. When a helper finishes, you read the result, and approve it or not.
+
+**What you do, step by step**
+
+1. Open the page and type what you need into the box at the bottom ("Write a blog post about phishing").
+2. Watch the right panel: **Working now** shows who is busy and what they are doing.
+3. When a card appears under **Needs you**, press **Full result** to read it. Press **Check sources** to see
+   whether the CVE numbers and links in it really exist.
+4. Press **Approve** when you are happy. Everything stays in the **History** tab.
+
+**What it will never do on its own:** publish, send e-mail, pay for anything, or push code live. Helpers write
+drafts; the last step is always yours. Nothing runs while you are away, so an idle office costs nothing, and a
+daily limit stops it from using too much AI time. The **Help** button in the page explains all of this again, and
+**Settings → Health** tells you in plain words if something is missing.
+
+The sections below are for the person who sets the office up.
+
 ## Quick try (nothing connected)
 
 ```bash
@@ -69,8 +91,15 @@ The shipped roster is deliberately small: one desk per kind of work.
 |---|---|---|
 | CEO | center | assigns work, no tools, no file access |
 | Analyst | Security Operations | reads code and recent changes, reports risks with `file:line` |
-| Engineer | Code Room | builds and fixes product code and UI, `typecheck`/`lint` clean |
+| Engineer | Code Room | **reviews** code changes (read-only): verdict APPROVE / CHANGES NEEDED / BLOCKED with `file:line` findings |
 | Writer | Writing Room | drafts courses, blogs and reports, a source per claim |
+| Marketer | Marketing | social posts and campaign angles (English), drafts only |
+| Designer | Design Studio | image prompts, SVG graphics, alt text, platform sizes; creates no raster images |
+| Researcher | Research | sourced briefs on vulnerabilities, techniques and news, a link per claim |
+| Trainer | Training Studio | lesson plans, lab scenarios with answer keys, quizzes; drafts only |
+| QA | Code Room | read-only check that labs and lessons work for a learner, `file:line` reports |
+| Coder | Code Room | builds, runs typecheck/lint/build and commits; pushes and deploys **only** from the Ship button |
+| Librarian | Library | keeps the records: catalogues results, finds what the office already knows, flags duplicates and unreviewed work (read-only) |
 
 Add an agent by appending an entry to `agents.json`. Rooms are derived from the agents: whatever `room` an agent
 has is the room it sits in; the CEO room is always in the middle. One agent or thirty both fit the frame.
@@ -125,6 +154,50 @@ context and tokens for small, frequent jobs.
 
 Every run has a watchdog (`"timeout_s"` per agent, 900 seconds by default): when it fires, the runner kills the
 whole process group and the run ends as an error, so a hung CLI can never leave an agent "running" forever.
+
+### Who makes it, who checks it
+
+Nothing an agent produces goes unchecked. Every producer has a different agent as its reviewer, and a review starts
+by itself when the work finishes successfully. Reviewers are read-only and never review a review.
+
+| Producer | Checked by | What the check looks at |
+|---|---|---|
+| Coder | Engineer | the real `git diff`: correctness, security, accessibility, anything outside the task |
+| Writer | Researcher | every number/CVE/quote against a source; SEO, GEO and tone checklist |
+| Marketer | Writer | hook, tone, true and sourced claims, platform fit |
+| Designer | Marketer | brand fit, readable on-image text, complete prompts, platform sizes, valid SVG |
+| Trainer | QA | measurable objectives, lab with answer key and safe scope, correct quiz answers |
+| Researcher, Marketer, Writer, Designer, Trainer | automatic source check | CVE ids exist, links answer (token-free, shown as a badge) |
+
+The review is its own run (label "Review of Coder's work"), appears as a card under **Needs you**, and sits under
+the original run in **History**. Before you press **Ship**, the confirmation shows what the reviewer said.
+Set it per agent in `agents.json` with `"reviewed_by": "<agent id>"` and an optional `"review_prompt"`;
+**Settings → Health** warns if a reviewer can edit files. `"verify": false` turns the source check off for one agent.
+
+**Chaining.** The CEO can order work with `"after"`: "trainer after researcher" starts the trainer when the
+researcher finishes and hands it that output (as data, cut at 8,000 characters). Without `after`, assignments
+start together. A failed step stops the chain; a follow-up never inherits Ship rights.
+
+### History, source checks, shipping and the daily cap
+
+- **History tab.** Every CEO exchange (your question, the answer, the runs it started) and every direct run,
+  newest first, with search and an agent filter. Results open in full. Built from `events.jsonl`, `runs/` and
+  `output/`; nothing extra is stored. Questions asked before this tab existed were not recorded.
+- **Check sources** (button in a result). `verify.py` looks up every CVE id at cve.org and sends a `HEAD` request
+  to each `https` link. Links are vetted first (https only, public addresses only, no redirects followed), it
+  needs no model and runs only when you press the button. A found CVE proves the id exists, not that the agent
+  described it correctly.
+- **Shipping is a button, not a permission.** The OpenCode `office-write` agent denies `git push`, deploy
+  scripts, `npm publish`, `ssh`/`scp`/`rsync` and `git remote`; `office-review` may only run read-only git
+  commands. `office-ship` lifts those limits and is used only for a run started with the **Ship** button (agents
+  with the `deploy` profile), after a confirmation. The CEO can never start a shipping run.
+  Run `python3 scripts/setup-opencode-agents.py` again after updating, so the rules reach OpenCode.
+- **Daily token cap.** `settings.daily_token_cap` in `agents.json` limits the *fresh* tokens (input, output, cache
+  writes) the office spends per day; default 2,000,000, `0` turns it off. Cache reads and your own terminal
+  sessions do not count. At the cap, new runs and CEO questions are refused until tomorrow. Health warns at 80%.
+- **Tests.** `python3 -m unittest discover -s tests -v` (offline, no models) covers the CEO plan validation,
+  history grouping, source-check safety rules and the localhost-only checks. `./scripts/check.sh` runs them with
+  the rest of the health check.
 
 ### Terminal bridge: the sessions you opened yourself
 
@@ -210,16 +283,22 @@ single-step answer emits no usage event of its own). `--auto` is added only for 
 the same as a Claude Code run. Pick the runtime per agent in **Settings → Agents**.
 
 Tool permissions on the OpenCode runtime are enforced by the four agents the setup script installs
-(`office-read`, `office-review`, `office-browse`, `office-write`); the runner maps an agent's tool list onto one of
+(`office-read`, `office-review`, `office-browse`, `office-write`, `office-ship`); the runner maps an agent's tool list onto one of
 them. Without those agents the runner still works but falls back to OpenCode's default permissions, so run the
 setup script. `claude -p` keeps using `allowed_tools` / `default_denied_tools` as before.
 
 Two things differ on the OpenCode runtime:
 
-- **Shell commands cannot be filtered by prefix.** OpenCode allows or denies the shell as a whole, which is why the
-  boundary is drawn per capability instead.
+- **Shell rules are pattern-based.** OpenCode's `permission.bash` globs (last match wins) are what the setup script
+  uses: reviewers get read-only git, builders cannot push or deploy. An agent's `Bash(...)` entries in
+  `allowed_tools` are *not* matched one by one on this runtime; the four-agent boundary is.
 - **The CEO stays tool-less** through the `ceo` agent defined in this folder's `opencode.json`
   (`"tools": { "*": false }`), so a plan-only call really cannot read or run anything.
+
+**Using Gemini or another provider.** There is no separate Gemini runtime: run it through OpenCode. Connect the
+provider in OpenCode (`opencode auth login`), find the model id with `opencode models`, and enter it as the agent's
+model in **Settings → Agents** (for example `google/...` or `openrouter/google/...`). **Settings → Health** checks
+that every model id really exists.
 
 Some `opencode-go/*` models require a Global region setting in the provider workspace; if a run fails with
 `This Go model requires Global regions`, use the same model from another provider — for example

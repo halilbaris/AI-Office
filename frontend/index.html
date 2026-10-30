@@ -46,8 +46,8 @@
 :root[data-theme="dark"]{
   /* near-black, low-glare dark theme */
   --cream:#0f0f0e; --ink:#e9e9e6; --muted:#a0a09a; --coral:#f0f0ed; --coral-dark:#ffffff;
-  --glass:rgba(20,20,19,.9); --glass-edge:rgba(255,255,255,.09); --side-width:384px;
-  --paper:#171716; --paper-soft:#1e1e1d; --paper-deep:#262625; --paper-warm:#1a1a19;
+  --glass:rgba(29,29,27,.94); --glass-edge:rgba(255,255,255,.09); --side-width:384px;
+  --paper:#212120; --paper-soft:#292927; --paper-deep:#32322f; --paper-warm:#262624;
   --ink-2:#c4c4bf; --muted-2:#8b8b85;
   --line:rgba(233,233,230,.14); --line-soft:rgba(233,233,230,.07);
   --ink-rgb:233,233,230; --coral-rgb:240,240,237; --shadow-rgb:0,0,0;
@@ -57,14 +57,14 @@
   --surface-soft:rgba(255,255,255,.055);
   --surface-card:rgba(255,255,255,.045);
   --surface-hover:rgba(255,255,255,.09);
-  --surface-chrome:rgba(16,16,15,.92);
-  --surface-panel:rgba(18,18,17,.97);
+  --surface-chrome:rgba(16,16,15,.95);
+  --surface-panel:rgba(22,22,21,.97);
   --surface-inset:rgba(255,255,255,.07);
-  --surface-label:rgba(26,26,25,.95);
-  --surface-label-soft:rgba(26,26,25,.85);
-  --surface-label-sub:rgba(26,26,25,.78);
-  --page-surface:rgba(14,14,13,.97);
-  --tab-selected:#2a2a28;
+  --surface-label:rgba(32,32,30,.96);
+  --surface-label-soft:rgba(32,32,30,.88);
+  --surface-label-sub:rgba(32,32,30,.8);
+  --page-surface:rgba(17,17,16,.98);
+  --tab-selected:#333330;
   --text-halo:rgba(0,0,0,.65);
   --primary-hover:#dcdcd8;
   color-scheme:dark;
@@ -137,6 +137,39 @@ h3.small{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;l
 .dark.small{font-size:11.5px;padding:4px 10px;border-radius:8px}
 .steps-toggle{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);cursor:pointer}
 .steps-toggle input{accent-color:var(--coral);width:12px;height:12px}
+.now-list{list-style:none;display:flex;flex-direction:column;gap:2px;margin:0 0 6px;padding:0 0 6px;border-bottom:1px solid rgba(var(--ink-rgb),.1)}
+.now-list[hidden]{display:none}
+.now-list li{display:flex;gap:10px;padding:6px 4px;align-items:center}
+.now-list li div{min-width:0}
+.now-list li p{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.now-list li small{display:block;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.now-list li .dot{margin-left:auto;flex:none;width:7px;height:7px;border-radius:50%;background:var(--coral);animation:pulse 1.4s ease-in-out infinite}
+
+.hist-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0 4px}
+.hist-tools input{flex:1 1 220px;min-width:0;padding:8px 12px;border-radius:12px;border:1px solid rgba(var(--ink-rgb),.14);background:var(--paper);color:var(--ink);font:inherit;font-size:13px}
+.hist-chips{display:flex;flex-wrap:wrap;gap:6px}
+.hist-chips button{padding:5px 11px;border-radius:999px;border:1px solid rgba(var(--ink-rgb),.14);background:transparent;color:var(--ink-2);font-size:12px;cursor:pointer}
+.hist-chips button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.hist-day{margin:18px 0 6px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.hist-item{border:1px solid rgba(var(--ink-rgb),.1);border-radius:16px;background:var(--paper);padding:14px 16px;margin-bottom:10px;display:flex;flex-direction:column;gap:10px}
+.hist-head{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.hist-head b{color:var(--ink);font-weight:600}
+.hist-q{align-self:flex-end;max-width:85%;background:var(--ink);color:var(--paper);padding:9px 13px;border-radius:14px 14px 4px 14px;font-size:13.5px;white-space:pre-line;overflow-wrap:anywhere}
+.hist-q.missing{background:transparent;color:var(--muted);border:1px dashed rgba(var(--ink-rgb),.2);font-style:italic}
+.hist-a{max-width:92%;background:rgba(var(--ink-rgb),.05);padding:9px 13px;border-radius:14px 14px 14px 4px;font-size:13.5px;white-space:pre-line;overflow-wrap:anywhere}
+.hist-a.clamp{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+.hist-runs{display:flex;flex-direction:column;gap:6px}
+.hist-run{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;border:1px solid rgba(var(--ink-rgb),.08);font-size:12.5px}
+.hist-run .txt{flex:1;min-width:0}
+.hist-run .txt b{display:block;font-weight:600}
+.hist-run .txt span{display:block;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist-run button{flex:none;padding:5px 11px;border-radius:999px;border:1px solid rgba(var(--ink-rgb),.18);background:transparent;color:var(--ink);font-size:12px;cursor:pointer}
+.hist-sub{margin-left:22px;padding-left:10px;border-left:2px solid rgba(var(--ink-rgb),.12)}
+.hist-run.review{background:rgba(var(--ink-rgb),.035)}
+.hist-chain{display:flex;flex-direction:column;gap:6px}
+.hist-st{font-size:11px;padding:2px 8px;border-radius:999px;background:rgba(var(--ink-rgb),.07);color:var(--ink-2);flex:none}
+.hist-st.error{background:rgba(200,60,40,.14);color:#b3402c}
+.hist-empty{padding:30px 0;color:var(--muted);text-align:center}
 .stream li.step{display:none}
 .stream.show-steps li.step{display:flex}
 .today{display:flex;gap:14px;justify-content:space-between;padding:10px 16px;font-size:11.5px;color:var(--muted);flex:none}
@@ -154,7 +187,55 @@ h3.small{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;l
 .modal-card header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid rgba(var(--ink-rgb),.1)}
 .modal-card h3{font-family:"Space Grotesk",sans-serif;font-size:17px;margin:0}
 .modal-card header small{font-size:11.5px;color:var(--muted)}
-.modal-card pre{margin:0;padding:18px;overflow:auto;white-space:pre-wrap;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2)}
+.result-bar{display:flex;align-items:center;gap:8px;padding:10px 18px;border-bottom:1px solid rgba(var(--ink-rgb),.08);flex-wrap:wrap}
+.result-bar .seg{display:inline-flex;padding:2px;border-radius:10px;background:rgba(var(--ink-rgb),.07)}
+.result-bar .seg button{padding:5px 12px;border-radius:8px;font-size:12px;font-weight:600;color:var(--muted)}
+.result-bar .seg button[aria-selected=true]{background:var(--surface-card,var(--glass));color:var(--ink);box-shadow:0 1px 2px rgba(var(--shadow-rgb),.18)}
+.help-card{max-width:560px}
+.help-body{padding:6px 20px 20px;overflow:auto;font-size:14px;line-height:1.55}
+.help-body ol,.help-body ul{margin:8px 0 8px 20px;display:flex;flex-direction:column;gap:7px}
+.help-body h4{margin:14px 0 4px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.verify-box{margin:0 18px 6px;padding:10px 12px;border-radius:12px;border:1px solid rgba(var(--ink-rgb),.12);background:rgba(var(--ink-rgb),.04);font-size:12.5px}
+.verify-box ul{list-style:none;margin:6px 0 0;display:flex;flex-direction:column;gap:3px}
+.verify-box li{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.verify-box .bad{color:#b3402c;font-weight:600}
+.verify-box small{display:block;color:var(--muted);margin-top:6px}
+.result-bar .result-info{flex:1;min-width:0;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.result-bar .button.small{padding:5px 11px;font-size:12px}
+.md{overflow:auto;padding:22px 28px 30px;font-size:14.5px;line-height:1.7;color:var(--ink-2);overflow-wrap:anywhere}
+.md>*:first-child{margin-top:0}
+.md h1,.md h2,.md h3,.md h4{font-family:"Space Grotesk",sans-serif;color:var(--ink);line-height:1.25;letter-spacing:-.015em;margin:1.5em 0 .5em}
+.md h1{font-size:25px}.md h2{font-size:20px;padding-bottom:.3em;border-bottom:1px solid rgba(var(--ink-rgb),.1)}.md h3{font-size:16.5px}.md h4{font-size:14.5px}
+.md p{margin:.7em 0}
+.md ul,.md ol{margin:.6em 0;padding-left:1.4em}.md li{margin:.25em 0}.md li>ul,.md li>ol{margin:.2em 0}
+.md a{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+.md strong{color:var(--ink);font-weight:650}
+.md code{font:12.5px ui-monospace,SFMono-Regular,Menlo,monospace;padding:.1em .38em;border-radius:6px;background:rgba(var(--ink-rgb),.08);color:var(--ink)}
+.md pre{position:relative;margin:1em 0;padding:14px 16px;overflow:auto;border-radius:12px;background:rgba(var(--ink-rgb),.06);border:1px solid rgba(var(--ink-rgb),.08);white-space:pre;font-size:12.5px;line-height:1.55}
+.md pre code{padding:0;background:none;font-size:inherit}
+.md pre[data-lang]::before{content:attr(data-lang);position:absolute;top:6px;right:10px;font:600 10px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2)}
+.md blockquote{margin:1em 0;padding:.2em 1em;border-left:3px solid rgba(var(--ink-rgb),.25);color:var(--muted)}
+.md hr{border:0;border-top:1px solid rgba(var(--ink-rgb),.12);margin:1.6em 0}
+.md .md-table{overflow:auto;margin:1em 0;border:1px solid rgba(var(--ink-rgb),.1);border-radius:12px}
+.md table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.5}
+.md th,.md td{padding:8px 12px;text-align:left;vertical-align:top;border-bottom:1px solid rgba(var(--ink-rgb),.08)}
+.md th{background:rgba(var(--ink-rgb),.05);color:var(--ink);font-weight:600;white-space:nowrap}
+.md tr:last-child td{border-bottom:0}
+.md-figure{margin:1.2em 0;padding:0}
+.md-figure-btn{display:block;width:100%;padding:14px;border-radius:14px;cursor:zoom-in;border:1px solid rgba(var(--ink-rgb),.12);background:repeating-conic-gradient(rgba(128,128,128,.12) 0 25%,transparent 0 50%) 0 0/16px 16px}
+.md-figure-btn:hover{border-color:rgba(var(--ink-rgb),.3)}
+.md-figure-btn img{display:block;width:100%;height:auto;max-height:420px;object-fit:contain;border-radius:8px}
+.md-figure figcaption{margin-top:6px;font-size:11.5px;color:var(--muted);text-align:center}
+.md-figure details{margin-top:8px;font-size:12.5px}.md-figure summary{cursor:pointer;color:var(--muted)}
+.lightbox{position:fixed;inset:0;z-index:12;display:flex;flex-direction:column;background:rgba(var(--shadow-rgb),.86);backdrop-filter:blur(4px)}
+.lightbox[hidden]{display:none}
+.lightbox-bar{display:flex;align-items:center;gap:10px;padding:12px 18px;color:#fff}
+.lightbox-bar span{flex:1;min-width:0;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lightbox-bar .button{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.22)}
+.lightbox img{flex:1;min-height:0;width:calc(100% - 48px);margin:0 24px 24px;object-fit:contain;cursor:zoom-out;background:repeating-conic-gradient(rgba(128,128,128,.14) 0 25%,transparent 0 50%) 0 0/20px 20px;border-radius:12px}
+.md td:first-child{min-width:8.5em;font-weight:600;color:var(--ink);overflow-wrap:normal;word-break:normal}
+.modal-card{width:min(900px,94vw);max-height:86vh}
+.modal-card>pre{margin:0;padding:18px;overflow:auto;white-space:pre-wrap;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2)}
 .box{padding:16px 16px 12px;display:flex;flex-direction:column;min-height:0}
 .box .head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
 .box .head h2{font-family:"Space Grotesk",sans-serif;font-size:16px;font-weight:600}
@@ -196,6 +277,12 @@ h3.small{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;l
 @keyframes slide{from{transform:translateY(-6px)}to{transform:none}}
 .stream li .avatar{margin-top:1px}
 .stream li div{min-width:0}
+.stream li p{white-space:pre-line;overflow-wrap:anywhere}
+.stream li.expandable{cursor:pointer}
+.stream li p.clamp{display:-webkit-box;-webkit-line-clamp:7;-webkit-box-orient:vertical;overflow:hidden}
+.stream li.open p.clamp{display:block;-webkit-line-clamp:unset}
+.stream li.expandable::after{content:"Show more";align-self:flex-end;font-size:11px;color:var(--muted-2);white-space:nowrap}
+.stream li.expandable.open::after{content:"Show less"}
 .stream li p{font-size:13px;line-height:1.38}
 .stream li small{display:block;font-size:11.5px;color:var(--muted-2);margin-top:2px}
 .stream li.ok p{color:var(--green);font-weight:600}
@@ -234,6 +321,9 @@ h3.small{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;l
 .row{display:grid;grid-template-columns:86px 1fr;gap:10px;font-size:13px;line-height:1.4}
 .row span:first-child{color:var(--muted)}
 .note{font-size:12px;line-height:1.45;background:var(--surface-soft);border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--ink-2);margin-top:10px;white-space:pre-line}
+.ship-note{font-size:12px;color:var(--muted);margin:0 0 8px}
+.ship-btn{width:100%;text-align:left;font-size:12.5px;font-weight:600;padding:11px 12px;border-radius:12px;background:transparent;border:1px dashed rgba(var(--coral-rgb),.55);color:var(--ink);cursor:pointer}
+.ship-btn:hover{background:var(--surface-hover)}
 .presets{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .presets button{text-align:left;font-size:12.5px;font-weight:500;line-height:1.3;padding:11px 12px;border-radius:12px;background:var(--surface-control);border:1px solid rgba(var(--ink-rgb),.07);transition:background .15s,transform .15s,border-color .15s}
 .presets button:hover{background:var(--surface-hover);border-color:rgba(var(--coral-rgb),.45)}
@@ -353,6 +443,11 @@ body{letter-spacing:-.004em}
 .pill:hover{transform:translateY(-1px);box-shadow:var(--shadow-2)}
 .clock{font-variant-numeric:tabular-nums;font-size:12.5px}
 .button.ghost{border-radius:10px;font-size:12.5px;padding:8px 12px;transition:background .18s}
+.button.theme-toggle{width:34px;height:34px;padding:0;display:grid;place-items:center;border-radius:10px;flex:none}
+.theme-toggle svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.theme-toggle .icon-sun{display:none}
+:root[data-theme="dark"] .theme-toggle .icon-moon{display:none}
+:root[data-theme="dark"] .theme-toggle .icon-sun{display:block}
 .button.ghost:hover{background:var(--surface-hover)}
 .side{gap:12px}
 .sec{border-radius:18px;box-shadow:var(--shadow-2)}
@@ -393,7 +488,13 @@ body{letter-spacing:-.004em}
 @media (max-width:640px){
   #statusPill{display:none}
 }
+.side-handle{display:none}
 @media (max-width:900px){
+  .side-handle{display:block;position:sticky;top:0;z-index:2;flex:0 0 auto;width:100%;height:22px;margin:0 0 -6px;border:0;background:transparent;cursor:pointer}
+  .side-handle::after{content:"";display:block;width:42px;height:5px;margin:8px auto 0;border-radius:99px;background:rgba(var(--ink-rgb),.28)}
+  .side.collapsed{max-height:34px;overflow:hidden}
+  .side.collapsed>:not(.side-handle){display:none}
+  .side.collapsed .side-handle{height:34px;margin:0}
   .topbar{gap:10px;padding:0 12px}
   .brand small{display:none}
   .tabs{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;-ms-overflow-style:none}
@@ -406,6 +507,8 @@ body{letter-spacing:-.004em}
   .greeting{display:none}
   .command{left:10px;right:10px;width:auto;transform:none;bottom:10px;padding:6px}
   .command input{font-size:13.5px}
+  .page{top:64px;left:10px;right:10px;bottom:76px;padding:16px}
+  .page h2{font-size:22px}
   .command .kbd{display:none}
   .clock{display:none}
   #overview{display:none}
@@ -426,6 +529,7 @@ body{letter-spacing:-.004em}
   <nav class="tabs" id="tabs">
     <button data-tab="office" class="selected">Office</button>
     <button data-tab="rooms">Rooms</button>
+    <button data-tab="history">History</button>
     <button data-tab="memory">Memory</button>
     <button data-tab="cost">Cost</button>
     <button data-tab="settings">Settings</button>
@@ -436,6 +540,11 @@ body{letter-spacing:-.004em}
     <span id="pillResults" class="pill-results" hidden></span>
   </button>
   <span class="clock" id="clock"></span>
+  <button class="button ghost theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme" aria-pressed="true" title="Switch to light theme">
+    <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.4A8.2 8.2 0 0 1 9.6 4 8.5 8.5 0 1 0 20 14.4Z"/></svg>
+    <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.2M12 19.8V22M2 12h2.2M19.8 12H22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+  </button>
+  <button class="button ghost" id="helpBtn" title="How this office works, in plain words">Help</button>
   <button class="button ghost" id="overview" title="Back to the overview camera">Overview</button>
 </header>
 
@@ -447,7 +556,8 @@ body{letter-spacing:-.004em}
   <p id="greetingText">Loading the office…</p>
 </section>
 
-<aside class="side">
+<aside class="side" id="side">
+  <button class="side-handle" id="sideHandle" type="button" aria-label="Collapse or expand the activity sheet" aria-expanded="true"></button>
   <section class="box glass sec" id="needsSec">
     <button class="sec-head" data-section="needs">
       <span class="sec-title">Needs you</span>
@@ -467,6 +577,7 @@ body{letter-spacing:-.004em}
     </button>
     <div class="sec-body">
       <div class="sec-tools"><label class="steps-toggle"><input type="checkbox" id="stepsToggle"> show tool steps</label></div>
+      <ul class="now-list" id="nowList" hidden></ul>
       <ul class="stream" id="stream"></ul>
     </div>
   </section>
@@ -477,13 +588,53 @@ body{letter-spacing:-.004em}
   </section>
 </aside>
 
+<div class="modal" id="helpModal" hidden>
+  <div class="modal-card glass help-card" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <header>
+      <div><h3 id="helpTitle">How this office works</h3><small>No technical knowledge needed</small></div>
+      <button class="button ghost" id="helpClose" title="Close">✕</button>
+    </header>
+    <div class="help-body">
+      <p>Think of this as a small company of AI helpers. Each helper (the animals) has its own room and one kind of job. You only ever talk to one of them: the <b>CEO</b>.</p>
+      <ol>
+        <li><b>Tell the CEO what you need</b> in the box at the bottom, in your own words. For example: “Write a blog post about phishing” or “Check if our labs work”.</li>
+        <li><b>The CEO picks the right helper</b> and hands over the job. You will see that helper wake up and start working.</li>
+        <li><b>Watch it work.</b> The “Live” panel shows who is busy and what they are doing right now.</li>
+        <li><b>Read the result.</b> When a helper finishes, a card appears under “Needs you”. Press <b>Full result</b> to read it, then <b>Approve</b> when you are happy.</li>
+        <li><b>Come back later.</b> The <b>History</b> tab keeps every question and every result.</li>
+      </ol>
+      <h4>Good to know</h4>
+      <ul>
+        <li><b>Nothing is published, sent or paid for by itself.</b> Helpers only write drafts. Sending, posting and paying stay with you.</li>
+        <li><b>Nothing runs while you are away.</b> No work, no cost.</li>
+        <li><b>Every result is checked by a second helper</b> before you rely on it: code by the Engineer, blog posts by the Researcher, social posts by the Writer, visuals by the Marketer, lessons by QA. Their verdict (APPROVE, CHANGES NEEDED, BLOCKED) shows up as its own card.</li>
+        <li><b>“Check sources”</b> in a result looks up the CVE numbers and links the helper mentioned, so you can see if they exist.</li>
+        <li><b>A daily limit</b> stops the office from using too much AI time. You can see it on the Cost tab.</li>
+        <li><b>Something looks wrong?</b> Open Settings → Health. It tells you in plain words what is missing.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="resultModal" hidden>
   <div class="modal-card glass" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
     <header>
       <div><h3 id="resultTitle">Result</h3><small id="resultMeta"></small></div>
       <button class="button ghost" id="resultClose" title="Close">✕</button>
     </header>
-    <pre id="resultBody"></pre>
+    <div class="result-bar">
+      <div class="seg" role="tablist" aria-label="Result view">
+        <button type="button" role="tab" id="viewPreview" aria-selected="true">Preview</button>
+        <button type="button" role="tab" id="viewRaw" aria-selected="false">Markdown</button>
+      </div>
+      <span class="result-info" id="resultInfo"></span>
+      <button class="button ghost small" id="resultVerify" type="button" title="Checks that the CVE ids exist and the links answer. Takes a few seconds.">Check sources</button>
+      <button class="button ghost small" id="resultCopy" type="button">Copy</button>
+      <button class="button ghost small" id="resultDownload" type="button">Download .md</button>
+    </div>
+    <div class="verify-box" id="verifyBox" hidden></div>
+    <article class="md" id="resultMd"></article>
+    <pre id="resultBody" hidden></pre>
   </div>
 </div>
 
@@ -496,6 +647,10 @@ body{letter-spacing:-.004em}
   <input id="commandInput" maxlength="600" placeholder="Tell the CEO what you need…" aria-label="Message to the CEO">
   <button class="send" id="commandSend" type="submit">Send</button>
 </form>
+<div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Image preview">
+  <div class="lightbox-bar"><span id="lightboxTitle"></span><button class="button ghost small" id="lightboxDownload" type="button">Download SVG</button><button class="button ghost small" id="lightboxClose" type="button" aria-label="Close">✕</button></div>
+  <img id="lightboxImg" alt="">
+</div>
 <div class="toast glass" id="toast"></div>
 <div class="mode" id="mode"><span class="dot"></span><span id="modeText">Live</span></div>
 
@@ -509,7 +664,8 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { createCat, agentPattern, agentAccessory } from './cat.js';
 import { setupMeme, findMeme } from './meme.js';
 import { buildPortraits } from './portrait.js';
-import { setupDecor, deskLamp } from './decor.js';
+import { setupDecor, deskLamp, speciesProp } from './decor.js';
+import { renderMarkdown } from './markdown.js';
 import { renderSettings } from './settings.js';
 
 const PARAMS = new URLSearchParams(location.search);
@@ -648,14 +804,16 @@ renderer.toneMappingExposure = 1.0;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
-// background: a soft peach → cream gradient
-scene.background = (() => {
+// backdrop: a soft studio gradient, white in the light theme and near-black in the dark one
+function makeBackdrop(stops) {
   const c = document.createElement('canvas'); c.width = 4; c.height = 256;
   const x = c.getContext('2d'); const g = x.createLinearGradient(0, 0, 0, 256);
-  g.addColorStop(0, '#ffffff'); g.addColorStop(.55, '#fcfcfb'); g.addColorStop(1, '#f4f4f2');
+  g.addColorStop(0, stops[0]); g.addColorStop(.55, stops[1]); g.addColorStop(1, stops[2]);
   x.fillStyle = g; x.fillRect(0, 0, 4, 256);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
-})();
+}
+const BACKDROPS = { light: makeBackdrop(['#ffffff', '#fcfcfb', '#f4f4f2']), dark: makeBackdrop(['#0a0a09', '#10100f', '#161615']) };
+scene.background = BACKDROPS[document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'];
 scene.fog = new THREE.Fog('#f7f7f5', 95, 170);
 
 const camera = new THREE.PerspectiveCamera(26, innerWidth / innerHeight, 1, 400);
@@ -683,7 +841,8 @@ controls.addEventListener('change', () => {
 });
 
 // warm golden hour: a strong directional sun, less fill → contrasty shadows
-scene.add(new THREE.HemisphereLight('#ffffff', '#e4e4e0', 1.15));
+const hemi = new THREE.HemisphereLight('#ffffff', '#e4e4e0', 1.15);
+scene.add(hemi);
 const sun = new THREE.DirectionalLight('#fff2df', 3.2);
 sun.position.set(-22, 40, 24);
 sun.castShadow = true;
@@ -781,10 +940,13 @@ const BOX = ROOMS.reduce((k, r) => ({ x0:Math.min(k.x0, r.cx - r.w / 2), x1:Math
 const CENTER = new THREE.Vector3((BOX.x0 + BOX.x1) / 2, 0, (BOX.z0 + BOX.z1) / 2);
 const PLINTH_W = BOX.x1 - BOX.x0 + 6.6, PLINTH_D = BOX.z1 - BOX.z0 + 7.6;
 const SCALE = Math.max(.62, PLINTH_W / 50, PLINTH_D / 46), BIG = Math.max(1, SCALE);   // depth foreshortens at a slant
-box(scene, PLINTH_W, 1.4, PLINTH_D, '#ffffff', CENTER.x, -.7, CENTER.z, .35, false).receiveShadow = true;
-box(scene, PLINTH_W + 1.2, .5, PLINTH_D + 1.2, '#e8e8e5', CENTER.x, -1.55, CENTER.z, .2, false);
+const plinthMat = new THREE.MeshStandardMaterial({ color:'#ffffff', roughness:.9 });
+const plinthBaseMat = new THREE.MeshStandardMaterial({ color:'#e8e8e5', roughness:.95 });
+box(scene, PLINTH_W, 1.4, PLINTH_D, plinthMat, CENTER.x, -.7, CENTER.z, .35, false).receiveShadow = true;
+box(scene, PLINTH_W + 1.2, .5, PLINTH_D + 1.2, plinthBaseMat, CENTER.x, -1.55, CENTER.z, .2, false);
 aoPatch(scene, PLINTH_W * 1.56, PLINTH_D * 1.61, CENTER.x + 1, CENTER.z + 3, -1.79, .8);
-const groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(400 * BIG, 400 * BIG), new THREE.MeshStandardMaterial({ color:'#f2f2ef', roughness:1 }));
+const groundMat = new THREE.MeshStandardMaterial({ color:'#f2f2ef', roughness:1 });
+const groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(400 * BIG, 400 * BIG), groundMat);
 groundPlane.rotation.x = -Math.PI / 2; groundPlane.position.set(CENTER.x, -1.8, CENTER.z); groundPlane.receiveShadow = true; scene.add(groundPlane);
 OVERVIEW.target.copy(CENTER).add(new THREE.Vector3(.6, 0, 3.4).multiplyScalar(SCALE));
 OVERVIEW.position.copy(OVERVIEW.target).add(new THREE.Vector3(32.4, 47.4, 56.1).multiplyScalar(SCALE));
@@ -795,6 +957,42 @@ BOUNDS.x0 = CENTER.x - PLINTH_W / 2 + 1; BOUNDS.x1 = CENTER.x + PLINTH_W / 2 - 1
 scene.fog.near = 95 * BIG; scene.fog.far = 170 * BIG;
 sun.position.copy(CENTER).add(new THREE.Vector3(-22, 40, 24).multiplyScalar(BIG));
 sun.target.position.copy(CENTER); scene.add(sun.target);
+
+/* ---------- theme: white paper ↔ low-glare dark ---------- */
+const THEME_KEY = 'myoffice-theme';
+const themeRoot = document.documentElement;
+function applySceneTheme(theme) {
+  const dark = theme === 'dark';
+  scene.background = dark ? BACKDROPS.dark : BACKDROPS.light;
+  scene.fog.color.set(dark ? '#121211' : '#f7f7f5');
+  plinthMat.color.set(dark ? '#6b6b67' : '#ffffff');
+  plinthBaseMat.color.set(dark ? '#4b4b48' : '#e8e8e5');
+  groundMat.color.set(dark ? '#121211' : '#f2f2ef');
+  hemi.intensity = dark ? .5 : 1.15;
+  sun.intensity = dark ? 1.55 : 3.2;
+  fillLight.intensity = dark ? .18 : .35;
+  renderer.toneMappingExposure = dark ? .86 : 1.0;
+  // floors are the largest bright surfaces; tint them down so the dark theme does not glare
+  ROOMS.forEach((room) => {
+    const material = room.floorMesh?.material;
+    if (!material) return;
+    if (!material.userData.baseColor) material.userData.baseColor = material.color.clone();
+    material.color.copy(material.userData.baseColor).multiplyScalar(dark ? .55 : 1);
+  });
+}
+function applyTheme(theme) {
+  themeRoot.dataset.theme = theme;
+  try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+  const dark = theme === 'dark';
+  const btn = $('themeToggle');
+  if (btn) {
+    btn.setAttribute('aria-pressed', String(dark));
+    btn.title = dark ? 'Switch to light theme' : 'Switch to dark theme';
+    btn.setAttribute('aria-label', btn.title);
+  }
+  applySceneTheme(theme);
+}
+
 const shadowK = Math.max(.6, SCALE);
 Object.assign(sun.shadow.camera, { left:-32 * shadowK, right:32 * shadowK, top:26 * shadowK, bottom:-26 * shadowK, far:110 * BIG });
 sun.shadow.camera.updateProjectionMatrix();
@@ -815,16 +1013,18 @@ function drawFloorLabel(room) {
   ctx.fillStyle = 'rgba(59,52,44,.82)';
   ctx.font = '600 60px "Space Grotesk"';
   ctx.letterSpacing = '4px';
-  ctx.fillText(room.name.toLocaleUpperCase('en-US'), 8, 68);
+  const title = room.name.toLocaleUpperCase('en-US');
+  ctx.fillText(title, (1024 - ctx.measureText(title).width) / 2, 68);
   ctx.letterSpacing = '0px';
   // badge: N agents · M working
   const label = room.id === 'ceo' ? 'You only talk to the CEO' : plural(n, 'agent') + ' · ' + m + ' working';
   ctx.font = '600 32px Inter';
   const w = ctx.measureText(label).width + 44;
   ctx.fillStyle = m ? 'rgba(255,122,89,.9)' : 'rgba(255,255,255,.75)';
-  roundRect(ctx, 8, 92, w, 52, 26); ctx.fill();
+  const bx = (1024 - w) / 2;
+  roundRect(ctx, bx, 92, w, 52, 26); ctx.fill();
   ctx.fillStyle = m ? '#fff' : (room.gold ? 'rgba(150,108,24,.95)' : 'rgba(110,98,84,.95)');
-  ctx.fillText(label, 30, 129);
+  ctx.fillText(label, bx + 22, 129);
   texture.needsUpdate = true;
 }
 function floorLabel(room, g) {
@@ -834,7 +1034,7 @@ function floorLabel(room, g) {
   const width = Math.min(room.w - 1.2, 9.2);
   const m = new THREE.Mesh(new THREE.PlaneGeometry(width, width * 160 / 1024), new THREE.MeshBasicMaterial({ map:texture, transparent:true, depthWrite:false }));
   m.rotation.x = -Math.PI / 2;
-  m.position.set(-room.w / 2 + .6 + width / 2, .125, room.d / 2 - .85);
+  m.position.set(0, .125, room.d / 2 - .85);
   g.add(m);
 }
 function buildRoom(room) {
@@ -849,26 +1049,25 @@ function buildRoom(room) {
 }
 function buildWalls(room, g) {
   const H = 2.6, T = .24;
-  box(g, room.w, H, T, room.wall, 0, H / 2 + .1, -room.d / 2 + T / 2, .07);
-  box(g, T, H, room.d - T, room.wall, -room.w / 2 + T / 2, H / 2 + .1, T / 2, .07);
+  box(g, room.w, H, T, room.wall, 0, H / 2 + .1, -room.d / 2 + T / 2, .07, false);
+  box(g, T, H, room.d - T, room.wall, -room.w / 2 + T / 2, H / 2 + .1, T / 2, .07, false);
   if (room.door) {
     // door gap in the front wall: 2 units open at the right end, a coral line on the threshold
-    box(g, room.w - 2.6, .26, T, room.wall, -1.3, .23, room.d / 2 - T / 2, .06);
+    box(g, room.w - 2.6, .26, T, room.wall, -1.3, .23, room.d / 2 - T / 2, .06, false);
     box(g, 2.2, .04, .22, mat('#e0522b', { emissive:'#e0522b', emissiveIntensity:.25 }), room.w / 2 - 1.4, .14, room.d / 2 - T / 2, .02, false);
-  } else box(g, room.w, .26, T, room.wall, 0, .23, room.d / 2 - T / 2, .06);
-  box(g, T, .26, room.d - T, room.wall, room.w / 2 - T / 2, .23, T / 2, .06);
-  aoPatch(g, room.w, 1.6, 0, -room.d / 2 + .7, .118, .55);
+  } else box(g, room.w, .26, T, room.wall, 0, .23, room.d / 2 - T / 2, .06, false);
+  box(g, T, .26, room.d - T, room.wall, room.w / 2 - T / 2, .23, T / 2, .06, false);
   if (room.gold) {
     const gold = mat('#d6ad52', { metalness:.65, roughness:.32 });
-    box(g, room.w, .1, T + .04, gold, 0, H + .14, -room.d / 2 + T / 2, .03);
-    box(g, T + .04, .1, room.d - T, gold, -room.w / 2 + T / 2, H + .14, T / 2, .03);
+    box(g, room.w, .1, T + .04, gold, 0, H + .14, -room.d / 2 + T / 2, .03, false);
+    box(g, T + .04, .1, room.d - T, gold, -room.w / 2 + T / 2, H + .14, T / 2, .03, false);
     const rugMesh = new THREE.Mesh(rounded(room.w - 4, .03, 3.2, .015), mat('#ead7a6'));
     rugMesh.position.set(0, .125, .9); rugMesh.receiveShadow = true; g.add(rugMesh);
   }
 }
 function buildGlassRoom(room, g) {
   const glass = new THREE.MeshStandardMaterial({ color:'#dff0f2', transparent:true, opacity:.22, roughness:.08, metalness:.1, depthWrite:false });
-  const frame = mat('#c9bfb1');
+  const frame = mat('#d9b966', { metalness:.55, roughness:.35 }); // gold frame
   const H = 2.3;
   [[0, -room.d / 2, room.w, .08], [0, room.d / 2, room.w, .08]].forEach(([x, z, w, d]) => {
     const m = new THREE.Mesh(rounded(w, H, d, .03), glass); m.position.set(x, H / 2 + .1, z); m.renderOrder = 2; g.add(m);
@@ -883,6 +1082,16 @@ function buildGlassRoom(room, g) {
 }
 ROOMS.forEach(buildRoom);
 setupDecor(ROOMS);
+
+applyTheme(themeRoot.dataset.theme || 'dark');
+$('themeToggle').addEventListener('click', () => {
+  const next = themeRoot.dataset.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  window.dispatchEvent(new CustomEvent('myoffice:theme', { detail: next }));
+});
+window.addEventListener('myoffice:theme', (event) => {
+  applyTheme(event.detail === 'light' ? 'light' : 'dark');
+});
 
 /* ---------- decor ---------- */
 function plant(g, x, z, s = 1) {
@@ -1213,9 +1422,9 @@ function buildAgent(a) {
   const tone = AGENTS.filter(x => x.room === a.room).indexOf(a) * .5 - .25;
   const species = a.species || 'cat';
   a.cat = createCat({ pattern: species === 'cat' ? agentPattern(a.id, a.room) : null, tone,
-                      accessory:agentAccessory(a.id, a.room), species });
+                      accessory:agentAccessory(a.id, a.room), species, awake:a.id === 'ceo' });
   a.cat.group.position.set(0, .56, 0); g.add(a.cat.group);
-  deskLamp(g, .82, .52);
+  deskLamp(g, .82, .52); speciesProp(g, species);
   a.faceMaterial = new THREE.MeshBasicMaterial(); // status changes still set a face texture; invisible on the cat
   if (a.id === 'soc-analyst') addGuardLamp(g);
   a.zSprites = [0, 1, 2].map(() => {
@@ -1294,7 +1503,7 @@ async function loadTokens() {
     refreshTokens();
   } catch { /* without a counter the labels stay as they are */ }
 }
-function sleepText(a) { const t = agentTokens(a.id).total; return t ? 'sleeping · today ' + shortNumber(t) : 'sleeping · 0 tokens'; }
+function sleepText(a) { const t = agentTokens(a.id).total, word = a.id === 'ceo' ? 'awake' : 'sleeping'; return t ? word + ' · today ' + shortNumber(t) : word + ' · 0 tokens'; }
 function tokenCard(id) {
   const t = agentTokens(id), a = findAgent(id);
   const card = el('div', 'token-card');
@@ -1311,7 +1520,21 @@ function tokenCard(id) {
 }
 const workingAgents = () => AGENTS.filter(a => a.status === 'working' || a.status === 'waiting' || a.status === 'thinking');
 function clockText(date = new Date()) { return String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0'); }
+// "Working now": one row per busy agent with its current action; stays true even if the page opened mid-run
+function renderNow() {
+  const ul = $('nowList'); if (!ul) return;
+  const rows = workingAgents();
+  ul.hidden = !rows.length;
+  ul.replaceChildren(...rows.map(a => {
+    const li = el('li'), d = el('div');
+    d.append(el('p', null, a.name + (a.task ? ' · ' + truncate(a.task, 40) : '')), el('small', null, truncate(a.action || 'working…', 60) + ' · ' + elapsedSeconds(a) + 's'));
+    li.append(avatarNode(a.id), d, el('span', 'dot'));
+    return li;
+  }));
+}
+setInterval(() => { if (!document.hidden) renderNow(); }, 2000);
 function updateTopbar() {
+  renderNow();
   const n = workingAgents().length;
   $('active').textContent = n;
   $('activeLabel').textContent = n === 1 ? 'agent working' : 'agents working';
@@ -1377,6 +1600,12 @@ function avatarNode(agentId, extra = '') {
 function addStream(agentId, text, sub = '', kind = '', time = new Date()) {
   const li = el('li', kind);
   const d = el('div'); d.append(el('p', null, text), el('small', null, [findAgent(agentId)?.name, clockText(time), sub].filter(Boolean).join(' · ')));
+  if (text.length > 260) { // long replies (the CEO's answer) start clamped and open on click
+    const p = d.firstChild; p.classList.add('clamp'); li.classList.add('expandable'); li.tabIndex = 0; li.setAttribute('role', 'button'); li.setAttribute('aria-expanded', 'false');
+    const toggle = () => li.setAttribute('aria-expanded', String(li.classList.toggle('open')));
+    li.addEventListener('click', toggle);
+    li.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+  }
   li.append(avatarNode(agentId), d);
   const ul = $('stream'); ul.prepend(li);
   while (ul.children.length > 14) ul.lastChild.remove();
@@ -1389,7 +1618,16 @@ const saveApprovals = () => { try { localStorage.setItem(APPROVAL_KEY, JSON.stri
 let cards = [];
 let doneOpen = false;                      // "approved results" block in Needs you
 const terminals = new Map();               // live terminal bridge: session_name -> {agent, status, last_tool, last_target, window_name}
-const cleanText = s => String(s || '').replace(/[#*`>_|]/g, ' ').replace(/\s+/g, ' ').trim();
+// card previews skip the agent's opening chatter ("I'll start by checking…", "Using the playbook…") and show the substance
+const cleanText = s => {
+  let t = String(s || '').replace(/[#*`>_|]/g, ' ').replace(/\s+/g, ' ').trim();
+  for (let i = 0; i < 3; i++) {
+    const next = t.replace(/^(I['’]ll|I will|Let me|Using the|Skill unavailable|First,? I['’]ll)\b[^.!?]*[.!?]\s*/i, '');
+    if (next === t || next.length < 40) break;
+    t = next;
+  }
+  return t;
+};
 function addCard(o) {
   if (!o.run_id || cards.some(k => k.run_id === o.run_id)) return;
   const approved = approvals.has(o.run_id);
@@ -1448,19 +1686,81 @@ function drawCards() {
   updateTopbar();
 }
 
+let resultText = '', resultRun = '';
+function setResultView(raw) {
+  $('resultMd').hidden = raw; $('resultBody').hidden = !raw;
+  $('viewPreview').setAttribute('aria-selected', String(!raw)); $('viewRaw').setAttribute('aria-selected', String(raw));
+  try { localStorage.setItem('myoffice-result-view', raw ? 'raw' : 'preview'); } catch { /* per-session only */ }
+}
 function showResult(k, agent) {
   const modal = $('resultModal');
   $('resultTitle').textContent = 'Result from ' + (agent?.name || k.agent);
   $('resultMeta').textContent = [k.run_id, k.time ? new Date(k.time).toLocaleString('en-US') : '',
     k.duration ? Math.round(k.duration) + 's' : ''].filter(Boolean).join(' · ');
-  const body = $('resultBody');
-  body.textContent = 'Loading…';
+  resultRun = k.run_id; resultText = '';
+  const md = $('resultMd'), raw = $('resultBody');
+  md.replaceChildren(el('p', null, 'Loading…')); raw.textContent = ''; $('resultInfo').textContent = '';
+  let want = 'preview'; try { want = localStorage.getItem('myoffice-result-view') || 'preview'; } catch { /* default */ }
+  setResultView(want === 'raw');
+  $('verifyBox').hidden = true;
   modal.hidden = false;
   $('resultClose').focus();
   getJSON('/api/output?run=' + encodeURIComponent(k.run_id))
-    .then(data => { body.textContent = data.text || '(empty output)'; })
-    .catch(() => { body.textContent = 'The full output could not be loaded. It is in output/' + k.agent + '/' + k.run_id + '.md'; });
+    .then(data => {
+      resultText = data.text || '';
+      raw.textContent = resultText || '(empty output)';
+      md.replaceChildren(resultText ? renderMarkdown(resultText) : el('p', null, '(empty output)'));
+      const words = resultText.trim() ? resultText.trim().split(/\s+/).length : 0;
+      $('resultInfo').textContent = words.toLocaleString('en-US') + ' words · ' + (data.path || ('output/' + k.agent + '/' + k.run_id + '.md'));
+    })
+    .catch(() => {
+      const note = 'The full output could not be loaded. It is in output/' + k.agent + '/' + k.run_id + '.md';
+      md.replaceChildren(el('p', null, note)); raw.textContent = note;
+    });
 }
+let lightboxCode = '';
+function closeLightbox() { $('lightbox').hidden = true; $('lightboxImg').removeAttribute('src'); }
+document.addEventListener('md-image', (e) => {
+  lightboxCode = e.detail.code;
+  $('lightboxImg').src = e.detail.src; $('lightboxImg').alt = e.detail.alt;
+  $('lightboxTitle').textContent = e.detail.alt;
+  $('lightbox').hidden = false; $('lightboxClose').focus();
+});
+$('lightboxImg').onclick = closeLightbox; $('lightboxClose').onclick = closeLightbox;
+$('lightbox').addEventListener('click', (e) => { if (e.target === $('lightbox')) closeLightbox(); });
+$('lightboxDownload').onclick = () => {
+  const url = URL.createObjectURL(new Blob([lightboxCode], { type:'image/svg+xml;charset=utf-8' }));
+  const a = el('a'); a.href = url; a.download = (($('lightboxTitle').textContent || 'graphic').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'graphic') + '.svg';
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+};
+$('viewPreview').onclick = () => setResultView(false);
+$('viewRaw').onclick = () => setResultView(true);
+$('resultVerify').onclick = async () => {
+  const box = $('verifyBox'), btn = $('resultVerify');
+  if (!resultRun) return;
+  box.hidden = false; box.replaceChildren(el('p', null, 'Checking CVE ids and links…')); btn.disabled = true;
+  try {
+    const r = await getJSON('/api/verify?run=' + encodeURIComponent(resultRun));
+    const mark = x => x.status === 'found' || x.status === 'ok' ? '✓' : x.status === 'skipped' ? '–' : x.status === 'unreachable' ? '?' : '✗';
+    const rows = [...r.cves.map(c => [c.status === 'not_found', mark(c) + ' ' + c.id + (c.status === 'found' ? ' exists' : c.status === 'not_found' ? ' was NOT found: check it' : ' could not be checked')]),
+                  ...r.links.map(l => [l.status === 'broken', mark(l) + ' ' + l.url + (l.status === 'broken' ? ' (page not found)' : l.status === 'unreachable' ? ' (could not be reached)' : '')])];
+    const head = el('b', null, !rows.length ? 'No CVE ids or https links to check in this result.' : r.problems ? r.problems + ' thing(s) to check before you rely on this.' : 'No problems found.');
+    const ul = el('ul'); rows.forEach(([bad, text]) => ul.append(el('li', bad ? 'bad' : '', text)));
+    box.replaceChildren(head, ul, el('small', null, r.note));
+  } catch { box.replaceChildren(el('p', null, 'The source check could not run.')); }
+  btn.disabled = false;
+};
+$('resultCopy').onclick = async () => {
+  const b = $('resultCopy');
+  try { await navigator.clipboard.writeText(resultText); b.textContent = 'Copied'; } catch { b.textContent = 'Copy failed'; }
+  setTimeout(() => { b.textContent = 'Copy'; }, 1500);
+};
+$('resultDownload').onclick = () => {
+  if (!resultText) return;
+  const url = URL.createObjectURL(new Blob([resultText], { type:'text/markdown;charset=utf-8' }));
+  const a = el('a'); a.href = url; a.download = (resultRun || 'result') + '.md'; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+};
 
 function closeResult() { $('resultModal').hidden = true; }
 function approveCard(k) {
@@ -1469,8 +1769,13 @@ function approveCard(k) {
 }
 $('approveAll').onclick = () => { SOUND.click(); cards.filter(k => !k.approved).forEach(k => { k.approved = true; approvals.add(k.run_id); }); saveApprovals(); drawCards(); addStream('ceo', 'All results approved', '', 'ok'); };
 $('resultClose').onclick = closeResult;
+const helpOpen = (on) => { $('helpModal').hidden = !on; if (on) $('helpClose').focus(); try { localStorage.setItem('myoffice-help-seen', '1'); } catch { /* optional */ } };
+$('helpBtn').onclick = () => { SOUND.click(); helpOpen(true); };
+$('helpClose').onclick = () => helpOpen(false);
+$('helpModal').addEventListener('click', (e) => { if (e.target === $('helpModal')) helpOpen(false); });
+try { if (!DEMO && !localStorage.getItem('myoffice-help-seen')) setTimeout(() => helpOpen(true), 1200); } catch { /* optional */ }
 $('resultModal').addEventListener('click', (e) => { if (e.target === $('resultModal')) closeResult(); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('resultModal').hidden) closeResult(); });
+document.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; if (!$('lightbox').hidden) closeLightbox(); else if (!$('resultModal').hidden) closeResult(); else if (!$('helpModal').hidden) helpOpen(false); });
 document.querySelectorAll('.sec-head').forEach(head => {
   head.onclick = () => { SOUND.click(); document.getElementById(head.dataset.section + 'Sec').classList.toggle('collapsed'); };
 });
@@ -1615,7 +1920,7 @@ function handleEvent(o) {
     ceo_finished() {
       if (o.status === 'error') { if (!replay) addStream('ceo', 'The CEO could not produce a valid plan; no run was started', '', '', time); }
       else {
-        addStream('ceo', 'CEO: ' + truncate(o.answer || '', 140), '', '', time);
+        addStream('ceo', 'CEO: ' + truncate(o.answer || '', 1500), '', '', time);
         (o.rejected || []).forEach(r => addStream(r.agent, 'Not assigned: ' + (findAgent(r.agent)?.name || r.agent) + ' · ' + (r.reason || ''), '', '', time));
       }
       if (replay || !a) return;
@@ -2007,6 +2312,20 @@ function agentPanel(a) {
     };
     parts.push(el('h3', null, 'Ready-made tasks'), presets, el('h3', null, 'Give a task'),
       el('div', 'project-row', projectSelect), form);
+    if (a.can_ship) {
+      // pushing and deploying never happen on their own: only this button, after a confirmation, lifts the limit for one run
+      const ship = el('button', 'ship-btn', 'Ship: commit, push and deploy…'); ship.type = 'button';
+      ship.onclick = () => {
+        const v = input.value.trim().slice(0, 600);
+        if (!v) { toast('Write what to ship in the box above first, for example “build and deploy the latest change”.'); input.focus(); return; }
+        const rv = a.review, reviewLine = !rv ? '' : rv.state === 'done' ? '\n\nReview by ' + rv.reviewer + ' of the latest change: ' + (rv.verdict || 'finished') : rv.state === 'running' ? '\n\nThe review by ' + rv.reviewer + ' is still running.' : '\n\nNo review of the latest change yet.';
+        if (!confirm(a.name + ' will be allowed to commit, push and run deploy scripts for THIS task only:\n\n“' + v + '”' + reviewLine + '\n\nContinue?')) return;
+        const body = { prompt:v, ship:true };
+        if (projectSelect.value) body.project = projectSelect.value;
+        giveTask(a.id, body); input.value = '';
+      };
+      parts.push(el('h3', null, 'Ship to production'), el('p', 'ship-note', 'By default nobody can push or deploy. This button allows it for one task, after you confirm.'), ship);
+    }
   }
   panel.replaceChildren(...parts);
   panel.classList.add('open');
@@ -2108,9 +2427,11 @@ const page = $('page');
 async function openTab(name) {
   activeTab = name;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('selected', b.dataset.tab === name));
+  const selectedTab = document.querySelector(`#tabs button[data-tab="${name}"]`);
+  if (selectedTab) selectedTab.scrollIntoView({ inline:'nearest', block:'nearest' });
   if (name === 'office') { page.classList.remove('open'); return; }
   closePanel();
-  const content = name === 'rooms' ? roomsPage() : name === 'memory' ? await memoryPage()
+  const content = name === 'rooms' ? roomsPage() : name === 'history' ? await historyPage() : name === 'memory' ? await memoryPage()
     : name === 'settings' ? settingsPage() : costPage();
   if (activeTab !== name) return;
   page.replaceChildren(...content); page.classList.add('open');
@@ -2148,6 +2469,82 @@ function roomsPage() {
   });
   return [el('h2', null, 'Rooms'), el('p', 'lede', plural(CONFIGURED_ROOMS.length, 'room') + ', ' + plural(AGENTS.length, 'agent') + '. Every room wakes up when work arrives.'), grid];
 }
+async function historyPage() {
+  let data;
+  try { data = await getJSON('/api/history'); }
+  catch { return [el('h2', null, 'History'), el('p', 'lede', 'History could not be loaded.')]; }
+  const items = data.items || [];
+  let filter = 'all', query = '';
+  const list = el('div');
+  const when = t => t ? new Date(t) : null;
+  const dayKey = t => { const d = when(t); return d ? d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }) : 'Unknown date'; };
+  const hay = it => [it.request, it.answer, it.label, it.prompt, it.summary, it.agent_name, ...(it.runs || []).flatMap(r => [r.label, r.prompt, r.summary, r.agent_name, ...(r.followups || []).flatMap(f => [f.label, f.summary])])].filter(Boolean).join(' ').toLowerCase();
+  const flat = r => [r.agent, ...(r.followups || []).flatMap(flat)];
+  const agentsOf = it => it.kind === 'ceo' ? ['ceo', ...(it.runs || []).flatMap(flat)] : flat(it);
+  function runRow(r) {
+    const row = el('div', 'hist-run');
+    row.append(avatarNode(r.agent));
+    const txt = el('div', 'txt');
+    txt.append(el('b', null, (r.agent_name || r.agent) + (r.label ? ' · ' + r.label : '')), el('span', null, truncate(cleanText(r.summary) || r.prompt || '', 140)));
+    const st = el('span', 'hist-st' + (r.status === 'error' ? ' error' : ''), r.status === 'success' ? 'done' + (r.duration_s != null ? ' · ' + Math.round(r.duration_s) + 's' : '') : (r.status || 'running'));
+    row.append(txt, st);
+    if (r.source_problems) row.append(el('span', 'hist-st error', r.source_problems + ' source problem' + (r.source_problems > 1 ? 's' : '')));
+    if (r.source === 'review') row.classList.add('review');
+    if (r.has_output) {
+      const b = el('button', null, 'Open result'); b.type = 'button';
+      b.onclick = () => { SOUND.click(); showResult({ run_id:r.run_id, agent:r.agent, time:r.time, duration:r.duration_s }, findAgent(r.agent)); };
+      row.append(b);
+    }
+    return row;
+  }
+  function runBlock(r) {
+    const box = el('div', 'hist-chain'); box.append(runRow(r));
+    (r.followups || []).forEach(f => { const x = runBlock(f); x.classList.add('hist-sub'); box.append(x); });
+    return box;
+  }
+  function itemNode(it) {
+    const card = el('article', 'hist-item'), head = el('div', 'hist-head');
+    const t = when(it.time);
+    if (it.kind === 'ceo') {
+      head.append(avatarNode('ceo'), el('b', null, 'CEO'), el('span', null, (t ? clockText(t) : '') + (it.dry ? ' · dry run' : '')));
+      card.append(head);
+      card.append(el('div', 'hist-q' + (it.request ? '' : ' missing'), it.request || 'Question was not recorded (older exchange)'));
+      const text = it.status === 'error' ? 'The CEO could not produce a valid plan; no run was started.' : (it.answer || '…');
+      const a = el('div', 'hist-a', text);
+      if (text.length > 420) { a.classList.add('clamp'); a.title = 'Click to expand'; a.onclick = () => a.classList.toggle('clamp'); }
+      card.append(a);
+      if ((it.runs || []).length) { const box = el('div', 'hist-runs'); it.runs.forEach(r => box.append(runBlock(r))); card.append(box); }
+      (it.rejected || []).forEach(r => card.append(el('div', 'hist-run', 'Not assigned: ' + (findAgent(r.agent)?.name || r.agent) + ' · ' + (r.reason || ''))));
+    } else {
+      head.append(el('span', null, (t ? clockText(t) : '') + ' · started directly' + (it.source === 'ceo' ? ' by the CEO' : '')));
+      card.append(head);
+      if (it.prompt) card.append(el('div', 'hist-q', truncate(it.prompt, 500)));
+      card.append(el('div', 'hist-runs', null));
+      card.lastChild.append(runBlock(it));
+    }
+    return card;
+  }
+  function draw() {
+    const q = query.trim().toLowerCase();
+    const shown = items.filter(it => (filter === 'all' || agentsOf(it).includes(filter)) && (!q || hay(it).includes(q)));
+    list.replaceChildren();
+    if (!shown.length) { list.append(el('p', 'hist-empty', items.length ? 'Nothing matches this filter.' : 'No history yet. Ask the CEO something or run an agent.')); return; }
+    let day = '';
+    shown.forEach(it => { const k = dayKey(it.time); if (k !== day) { day = k; list.append(el('div', 'hist-day', k)); } list.append(itemNode(it)); });
+  }
+  const chips = el('div', 'hist-chips');
+  const ids = ['all', 'ceo', ...new Set(items.flatMap(agentsOf).filter(x => x && x !== 'ceo'))];
+  ids.forEach(id => {
+    const b = el('button', null, id === 'all' ? 'All' : (findAgent(id)?.name || id)); b.type = 'button'; b.setAttribute('aria-pressed', String(id === filter));
+    b.onclick = () => { filter = id; chips.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); draw(); };
+    chips.append(b);
+  });
+  const search = el('input'); search.type = 'search'; search.placeholder = 'Search questions, answers and results'; search.setAttribute('aria-label', 'Search history');
+  search.oninput = () => { query = search.value; draw(); };
+  const tools = el('div', 'hist-tools'); tools.append(search, chips);
+  draw();
+  return [el('h2', null, 'History'), el('p', 'lede', 'Every CEO exchange and agent run, newest first. ' + data.total + ' in total. Open a result to read it in full.'), tools, list];
+}
 async function memoryPage() {
   let list = [];
   try { list = DEMO ? demoData.memory : (await getJSON('/api/memory')).memory; }
@@ -2183,7 +2580,8 @@ function costPage() {
     table.append(tr);
   });
   if (!runs.length) { const tr = el('tr'); const td = el('td', null, 'No runs yet today.'); td.colSpan = 6; tr.append(td); table.append(tr); }
-  return [el('h2', null, 'Cost'), el('p', 'lede', counter.cost_note || 'Agents only run when work arrives; no model calls while idle.'), summary, table];
+  const capLine = counter.token_cap ? ' Daily cap: ' + (counter.office_tokens || 0).toLocaleString('en-US') + ' of ' + counter.token_cap.toLocaleString('en-US') + ' office tokens used.' : ' No daily token cap is set.';
+  return [el('h2', null, 'Cost'), el('p', 'lede', capLine.trim() + ' ' + (counter.cost_note || 'Agents only run when work arrives; no model calls while idle.')), summary, table];
 }
 document.querySelectorAll('#tabs button').forEach(b => { b.onclick = () => { SOUND.click(); openTab(b.dataset.tab); }; b.onmouseenter = () => SOUND.hover(); });
 
@@ -2339,11 +2737,11 @@ const clock = new THREE.Clock();
 let ledTime = 0, panelTime = 0, lineTime = 0;
 function animateAgent(a, t, dt) {
   const asleep = a.status === 'sleeping' || a.status === 'waiting';
-  a.cat.setStatus(asleep ? 'sleeping' : a.status === 'done' || a.status === 'thinking' ? a.status : 'working');
+  a.cat.setStatus(asleep ? (a.id === 'ceo' ? 'idle' : 'sleeping') : a.status === 'done' || a.status === 'thinking' ? a.status : 'working');
   a.cat.update(dt);
   a.lamp.material.color.set(asleep ? '#b9ad9e' : '#e0522b');
   a.zSprites.forEach((s, i) => {
-    if (a.status !== 'sleeping' || a.memeActive) { s.visible = false; return; }
+    if (a.status !== 'sleeping' || a.memeActive || a.id === 'ceo') { s.visible = false; return; }
     s.visible = true;
     const p = ((t * .45 + a.phase + i / 3) % 1);
     s.position.set(-.5 + p * .35, 1.3 + p * 1.0, .9);
@@ -2383,6 +2781,10 @@ function frame() {
   updateRoomNames();
   requestAnimationFrame(frame);
 }
+$('sideHandle')?.addEventListener('click', () => {
+  const closed = $('side').classList.toggle('collapsed');
+  $('sideHandle').setAttribute('aria-expanded', String(!closed));
+});
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); setView(); });
 
 /* ---------- boot ---------- */

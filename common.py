@@ -58,6 +58,16 @@ def load_agents():
     return data, table
 
 
+DEFAULT_TOKEN_CAP = 2_000_000   # fresh tokens of office runs per day (agents + CEO); 0 turns the cap off
+
+
+def _cap(value):
+    try:
+        return max(0, int(value))
+    except (TypeError, ValueError):
+        return DEFAULT_TOKEN_CAP
+
+
 def settings(data):
     """UI settings: greeting name, brand and the welcome card options. All optional."""
     s = data.get("settings") if isinstance(data.get("settings"), dict) else {}
@@ -68,6 +78,7 @@ def settings(data):
         "note": str(s.get("note") or "")[:200],
         "show_token_summary": bool(s.get("show_token_summary", True)),
         "show_sessions": bool(s.get("show_sessions", True)),
+        "daily_token_cap": _cap(s.get("daily_token_cap")),
     }
 
 

@@ -221,7 +221,7 @@ export const SPECIES = {
   cat:    { head: 1.00, ear: 1.00, tail: 1.00, beak: 0,   pattern: null,         eyes: 1,    muzzle: 1,    disc: 0, whiskers: true,  bird: false, body: [1, 1, 1], size: 1 },
   kangal: { head: 1.04, ear: 1.30, tail: 1.14, beak: 0,   pattern: 'tabby',      eyes: 0.92, muzzle: 1.5,  disc: 0, whiskers: true,  bird: false, body: [1.06, 1.03, 1.05], size: 1.14 },
   owl:    { head: 1.30, ear: 0.18, tail: 0.00, beak: 0.9, pattern: 'grey-white', eyes: 1.35, muzzle: 0.25, disc: 1, whiskers: false, bird: true,  body: [1.16, 1.06, 1.14], size: 1.02 },
-  raven:  { head: 0.92, ear: 0.00, tail: 1.35, beak: 2.0, pattern: 'black',      eyes: 0.95, muzzle: 0.55, disc: 0, whiskers: false, bird: true,  body: [.86, .94, .88], size: 0.96 },
+  raven:  { head: 0.92, ear: 0.00, tail: 0.00, beak: 2.0, pattern: 'black',      eyes: 0.95, muzzle: 0.55, disc: 0, whiskers: false, bird: true,  body: [.86, .94, .88], size: 0.96 },
   fox:    { head: 1.02, ear: 1.30, tail: 1.25, beak: 0,   pattern: 'fox',        eyes: 0.92, muzzle: 1.45, disc: 0, whiskers: true,  bird: false, body: [.98, .98, 1.0], size: 1.02 },
 };
 
@@ -230,78 +230,124 @@ export const SPECIES = {
    the animal: wings and tufts for the owl, a feathered tail and thin legs for the raven, a heavy snout and
    drooping ears for the kangal. Birds also lose the front legs, so they stand on two feet. */
 const BEAK = new THREE.MeshStandardMaterial({ color: '#c99a3e', roughness: .45, metalness: .05 });
+// Wings hang from a shoulder pivot on the body node. Sizes are in sphere units (the body node carries the
+// scale), so a wing at x≈.93 sits on the flank instead of inside the body.
+function makeWings(c, material, { len = .8, w = .17, thick = .72 } = {}) {
+  return [-1, 1].map(side => {
+    const pivot = new THREE.Group(); pivot.position.set(side * .93, .5, -.04); c.nodes.body.add(pivot);
+    const mesh = c.add(pivot, c.GEO.sphere, material, [side * .02, -len * .55, 0], [w, len, thick]);
+    mesh.rotation.x = .06;
+    return { pivot, side };
+  });
+}
+// A tail fan of flat cones, spread around a pivot at the back of the body.
+function makeFan(c, material, { count = 3, length = 1.5, radius = .13, spread = .2, y = -.5 } = {}) {
+  const fan = new THREE.Group(); fan.position.set(0, y, -.9); c.nodes.body.add(fan);
+  const geo = new THREE.ConeGeometry(radius, length, 8); geo.translate(0, length / 2, 0);
+  for (let i = 0; i < count; i++) {
+    const holder = new THREE.Group(); holder.rotation.y = (i - (count - 1) / 2) * spread; fan.add(holder);
+    const f = c.add(holder, geo, material, [0, 0, 0], [1, 1, .32]);
+    f.rotation.x = -Math.PI / 2 - .38;
+  }
+  return fan;
+}
+const wave = (t, speed, phase = 0) => Math.sin(t * speed + phase);
+
 const SPECIES_KIT = {
   owl(c) {
-    // folded wings against the body
-    [-1, 1].forEach(side => {
-      const wing = c.add(c.nodes.body, c.GEO.sphere, c.m.ear, [side * .22, .02, -.02], [.075, .24, .30]);
-      wing.rotation.z = side * .18;
-    });
-    // ear tufts and a fanned chest
-    [-1, 1].forEach(side => {
-      const tuft = c.add(c.skull, new THREE.ConeGeometry(.045, .13, 10), c.m.head, [side * .13, .21, -.01]);
+    const wings = makeWings(c, c.m.ear, { len: .85, w: .18, thick: .78 });
+    const fan = makeFan(c, c.m.ear, { count: 3, length: .75, radius: .15, spread: .3, y: -.6 });
+    [-1, 1].forEach(side => { // ear tufts
+      const tuft = c.add(c.skull, new THREE.ConeGeometry(.045, .14, 10), c.m.head, [side * .12, .2, -.01]);
       tuft.rotation.z = side * -.4;
     });
-    [0, .07, -.07].forEach((z, i) => {
-      c.add(c.nodes.chest, c.GEO.sphere, c.m.head, [0, -.02 + i * .01, z + .04], [.07, .05, .02], false);
-    });
-    // two legs, not four
+    [0, .07, -.07].forEach((z, i) => c.add(c.nodes.chest, c.GEO.sphere, c.m.head, [0, -.02 + i * .01, z + .04], [.07, .05, .02], false));
     ['armL', 'armR'].forEach(n => { c.nodes[n].visible = false; });
     c.birdFeet();
+    return {
+      animate(t, s, extra) {
+        const sway = s.asleep ? 0 : wave(t, .65) * .42 + wave(t, 1.9) * .06;
+        extra.head = { ...extra.head, ry: s.typing ? sway * .45 : sway, rz: s.asleep ? 0 : wave(t, .45, 1) * .07, rx: (extra.head?.rx || 0) + (s.typing ? Math.abs(wave(t, 4.2)) * .05 : 0) };
+        wings.forEach(({ pivot, side }) => {
+          const rest = s.asleep ? .02 : .07 + wave(t, 1.1) * .02;
+          const tap = s.typing ? wave(t, s.speed * .9, side) * .05 : 0;
+          pivot.rotation.z = side * (rest + tap + s.e * (1 + wave(t, 17) * .25));
+          pivot.rotation.x = -s.e * .25;
+        });
+        fan.rotation.x = s.asleep ? -.1 : wave(t, 1.4) * .05;
+      },
+    };
   },
   raven(c) {
-    // sleek folded wings and a long feathered tail
-    [-1, 1].forEach(side => {
-      const wing = c.add(c.nodes.body, c.GEO.sphere, c.m.ear, [side * .19, .03, -.03], [.05, .20, .34]);
-      wing.rotation.z = side * .1;
-    });
-    [0, .8, 1.6].forEach((_, i) => {
-      const feather = c.add(c.nodes.tail0, new THREE.ConeGeometry(.05, .42, 8), c.m.ring, [0, -.02, -.16 - i * .03]);
-      feather.rotation.x = -Math.PI / 2 - .1;
-      feather.scale.set(1 - i * .2, 1, .25);
-    });
-    // thin bird legs
+    const wings = makeWings(c, c.m.ear, { len: .95, w: .15, thick: .8 });
+    const fan = makeFan(c, c.m.ring, { count: 5, length: 1.9, radius: .12, spread: .16, y: -.45 });
     ['armL', 'armR'].forEach(n => { c.nodes[n].visible = false; });
     c.birdFeet();
+    return {
+      animate(t, s, extra) {
+        const peck = s.typing ? Math.pow(Math.abs(wave(t, s.speed * .55)), 3) * .3 : 0;
+        extra.head = { ...extra.head, rx: (extra.head?.rx || 0) + peck,
+          rz: s.asleep ? 0 : wave(t, 1.1) * .18 * (s.typing ? .3 : 1),
+          ry: s.asleep ? 0 : wave(t, .5, 2) * .26 * (s.typing ? .3 : 1) };
+        wings.forEach(({ pivot, side }) => {
+          const rest = s.asleep ? .02 : .05 + (wave(t, .8 + side * .1) > .96 ? .12 : 0);
+          pivot.rotation.z = side * (rest + (s.typing ? wave(t, s.speed * .55, side) * .035 : 0) + s.e * (1.05 + wave(t, 20) * .3));
+          pivot.rotation.x = -s.e * .3;
+        });
+        fan.rotation.x = s.asleep ? -.12 : wave(t, 2.3) * .05 + (s.typing ? Math.abs(wave(t, s.speed * .55)) * .1 : 0);
+        fan.rotation.y = s.asleep ? 0 : wave(t, 1.2) * .06;
+      },
+    };
   },
   fox(c) {
-    // pointed ears that stay up, a slim snout and a heavy brush of a tail
+    // pointed ears that stay up, a slim snout and a heavy brush of a tail with a white tip
     const snout = c.add(c.skull, c.GEO.sphere, c.m.body, [0, -.10, .32], [.075, .065, .19]);
     snout.rotation.x = .14;
     c.add(c.skull, c.GEO.sphere, c.m.belly, [0, -.135, .30], [.07, .05, .14], false);
     c.add(c.skull, c.GEO.sphere, c.m.nose, [0, -.105, .49], [.038, .03, .026], false);
     ['L', 'R'].forEach(side => {
-      const ear = c.nodes['ear' + side];
-      const mesh = ear && ear.children && ear.children[0];
-      if (mesh) { mesh.scale.set(1.2, 1.45, .8); }
+      const mesh = c.nodes['ear' + side]?.children?.[0];
+      if (mesh) mesh.scale.set(1.2, 1.45, .8);
     });
-    (c.tailMeshes || []).forEach((mesh, i) => {
-      mesh.scale.x *= 1.9 - i * .12;
-      mesh.scale.z *= 1.9 - i * .12;
-    });
-    c.add(c.nodes.tail2, c.GEO.sphere, c.m.belly, [0, .06, .02], [.05, .05, .12], false);  // white tail tip
+    (c.tailMeshes || []).forEach((mesh, i) => { mesh.scale.x *= 1.9 - i * .12; mesh.scale.z *= 1.9 - i * .12; });
+    c.add(c.nodes.tail5, c.GEO.sphere, c.m.belly, [0, .13, 0], [.09, .12, .09], false);
+    return {
+      animate(t, s, extra) {
+        if (s.asleep) return;
+        const k = s.typing ? 1.3 : 1;
+        [3, 4, 5].forEach((i, n) => { extra['tail' + i] = { rz: wave(t, 2.1 * k, -n * .7) * (.25 + n * .12) }; });
+        const twitch = Math.pow(Math.max(0, wave(t, .8, 1)), 12) * .35;   // an occasional ear flick
+        extra.earL = { rz: twitch }; extra.earR = { rz: -twitch * .6 };
+        if (s.typing) extra.head = { ...extra.head, ry: wave(t, 1.7) * .08 };
+      },
+    };
   },
-
   kangal(c) {
-    // a fur-coloured snout instead of the cat muzzle, folded-out ears, heavier tail
+    // a fur-coloured snout instead of the cat muzzle, ears folded down, heavy tail
     const snout = c.add(c.skull, c.GEO.sphere, c.m.body, [0, -.10, .33], [.095, .085, .21]);
     snout.rotation.x = .18;
     c.add(c.skull, c.GEO.sphere, c.m.nose, [0, -.105, .52], [.05, .038, .03], false);
     ['L', 'R'].forEach((side, i) => {
-      const ear = c.nodes['ear' + side];
-      const mesh = ear && ear.children && ear.children[0];
-      if (mesh) {
-        mesh.rotation.z = (i ? -1 : 1) * 1.05;   // folded down like a shepherd's ears
-        mesh.scale.set(1.15, 1.5, 1.1);
-      }
+      const mesh = c.nodes['ear' + side]?.children?.[0];
+      if (mesh) { mesh.rotation.z = (i ? -1 : 1) * 1.05; mesh.scale.set(1.15, 1.5, 1.1); }
     });
     (c.tailMeshes || []).forEach(mesh => { mesh.scale.x *= 1.6; mesh.scale.z *= 1.6; });
+    return {
+      animate(t, s, extra) {
+        if (s.asleep) { extra.chest = { s: 1 + wave(t, 1.1) * .05 }; return; }
+        // slow, heavy tail wag and a nodding head while it works; ears flop with the head
+        extra.tail3 = { rz: wave(t, 1.6) * .22 }; extra.tail4 = { rz: wave(t, 1.6, -.5) * .32 }; extra.tail5 = { rz: wave(t, 1.6, -1) * .42 };
+        const nod = s.typing ? wave(t, 2.4) * .045 : wave(t, .7) * .03;
+        extra.head = { ...extra.head, rx: (extra.head?.rx || 0) + nod };
+        extra.earL = { rz: nod * 2 }; extra.earR = { rz: -nod * 2 };
+      },
+    };
   },
 };
 
 /* ---------- cat ---------- */
 const FACE0 = { open:1, pupil:0, lookX:0, lookY:0, lid:0, mouth:0, brow:0, happy:0, wide:0, crossed:0 };
-export function createCat({ pattern = null, tone = 0, kitten = false, accessory = {}, species = 'cat' } = {}) {
+export function createCat({ pattern = null, tone = 0, kitten = false, accessory = {}, species = 'cat', awake = false } = {}) {
   const profile = SPECIES[species] || SPECIES.cat;
   pattern = pattern || profile.pattern || 'tabby';
   const { p, m } = patternMaterials(pattern, tone, kitten);
@@ -388,11 +434,11 @@ export function createCat({ pattern = null, tone = 0, kitten = false, accessory 
   NODES.forEach(n => { base[n] = POSE.curl[n].slice(); });
   const face = { ...FACE0, open:0 };
   let status = 'sleeping', t = Math.random() * 10, doneAt = -1, blinkTimer = 2 + Math.random() * 3, blink = 0;
-  let meme = null, memePose = null, wakeAt = -1;
+  let meme = null, memePose = null, wakeAt = -1, rig = null; // rig = the species kit's per-frame animation
 
   let outer = 'sleeping'; // last status from outside; 'done' stretches once even if it arrives every frame
   function setStatus(next) {
-    if (next === 'idle' || next === 'waiting') next = 'sleeping';
+    if (next === 'idle' || next === 'waiting' || next === 'sleeping') next = awake ? 'resting' : 'sleeping'; // an awake animal (the CEO) never sleeps
     if (next === outer) return;
     outer = next;
     status = next;
@@ -437,7 +483,7 @@ export function createCat({ pattern = null, tone = 0, kitten = false, accessory 
 
   function update(dt) {
     t += dt;
-    if (status === 'done' && doneAt >= 0 && t - doneAt > 1.7 && !meme) { status = 'sleeping'; doneAt = -1; }
+    if (status === 'done' && doneAt >= 0 && t - doneAt > 1.7 && !meme) { status = awake ? 'resting' : 'sleeping'; doneAt = -1; }
     const k = 1 - Math.exp(-dt * 8);
     const hp = targetPose();
     NODES.forEach(n => { const a = base[n], b = hp[n]; for (let i = 0; i < 9; i++) a[i] += (b[i] - a[i]) * k; });
@@ -457,6 +503,11 @@ export function createCat({ pattern = null, tone = 0, kitten = false, accessory 
       extra.armL = { rx:Math.sin(t * h) * .16 }; extra.armR = { rx:Math.sin(t * h + Math.PI) * .16 };
       extra.head = { rx:Math.sin(t * 2.3) * .03 };
     }
+    if (status === 'resting' && !meme) { // awake and waiting: breathes, glances around, flicks the tail
+      const n = Math.sin(t * 1.9);
+      extra.chest = { s:1 + n * .015 };
+      extra.head = { ry:Math.sin(t * .55) * .28 + Math.sin(t * 1.3) * .05, rx:Math.sin(t * .8) * .04, rz:Math.sin(t * .4 + 1) * .05 };
+    }
     if (!asleep) { extra.tail4 = { rz:Math.sin(t * 3.1) * .3 }; extra.tail5 = { rz:Math.sin(t * 3.1 - .6) * .45 }; }
     const finishing = status === 'done' && doneAt >= 0 && !meme;
     if (finishing || waking()) {
@@ -465,6 +516,10 @@ export function createCat({ pattern = null, tone = 0, kitten = false, accessory 
       extra.armL = { rx:-1.4 * e, rz:.5 * e }; extra.armR = { rx:-1.4 * e, rz:-.5 * e };
       extra.root = { py:finishing ? Math.abs(Math.sin(tb * 6)) * .1 * (1 - tb / duration) : 0 };
       extra.body = { sy:1 + .12 * e }; extra.head = { rx:-.25 * e };
+    }
+    if (rig) { // species motion rides on top of the shared pose (wings, head swivel, tail wag)
+      const e = finishing || waking() ? Math.sin(Math.min(1, (finishing ? t - doneAt : t - wakeAt) / (finishing ? 1.6 : 1.1)) * Math.PI) : 0;
+      rig.animate(t, { asleep, typing, status, e, speed: meme?.typingSpeed || 11 }, extra);
     }
     if (meme?.animate && !waking()) meme.animate(t, extra);
     NODES.forEach(n => applyPose(n, base[n], extra[n]));
@@ -517,7 +572,7 @@ export function createCat({ pattern = null, tone = 0, kitten = false, accessory 
 
   // species kit: extra or removed meshes, then proportions
   const kit = SPECIES_KIT[species];
-  if (kit) kit({
+  if (kit) rig = kit({
     add, nodes, skull, m, GEO, profile, tailMeshes, earMeshes,
     birdFeet() {
       ['footL', 'footR'].forEach(name => {

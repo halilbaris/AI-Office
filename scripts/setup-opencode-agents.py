@@ -7,7 +7,8 @@ relying on its own tool list:
   office-read    read, grep, glob            (no shell, no editor)
   office-review  the above + shell           (git and friends, no editor)
   office-browse  the above + web fetch       (research)
-  office-write   everything                  (build / deploy agents)
+  office-write   everything except push / deploy / publish / remote shells (build agents)
+  office-ship    office-write without those limits; only used for a run you approved with "Ship"
 
 Usage: python3 scripts/setup-opencode-agents.py [--dry-run]
 Idempotent: existing entries are replaced, the previous file is kept as opencode.json.bak-<timestamp>.
@@ -20,6 +21,12 @@ import time
 
 CONFIG = os.path.expanduser("~/.config/opencode/opencode.json")
 
+# Shell rules (last match wins). Reviewers may only read git history; builders may do anything except leave the machine.
+READ_ONLY_SHELL = {"*": "deny", "git log*": "allow", "git diff*": "allow", "git status*": "allow",
+                   "git show*": "allow", "ls*": "allow", "pwd": "allow", "wc *": "allow"}
+NO_SHIPPING = {"*": "allow", "git push*": "deny", "git * push*": "deny", "*deploy*": "deny", "npm publish*": "deny",
+               "ssh *": "deny", "scp *": "deny", "rsync *": "deny", "git remote *": "deny"}
+
 AGENTS = {
     "office-read": {
         "description": "MyOffice read-only agent: reads and searches, cannot run commands or write",
@@ -30,6 +37,7 @@ AGENTS = {
         "description": "MyOffice reviewer: reads, searches and runs shell commands, cannot edit files",
         "mode": "primary",
         "tools": {"*": False, "read": True, "grep": True, "glob": True, "bash": True},
+        "permission": {"bash": READ_ONLY_SHELL},
     },
     "office-browse": {
         "description": "MyOffice researcher: reads, searches and fetches the web",
@@ -37,7 +45,13 @@ AGENTS = {
         "tools": {"*": False, "read": True, "grep": True, "glob": True, "webfetch": True},
     },
     "office-write": {
-        "description": "MyOffice builder: full working set (read, search, shell, edit, web)",
+        "description": "MyOffice builder: read, search, shell, edit, web; cannot push, deploy or publish",
+        "mode": "primary",
+        "tools": {"*": True},
+        "permission": {"bash": NO_SHIPPING},
+    },
+    "office-ship": {
+        "description": "MyOffice builder for an approved shipping run: may commit, push and deploy",
         "mode": "primary",
         "tools": {"*": True},
     },

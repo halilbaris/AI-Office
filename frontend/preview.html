@@ -15,14 +15,14 @@
 </head>
 <body>
 <div id="stage"></div>
-<div class="legend"><b>Preview</b> · ?species=owl,raven,kangal,cat · ?pose=curl</div>
+<div class="legend"><b>Preview</b> · ?species=owl,raven,kangal,cat · ?state=working|sleeping|done|thinking</div>
 <script type="module">
 import * as THREE from 'three';
 import { createCat, PATTERNS } from './cat.js';
 
 const params = new URLSearchParams(location.search);
-const species = (params.get('species') || 'cat,owl,raven,kangal').split(',');
-const wantCurl = params.get('pose') === 'curl';
+const species = (params.get('species') || 'cat,owl,raven,kangal,fox').split(',');
+const state = params.get('pose') === 'curl' ? 'sleeping' : (params.get('state') || 'working');
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -37,7 +37,7 @@ document.getElementById('stage').append(renderer.domElement);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#fdf6ec');
 const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, .1, 100);
-camera.position.set(0, 2.9, 11.0);
+camera.position.set(0, 3.2, 15.5);
 camera.lookAt(0, 0.95, 0);
 
 scene.add(new THREE.HemisphereLight('#fff7ea', '#c9b79c', 1.15));
@@ -59,10 +59,10 @@ const animals = [];
 const n = species.length;
 species.forEach((sp, i) => {
   const cat = createCat({ species: sp });
-  cat.group.position.set((i - (n - 1) / 2) * 3.3, 0, 0);
+  cat.group.position.set((i - (n - 1) / 2) * 2.6, 0, 0);
   cat.group.rotation.y = -.35;
   scene.add(cat.group);
-  cat.setStatus(wantCurl ? 'sleeping' : 'working');
+  cat.setStatus(state);
   animals.push(cat);
 });
 

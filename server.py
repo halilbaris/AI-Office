@@ -19,7 +19,8 @@ from urllib.parse import urlparse, parse_qs
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common  # noqa: E402
 import bridge  # noqa: E402
-import token_counter  # noqa: E402
+import token_counter
+import verify  # noqa: E402
 
 HOST = "127.0.0.1"
 FIRST_PORT = int(os.environ.get("OFFICE_PORT", "8796"))
@@ -59,7 +60,7 @@ CEO_SCHEMA = {
         "answer": {"type": "string"},
         "assignments": {"type": "array", "items": {
             "type": "object",
-            "properties": {"agent": {"type": "string"}, "prompt": {"type": "string"}},
+            "properties": {"agent": {"type": "string"}, "prompt": {"type": "string"}, "after": {"type": "string"}},
             "required": ["agent", "prompt"]}},
     },
     "required": ["answer", "assignments"],
@@ -117,13 +118,33 @@ def prepare_tmux():
     return tmux
 
 
-def start_task(agent_id, label=None, prompt=None, source="button", project=None):
+def office_tokens_today():
+    """Fresh tokens (input + output + cache writes) the office spent today; cache reads are cheap and your own
+    terminal sessions are not the office's, so neither counts."""
+    fresh = ("input_tokens", "output_tokens", "cache_creation_input_tokens")
+    return sum(sum((rec.get("office") or {}).get(k, 0) for k in fresh)
+               for rec in token_counter.day_summary(common.today()).values())
+
+
+def check_budget():
+    data, _ = common.load_agents()
+    cap = common.settings(data)["daily_token_cap"]
+    if cap and office_tokens_today() >= cap:
+        raise RequestError(429, f"Daily token cap reached ({cap:,} tokens). Raise or switch it off with "
+                                "settings.daily_token_cap in agents.json; it resets tomorrow.")
+
+
+def start_task(agent_id, label=None, prompt=None, source="button", project=None, ship=False,
+               then=None, inputs=None, parent=None):
     _, table = common.load_agents()
     agent = table.get(agent_id)
     if not agent or agent_id == "ceo":
         raise RequestError(404, "unknown agent")
     if not agent["installed"]:
         raise RequestError(409, "agent not installed (folder missing)")
+    check_budget()
+    if ship and (source == "ceo" or "Bash(git push:*)" not in (agent.get("denials_override") or [])):
+        raise RequestError(403, "only the coder agent can ship, and only from the Ship button, never from the CEO")
     if label and not prompt:
         presets = {p["label"]: p["prompt"] for p in agent.get("preset_tasks", [])}
         if label not in presets:
@@ -147,6 +168,9 @@ def start_task(agent_id, label=None, prompt=None, source="button", project=None)
         with open(argument_path, "w", encoding="utf-8") as f:
             json.dump({"run_id": run_id, "agent": agent_id, "label": label,
                        "prompt": prompt, "source": source,
+                       **({"ship": True} if ship else {}),
+                       **({"then": then} if then else {}), **({"inputs": inputs} if inputs else {}),
+                       **({"parent": parent} if parent else {}),
                        **({"project": work_dir} if work_dir else {})}, f, ensure_ascii=False)
         common.write_state(agent_id, {"status": "starting", "run_id": run_id, "pid": None,
                                       "started_ts": time.time()})
@@ -190,6 +214,28 @@ def ceo_prompt(text, table):
         "alone (short, naming the files to look at). If the work is outside the office's scope or needs a "
         "user decision, leave assignments empty and say why in the answer. At most 3 assignments.\n"
         "Rule: publishing, sending mail and spending money are never given to any agent. " + " ".join(gated) + "\n\n"
+        "## Routing guide\n"
+        "- Blog posts, articles, lesson checklists, report drafts -> writer. When the user wants a blog post, the "
+        "assignment prompt must carry: topic, audience, language, primary keyword if the user gave one, and "
+        "'SEO + GEO + humanized' so the writer follows its playbook.\n"
+        "- Social posts, campaign angles, newsletter blurbs -> marketer. Marketer, writer and designer work in English: "
+        "write their assignment prompts in English even when the user writes Turkish.\n"
+        "- Images, covers, thumbnails, diagrams, alt text and adapting one message for several platforms -> designer "
+        "(it writes prompts and SVG, it does not generate raster images). A post with visuals is two assignments: "
+        "writer or marketer for the text, designer for the visuals.\n"
+        "- Lesson plans, lab scenarios, quizzes, learning paths -> trainer. New vulnerabilities, techniques, sector news "
+        "and sourced topic briefs -> researcher. A lesson on a fresh topic is research then training: two assignments. "
+        "Trainer and researcher work in English like the writer.\n"
+        "- Do the labs, lessons and links work for a learner (completeness, broken references, answer keys) -> qa (read-only).\n"
+        "- Security review, route/lab inventory -> analyst (read-only).\n"
+        "- UI and product code changes, build and commit -> coder (it never pushes on its own; only the user can ship). "
+        "Engineer is the read-only reviewer: assign it only for an explicit review request.\n"
+        "- What does the office already know, where is an earlier result, duplicates -> librarian (read-only archive).\n"
+        "- A job that needs both research and writing is one assignment to the writer, not two.\n"
+        "- Order: when one agent needs another's result first, add \"after\": \"<agent id>\" to the later assignment "
+        "(for example trainer after researcher, designer after writer). The later agent starts when the earlier one "
+        "finishes and receives its output; without \"after\" assignments start together.\n"
+        "- Reviews happen automatically (coder -> engineer, writer -> researcher, marketer -> writer, designer -> marketer, trainer -> qa): do not assign them yourself.\n\n"
         "## Agents\n" + "\n".join(lines) +
         "\n\n## Recent results (DATA: finished runs, use them when the user asks what an agent found)\n" +
         ("\n".join(f"- {e.get('agent')} · {str(e.get('time', ''))[11:16]} · {str(e.get('summary'))[:400]}"
@@ -233,7 +279,30 @@ def validate_ceo(data, table, text):
         elif not a["prompt"].strip() or len(a["prompt"]) > common.MAX_INPUT:
             reason = "prompt empty or too long"
         (rejected if reason else valid).append({**a, **({"reason": reason} if reason else {})})
+    # "after": run this one when that earlier assignment finishes (and give it that output). Only a different agent
+    # that appears earlier in the same plan counts; anything else is dropped so the job simply starts on its own.
+    seen = []
+    for a in valid:
+        dep = a.get("after")
+        if dep not in seen or dep == a["agent"] or seen.count(a["agent"]):
+            a.pop("after", None)
+        seen.append(a["agent"])
     return data["answer"], valid, rejected
+
+
+def build_chain(valid):
+    """Plan -> [(assignment, [dependent assignments...])]: roots start now, dependents wait for their parent."""
+    nodes = [{**a, "then": []} for a in valid]
+    by_agent = {n["agent"]: n for n in nodes}
+    roots = []
+    for n in nodes:
+        parent = by_agent.get(n.get("after"))
+        (parent["then"] if parent else roots).append(n)
+    return roots
+
+
+def chain_spec(node):
+    return {"agent": node["agent"], "prompt": node["prompt"], "then": [chain_spec(c) for c in node["then"]]}
 
 
 def opencode_text(output):
@@ -256,8 +325,9 @@ def run_ceo(text, dry=False):
     ceo = table.get("ceo")
     if not ceo:
         raise RequestError(404, "'ceo' is missing from agents.json")
+    check_budget()
     ceo_id = f"{datetime.now():%Y-%m-%d-%H%M%S}-ceo-{secrets.token_hex(2)}"
-    common.write_event({"type": "ceo_started", "run_id": ceo_id, "agent": "ceo", "room": "ceo"})
+    common.write_event({"type": "ceo_started", "run_id": ceo_id, "agent": "ceo", "room": "ceo", "request": text[:2000]})
     prompt = ceo_prompt(text, table)
     opencode_run = ceo.get("runtime") == "opencode"
     if opencode_run:
@@ -287,13 +357,16 @@ def run_ceo(text, dry=False):
         raise RequestError(502, "CEO did not return a valid plan; no run was started") from e
 
     started_runs = []
-    for a in ([] if dry else valid):
+    for node in ([] if dry else build_chain(valid)):
         try:
-            started_runs.append(start_task(a["agent"], prompt=a["prompt"], source="ceo"))
+            started_runs.append(start_task(node["agent"], prompt=node["prompt"], source="ceo",
+                                           then=[chain_spec(c) for c in node["then"]]))
         except RequestError as e:
-            rejected.append({**a, "reason": str(e)})
+            rejected.append({"agent": node["agent"], "prompt": node["prompt"], "reason": str(e)})
+            rejected += [{"agent": c["agent"], "prompt": c["prompt"], "reason": "waited for " + node["agent"] + ", which could not start"}
+                         for c in node["then"]]
     common.write_event({"type": "ceo_finished", "run_id": ceo_id, "agent": "ceo", "room": "ceo",
-                        "status": "success", "duration_s": round(time.time() - started, 1), "answer": answer,
+                        "status": "success", "duration_s": round(time.time() - started, 1), "request": text[:2000], "answer": answer,
                         "assignments": [{"agent": a["agent"], "prompt": a["prompt"][:300]} for a in valid],
                         "started": started_runs, "rejected": rejected, "dry": dry,
                         "usage": result.get("usage"), "cost_usd": result.get("total_cost_usd")})
@@ -592,6 +665,33 @@ def live_status(agent_id):
     return "sleeping", s
 
 
+def review_state(agent):
+    """What the automatic reviewer said about this agent's latest run: none / running / done + verdict line."""
+    reviewer = agent.get("reviewed_by")
+    last = (common.read_state(agent["id"]) or {}).get("run_id")
+    if not reviewer or not last:
+        return None
+    try:
+        names = sorted((n for n in os.listdir(common.RUNS_DIR) if n.endswith(".arg.json")), reverse=True)[:200]
+    except OSError:
+        return None
+    for name in names:
+        try:
+            with open(os.path.join(common.RUNS_DIR, name), encoding="utf-8") as f:
+                arg = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if arg.get("parent") == last and arg.get("source") == "review":
+            out = os.path.join(common.OUTPUT_DIR, str(arg.get("agent")), f"{arg['run_id']}.md")
+            if not os.path.isfile(out):
+                return {"state": "running", "reviewer": reviewer, "run_id": arg["run_id"]}
+            with open(out, encoding="utf-8") as f:
+                found = re.search(r"\b(APPROVE|CHANGES NEEDED|BLOCKED)\b", f.read(6000))
+            return {"state": "done", "reviewer": reviewer, "run_id": arg["run_id"],
+                    "verdict": found.group(1) if found else "no clear verdict"}
+    return {"state": "none", "reviewer": reviewer}
+
+
 def agents_response():
     """Agent list for the frontend. cwd and preset prompts never reach the browser (labels only)."""
     data, table = common.load_agents()
@@ -599,6 +699,9 @@ def agents_response():
     for a in table.values():
         status, s = live_status(a["id"])
         public = {k: v for k, v in a.items() if k not in ("cwd", "preset_tasks", "denied_tools")}
+        public["can_ship"] = "Bash(git push:*)" in (a.get("denials_override") or [])
+        if public["can_ship"]:
+            public["review"] = review_state(a)
         public["preset_tasks"] = [{"label": p["label"]} for p in a.get("preset_tasks", [])]
         items.append({**public, "status": status, "last_run": {k: s.get(k) for k in (
             "run_id", "status", "finished", "duration_s", "summary", "error", "cost_usd") if k in s} or None})
@@ -620,7 +723,7 @@ def counter_response():
         if isinstance(e.get("cost_usd"), (int, float)):
             cost += e["cost_usd"]
             measured += 1
-    _, table = common.load_agents()
+    data, table = common.load_agents()
     return {
         "date": day,
         "runs_today": sum(1 for e in finished if e["type"] == "run_finished"),
@@ -631,10 +734,78 @@ def counter_response():
                   "usage": e.get("usage")} for e in finished],
         "total_usage": totals,
         "total_cost_usd": round(cost, 6),
-        "cost_note": "sum of total_cost_usd reported by claude -p (API list price equivalent); "
-                     "not the amount billed on a subscription. Measured runs: "
-                     f"{measured}/{len(finished)}",
+        "office_tokens": office_tokens_today(),
+        "token_cap": common.settings(data)["daily_token_cap"],
+        "cost_note": "Sum of total_cost_usd reported by Claude Code (claude -p) runs, at API list price; "
+                     "not the amount billed on a subscription. OpenCode runs report tokens only. "
+                     f"Measured runs: {measured}/{len(finished)}",
     }
+
+
+def history_response(limit=150):
+    """Conversation history from events.jsonl: CEO exchanges with the runs they started, plus direct runs.
+    Newest first. Prompts come from runs/<id>.arg.json; full texts stay in output/ and load on demand."""
+    ceo, runs = {}, {}
+    for e in read_events():
+        t, rid = e.get("type"), e.get("run_id")
+        if not rid:
+            continue
+        if t in ("ceo_started", "ceo_finished"):
+            c = ceo.setdefault(rid, {"run_id": rid, "kind": "ceo", "time": e.get("time")})
+            if t == "ceo_started":
+                c["time"] = e.get("time")
+                if e.get("request"):
+                    c["request"] = e["request"]
+            else:
+                c.update({"status": e.get("status"), "answer": e.get("answer"), "dry": bool(e.get("dry")),
+                          "duration_s": e.get("duration_s"), "rejected": e.get("rejected") or [],
+                          "started": [x.get("run_id") for x in (e.get("started") or []) if isinstance(x, dict)],
+                          "assignments": e.get("assignments") or []})
+                if e.get("request"):
+                    c["request"] = e["request"]
+                if e.get("error"):
+                    c["error"] = e["error"]
+        elif t in ("run_started", "run_finished"):
+            r = runs.setdefault(rid, {"run_id": rid, "kind": "run", "agent": e.get("agent"), "time": e.get("time")})
+            if t == "run_started":
+                r.update({"time": e.get("time"), "label": e.get("label")})
+            else:
+                r.update({"status": e.get("status"), "duration_s": e.get("duration_s"),
+                          "summary": (e.get("summary") or "")[:400], "finished": e.get("time")})
+    _, table = common.load_agents()
+    owned = {rid for c in ceo.values() for rid in c.get("started", [])}
+    for rid, r in runs.items():
+        r["has_output"] = bool(r.get("agent")) and os.path.isfile(os.path.join(common.OUTPUT_DIR, str(r["agent"]), f"{rid}.md"))
+        path = os.path.join(common.RUNS_DIR, f"{rid}.arg.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                arg = json.load(f)
+            r["prompt"] = str(arg.get("prompt") or "")[:600]
+            r["source"] = arg.get("source")
+            if arg.get("parent"):
+                r["parent"] = arg["parent"]
+        except (OSError, ValueError):
+            pass
+        r["agent_name"] = (table.get(r.get("agent")) or {}).get("name") or r.get("agent")
+        try:
+            with open(os.path.join(common.OUTPUT_DIR, str(r["agent"]), f"{rid}.verify.json"), encoding="utf-8") as f:
+                r["source_problems"] = int(json.load(f).get("problems") or 0)
+        except (OSError, ValueError, TypeError):
+            pass
+    for rid, r in list(runs.items()):          # chained and review runs live under the run that caused them
+        pid = r.get("parent")
+        if pid and pid in runs:
+            runs[pid].setdefault("followups", []).append(r)
+            owned.add(rid)
+    for r in runs.values():
+        r.get("followups", []).sort(key=lambda x: str(x.get("time") or ""))
+    items = []
+    for rid, c in ceo.items():
+        c["runs"] = [runs[x] for x in c.get("started", []) if x in runs]
+        items.append(c)
+    items += [r for rid, r in runs.items() if rid not in owned]
+    items.sort(key=lambda x: str(x.get("time") or ""), reverse=True)
+    return {"items": items[:limit], "total": len(items)}
 
 
 def output_response(run_id):
@@ -647,9 +818,19 @@ def output_response(run_id):
         if os.path.isfile(path) and not os.path.islink(path):
             with open(path, encoding="utf-8") as f:
                 text = f.read()
-            return {"run_id": run_id, "agent": agent_id, "text": text[:20000],
+            return {"run_id": run_id, "agent": agent_id, "text": text[:200000],
                     "path": os.path.relpath(path, common.ROOT)}
     raise RequestError(404, "output not found")
+
+
+def verify_response(run_id):
+    """Source check of one finished output (CVE ids exist, links answer). See verify.py for the safety rules."""
+    found = output_response(run_id)
+    cached = os.path.join(common.ROOT, os.path.dirname(found["path"]), run_id + ".verify.json")
+    if os.path.isfile(cached) and not os.path.islink(cached):
+        with open(cached, encoding="utf-8") as f:     # written automatically when the run finished
+            return {**json.load(f), "cached": True}
+    return verify.verify_text(found["text"])
 
 
 def memory_response():
@@ -671,6 +852,139 @@ def memory_response():
 
 
 # ---------- HTTP ----------
+
+_MODEL_CACHE = {"at": 0.0, "models": None}
+
+
+def opencode_models():
+    """Model ids known to the local OpenCode (`opencode models`), cached for 5 minutes; None when it cannot be asked."""
+    if _MODEL_CACHE["models"] is not None and time.time() - _MODEL_CACHE["at"] < 300:
+        return _MODEL_CACHE["models"]
+    binary = shutil.which("opencode") or os.path.expanduser("~/.opencode/bin/opencode")
+    try:
+        out = subprocess.run([binary, "models"], capture_output=True, text=True, timeout=25, check=True).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    models = {line.strip() for line in out.splitlines() if "/" in line.strip() and " " not in line.strip()}
+    _MODEL_CACHE.update(at=time.time(), models=models or None)
+    return models or None
+
+
+def health_response():
+    """Read-only self-check of the office setup: config, runtimes, per-agent boundaries, memory, state folders.
+
+    Each check is {id, level: ok|warn|fail, title, detail}. Nothing here changes state or reads file contents
+    outside the config; paths are only tested for existence.
+    """
+    checks = []
+
+    def add(level, cid, title, detail=""):
+        checks.append({"id": cid, "level": level, "title": title, "detail": detail})
+
+    try:
+        data, table = common.load_agents()
+    except (common.ConfigError, ValueError, KeyError, json.JSONDecodeError) as e:
+        return {"checks": [{"id": "config", "level": "fail", "title": "agents.json cannot be loaded", "detail": str(e)}],
+                "summary": {"ok": 0, "warn": 0, "fail": 1}}
+    cap, used = common.settings(data)["daily_token_cap"], office_tokens_today()
+    if not cap:
+        add("warn", "token-cap", "Daily token cap is off", "Set settings.daily_token_cap in agents.json to limit what the office can spend per day")
+    else:
+        add("warn" if used >= cap * 0.8 else "ok", "token-cap", "Daily token cap",
+            f"{used:,} of {cap:,} fresh office tokens used today (cache reads and your own terminal sessions are not counted)")
+    add("ok", "config", "Config loaded", f"{len(table)} agents in {os.path.basename(common.AGENTS_FILE)}")
+
+    # runtimes
+    runtimes = {("opencode" if a.get("runtime") == "opencode" else "claude") for a in table.values()}
+    if "opencode" in runtimes:
+        found = shutil.which("opencode") or os.path.expanduser("~/.opencode/bin/opencode")
+        add("ok" if os.path.exists(found) else "fail", "opencode-bin", "OpenCode installed",
+            found if os.path.exists(found) else "opencode not found on PATH or in ~/.opencode/bin")
+        try:
+            with open(os.path.expanduser("~/.config/opencode/opencode.json"), encoding="utf-8") as f:
+                office = [k for k in (json.load(f).get("agent") or {}) if k.startswith("office-")]
+        except (OSError, json.JSONDecodeError):
+            office = []
+        add("ok" if len(office) >= 5 else "warn", "opencode-agents", "OpenCode tool boundaries",
+            "office-read / review / browse / write / ship are defined, shell rules enforced" if len(office) >= 5 else
+            "office-* agents missing or outdated in ~/.config/opencode/opencode.json (run scripts/setup-opencode-agents.py); "
+            "without them tool limits are not enforced")
+    for a in table.values():
+        rv = a.get("reviewed_by")
+        if rv:
+            r = table.get(rv)
+            writes = r and any(t in ("Write", "Edit", "NotebookEdit") for t in (r.get("allowed_tools") or []))
+            add("fail" if not r else "warn" if writes else "ok", f"review-{a['id']}", f"{a.get('name') or a['id']} is reviewed by {rv}",
+                "reviewer agent does not exist" if not r else
+                "the reviewer can edit files; a reviewer should be read-only" if writes else "automatic read-only review after every successful run")
+    if "claude" in runtimes:
+        add("ok" if shutil.which("claude") else "fail", "claude-bin", "Claude Code installed",
+            shutil.which("claude") or "claude not found on PATH")
+
+    # models: checked against what OpenCode itself lists
+    settings = data.get("settings") if isinstance(data.get("settings"), dict) else {}
+    fallback = str(settings.get("fallback_model") or "")
+    known = opencode_models() if "opencode" in runtimes else None
+    used = sorted({str(a.get("model") or "") for a in table.values() if a.get("runtime") == "opencode" and a.get("model")})
+    if "opencode" in runtimes and known is None:
+        add("warn", "models", "Model ids not verified", "`opencode models` could not be read; model ids were not checked")
+    elif known is not None:
+        missing = [m for m in used if m not in known]
+        add("fail" if missing else "ok", "models", "Agent models exist in OpenCode" if not missing else "Unknown model id",
+            ", ".join(used) if not missing else f"not listed by `opencode models`: {missing}")
+        if fallback:
+            add("ok" if fallback in known else "fail", "fallback-model",
+                "Fallback model exists in OpenCode" if fallback in known else "Fallback model is not known to OpenCode", fallback)
+    if not fallback:
+        add("warn", "fallback-model", "No fallback model", "A failed run will not be retried on another model")
+    for a in table.values():
+        if not a.get("model"):
+            add("fail", f"model-{a['id']}", f"{a['id']}: no model set")
+
+    # per agent boundaries
+    room_ids = {"ceo", *[r.get("id") for r in data.get("rooms", []) if isinstance(r, dict)]}
+    denied = [str(x) for x in data.get("default_denied_tools", [])]
+    for need, label in (("Read(**/.env)", "reading .env files"), ("Bash(rm:*)", "rm"), ("Bash(git push:*)", "git push")):
+        if need not in denied:
+            add("fail", f"denied-{need}", f"Default deny list lacks {label}", need)
+    for a in table.values():
+        aid, tools = a["id"], [str(t) for t in a.get("allowed_tools") or []]
+        if not a["installed"]:
+            add("fail", f"cwd-{aid}", f"{aid}: folder does not exist", a["cwd"])
+        elif any(t.startswith(("Bash(git commit", "Bash(git push")) for t in tools) and not os.path.isdir(os.path.join(a["cwd"], ".git")):
+            add("fail", f"git-{aid}", f"{aid} can commit and push, but its folder is not a git repository",
+                f"{a['cwd']} has no .git; run `git init` there or point the agent at the real repository")
+        if any(t.startswith("Bash(git push") for t in tools) and aid != "coder":
+            add("fail", f"push-{aid}", f"{aid} may push", "Only the coder agent may push or deploy")
+        if a["room"] not in room_ids:
+            add("warn", f"room-{aid}", f"{aid}: room {a['room']!r} is not defined", "It will be created on the scene as an unnamed room")
+        if aid != "ceo" and not os.path.isfile(os.path.join(common.ROOT, "prompts", f"{aid}.md")):
+            add("warn", f"playbook-{aid}", f"{aid}: no playbook", f"prompts/{aid}.md gives the agent its standing method; without it the agent only sees the task")
+        if not os.path.isfile(os.path.join(common.MEMORY_DIR, f"{aid}.md")):
+            add("warn", f"memory-{aid}", f"{aid}: no memory note", f"memory/{aid}.md is created on the first memory_add")
+    if not any(c["level"] != "ok" and c["id"].startswith(("cwd-", "git-", "push-", "room-", "memory-", "playbook-")) for c in checks):
+        add("ok", "agents", "Agent boundaries", "folders exist, push is coder-only, rooms and memory notes are in place")
+
+    # folders and state
+    root = projects_root()
+    add("ok" if os.path.isdir(root) else "fail", "projects-root", "Projects root", root)
+    for path, label in ((common.STATE_DIR, "state"), (common.RUNS_DIR, "runs"), (common.OUTPUT_DIR, "output"), (common.MEMORY_DIR, "memory")):
+        add("ok" if os.path.isdir(path) and os.access(path, os.W_OK) else "warn", f"dir-{label}", f"{label}/ writable",
+            os.path.relpath(path, common.ROOT))
+    # live bridge map: every mapped agent id must exist
+    try:
+        with open(os.path.join(common.ROOT, "bridge.json"), encoding="utf-8") as f:
+            mapped = (json.load(f).get("cwd") or {})
+        unknown = sorted({v for v in mapped.values() if v not in table})
+        add("warn" if unknown else "ok", "bridge", "Terminal bridge map",
+            f"unknown agents: {unknown}" if unknown else f"{len(mapped)} folders mapped to known agents")
+    except (OSError, json.JSONDecodeError):
+        add("warn", "bridge", "bridge.json missing or invalid", "Open terminal sessions will not be matched to agents")
+    if not str((data.get("settings") or {}).get("user") or "").strip():
+        add("warn", "user", "Your name is not set", "The welcome card falls back to a generic greeting")
+    summary = {lvl: sum(1 for c in checks if c["level"] == lvl) for lvl in ("ok", "warn", "fail")}
+    return {"checks": checks, "summary": summary}
+
 
 class Handler(SimpleHTTPRequestHandler):
     server_version = "MyOffice/2"
@@ -749,6 +1063,12 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(200, token_counter.api_response())
         if url.path == "/api/memory":
             return self._json(200, memory_response())
+        if url.path == "/api/health":
+            return self._json(200, health_response())
+        if url.path == "/api/history":
+            return self._json(200, history_response())
+        if url.path == "/api/verify":
+            return self._json(200, verify_response((parse_qs(url.query).get("run") or [""])[0]))
         if url.path == "/api/output":
             run_id = (parse_qs(url.query).get("run") or [""])[0]
             return self._json(200, output_response(run_id))
@@ -781,7 +1101,8 @@ class Handler(SimpleHTTPRequestHandler):
                 project = data.get("project") or None
                 if project is not None and not isinstance(project, str):
                     raise RequestError(400, "project must be text")
-                return self._json(202, start_task(agent, label=label, prompt=prompt, project=project))
+                return self._json(202, start_task(agent, label=label, prompt=prompt, project=project,
+                                                  ship=data.get("ship") is True))
             if path == "/api/ceo":
                 text = data.get("text")
                 if not isinstance(text, str) or not text.strip():

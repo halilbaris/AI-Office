@@ -23,3 +23,6 @@ __pycache__/
 .DS_Store
 agents.json.bak
 .backup/
+
+# local tooling output
+.openchamber/
