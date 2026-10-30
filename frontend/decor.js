@@ -95,7 +95,7 @@ function scratchingPost(g, x, z, color) {
   piece(t, new THREE.BoxGeometry(.7, .08, .7), mat(color), 0, .04, 0);
   piece(t, new THREE.CylinderGeometry(.1, .1, 1.1, 14), mat('#d8bf8f', { roughness:1 }), 0, .63, 0);
   piece(t, new THREE.BoxGeometry(.55, .07, .55), mat(color), 0, 1.2, 0);
-  const top = piece(t, new THREE.SphereGeometry(.07, 12, 8), mat('#ff7a59'), .18, .95, .18);
+  const top = piece(t, new THREE.SphereGeometry(.07, 12, 8), mat('#e0522b'), .18, .95, .18);
   piece(t, new THREE.CylinderGeometry(.006, .006, .26, 4), mat('#6d5a48'), .18, 1.09, .18, false);
   return top;
 }

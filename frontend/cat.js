@@ -217,18 +217,17 @@ export const SLEEP_POSE = {
    The rig is shared; a species only changes proportions and adds one beak. Values are multipliers on the
    meshes (never on the animated nodes), so poses and memes keep working for every animal. */
 export const SPECIES = {
-  cat:    { head: 1.00, ear: 1.00, tail: 1.00, beak: 0,   pattern: null },
-  kangal: { head: 1.06, ear: 1.35, tail: 1.18, beak: 0,   pattern: 'tabby' },
-  owl:    { head: 1.24, ear: 0.45, tail: 0.35, beak: 1.0, pattern: 'tuxedo' },
-  raven:  { head: 0.94, ear: 0.12, tail: 1.30, beak: 1.7, pattern: 'tuxedo' },
+  cat:    { head: 1.00, ear: 1.00, tail: 1.00, beak: 0,   pattern: null,         eyes: 1,    muzzle: 1,    disc: 0, whiskers: true,  body: [1, 1, 1] },
+  kangal: { head: 1.04, ear: 1.30, tail: 1.14, beak: 0,   pattern: 'tabby',      eyes: 0.92, muzzle: 1.5,  disc: 0, whiskers: true,  body: [1.06, 1.03, 1.05] },
+  owl:    { head: 1.30, ear: 0.18, tail: 0.00, beak: 0.9, pattern: 'grey-white', eyes: 1.35, muzzle: 0.25, disc: 1, whiskers: false, body: [1.16, 1.06, 1.14] },
+  raven:  { head: 0.92, ear: 0.00, tail: 1.35, beak: 2.0, pattern: 'black',      eyes: 0.95, muzzle: 0.55, disc: 0, whiskers: false, body: [.86, .94, .88] },
 };
 
 /* ---------- cat ---------- */
 const FACE0 = { open:1, pupil:0, lookX:0, lookY:0, lid:0, mouth:0, brow:0, happy:0, wide:0, crossed:0 };
-export function createCat({ pattern = 'tabby', tone = 0, kitten = false, accessory = {}, species = 'cat' } = {}) {
+export function createCat({ pattern = null, tone = 0, kitten = false, accessory = {}, species = 'cat' } = {}) {
   const profile = SPECIES[species] || SPECIES.cat;
-  if (!pattern && profile.pattern) pattern = profile.pattern;
-  pattern = pattern || 'tabby';
+  pattern = pattern || profile.pattern || 'tabby';
   const { p, m } = patternMaterials(pattern, tone, kitten);
   const group = new THREE.Group();
   const dark = new THREE.Color(p.body).getHSL({}).l < .25 && !p.mask || pattern === 'tuxedo';
@@ -348,11 +347,15 @@ export function createCat({ pattern = 'tabby', tone = 0, kitten = false, accesso
     return FACE0;
   }
 
+  const bodyScale = profile.body || [1, 1, 1];
+  const BODY_NODES = { body: 1, chest: 1, hipL: 1, hipR: 1 };
   function applyPose(n, arr, extra) {
     const g = nodes[n];
+    const bs = BODY_NODES[n] ? bodyScale : [1, 1, 1];
     g.position.set(arr[0], arr[1], arr[2]);
     g.rotation.set(arr[3] + (extra?.rx || 0), arr[4] + (extra?.ry || 0), arr[5] + (extra?.rz || 0));
-    g.scale.set(arr[6] * (extra?.s || 1), arr[7] * (extra?.sy || extra?.s || 1), arr[8] * (extra?.s || 1));
+    g.scale.set(arr[6] * bs[0] * (extra?.s || 1), arr[7] * bs[1] * (extra?.sy || extra?.s || 1),
+                arr[8] * bs[2] * (extra?.s || 1));
     if (extra?.py) g.position.y += extra.py;
   }
 
@@ -435,16 +438,35 @@ export function createCat({ pattern = 'tabby', tone = 0, kitten = false, accesso
   update(0);
   // species: proportions only, applied to the meshes so every pose and meme keeps working
   if (profile.head !== 1) skull.scale.multiplyScalar(profile.head);
-  if (profile.ear !== 1) earMeshes.forEach(mesh => mesh.scale.multiplyScalar(profile.ear));
-  if (profile.tail !== 1) {
-    tailMeshes.forEach(mesh => { mesh.scale.x *= profile.tail; mesh.scale.z *= profile.tail; });
-  }
+  if (profile.ear === 0) earMeshes.forEach(mesh => { mesh.visible = false; });
+  else if (profile.ear !== 1) earMeshes.forEach(mesh => mesh.scale.multiplyScalar(profile.ear));
+  if (profile.tail === 0) tailMeshes.forEach(mesh => { mesh.visible = false; });
+  else if (profile.tail !== 1) tailMeshes.forEach(mesh => { mesh.scale.x *= profile.tail; mesh.scale.z *= profile.tail; });
   if (profile.beak > 0) {
-    const beak = new THREE.Mesh(new THREE.ConeGeometry(.042 * profile.beak, .11 * profile.beak, 14), m.nose);
-    beak.position.set(0, -.078, .258);
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(.040 * profile.beak, .10 * profile.beak, 14), m.nose);
+    beak.position.set(0, -.072, .252 + .02 * profile.beak);
     beak.rotation.x = Math.PI / 2;
     beak.castShadow = true;
     skull.add(beak);
+  }
+  // shared profile: eyes, muzzle, whiskers and the owl's facial disc
+  if (profile.eyes !== 1) eyes.forEach(o => o.g.scale.multiplyScalar(profile.eyes));
+  if (profile.muzzle !== 1) {
+    skull.children.forEach(ch => {
+      if (ch.isMesh && ch.geometry === GEO.sphere && ch.material === m.muzzle) {
+        ch.scale.z *= profile.muzzle;
+        ch.position.z += (profile.muzzle - 1) * .06;
+      }
+    });
+  }
+  if (!profile.whiskers) whiskerLine.visible = false;
+  if (profile.disc) {
+    [-1, 1].forEach(side => {
+      const disc = new THREE.Mesh(GEO.sphere, m.belly);
+      disc.position.set(side * .10, .01, .205);
+      disc.scale.set(.115, .135, .03);
+      skull.add(disc);
+    });
   }
 
   return { group, nodes, setStatus, setMeme, setOutline, update, get status() { return status; }, pattern };
