@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MyOffice — animal preview</title>
+<style>
+  html,body{margin:0;height:100%;background:#fdf6ec;font-family:Inter,system-ui,sans-serif;color:#3b342c}
+  #stage{position:fixed;inset:0}
+  .legend{position:fixed;left:18px;bottom:14px;font-size:12px;color:#8b7c6b}
+  .legend b{color:#3b342c}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<div class="legend"><b>Preview</b> · ?species=owl,raven,kangal,cat · ?pose=curl</div>
+<script type="module">
+import * as THREE from 'three';
+import { createCat, PATTERNS } from './cat.js';
+
+const params = new URLSearchParams(location.search);
+const species = (params.get('species') || 'cat,owl,raven,kangal').split(',');
+const wantCurl = params.get('pose') === 'curl';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.getElementById('stage').append(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#fdf6ec');
+const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, .1, 100);
+camera.position.set(0, 2.9, 11.0);
+camera.lookAt(0, 0.95, 0);
+
+scene.add(new THREE.HemisphereLight('#fff7ea', '#c9b79c', 1.15));
+const sun = new THREE.DirectionalLight('#fff1dc', 2.2);
+sun.position.set(4, 7, 5);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.near = 1; sun.shadow.camera.far = 25;
+sun.shadow.camera.left = -7; sun.shadow.camera.right = 7;
+sun.shadow.camera.top = 7; sun.shadow.camera.bottom = -7;
+scene.add(sun);
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: '#f3e6d6', roughness: 1 }));
+floor.rotation.x = -Math.PI / 2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+const animals = [];
+const n = species.length;
+species.forEach((sp, i) => {
+  const cat = createCat({ species: sp });
+  cat.group.position.set((i - (n - 1) / 2) * 3.3, 0, 0);
+  cat.group.rotation.y = -.35;
+  scene.add(cat.group);
+  cat.setStatus(wantCurl ? 'sleeping' : 'working');
+  animals.push(cat);
+});
+
+const clock = new THREE.Clock();
+function frame() {
+  const dt = Math.min(clock.getDelta(), .05);
+  animals.forEach(a => a.update(dt));
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+frame();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

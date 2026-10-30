@@ -234,6 +234,8 @@ The office talks to the `opencode` CLI directly, so it works without any Anthrop
   ear and tail proportions plus a beak, and each species has its own sleeping pose (the cat curls up, the owl turns
   its head, the raven tucks its beak, the kangal rests its chin on the desk). Poses and memes keep working for all
   of them because the profile only scales meshes, never the animated nodes.
+- **Room colours** come from Settings (one picker per room): the colour paints the wall and rug and lightens the
+  floor from the same hue, so a new room never looks off.
 - **One screen, three questions.** The header shows a single status pill (running agents + results waiting), the
   side column answers *needs you* → *live* → *today*, and tool chatter stays behind **show tool steps**.
 - **Results open in a modal** with the full markdown (`GET /api/output?run=…`), and approved results stay listed
@@ -286,6 +288,7 @@ The office talks to the `opencode` CLI directly, so it works without any Anthrop
 | `agents.example.json`, `bridge.example.json` | empty templates |
 | `CLAUDE.md` | CEO constitution template |
 | `frontend/` | `index.html` (scene + panels), `cat.js` (procedural animals), `settings.js` (settings tab), `meme.js` (meme poses), `portrait.js` (panel avatars), `decor.js` (room props), `demo-data.json` |
+| `frontend/preview.html` | dev aid: renders the animals big (`?species=owl,raven,kangal,cat`, `?pose=curl`) |
 | `scripts/check.sh` | syntax, JSON, leftover-Turkish sweep and an endpoint smoke test on a throwaway port |
 | `scripts/setup-opencode-agents.py` | installs the four `office-*` OpenCode agents (one-time, idempotent) |
 
