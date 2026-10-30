@@ -2,12 +2,58 @@
   "version": 2,
   "settings": {
     "user": "",
-    "brand": "MyOffice"
+    "brand": "MyOffice",
+    "daily_token_cap": 2000000
   },
   "rooms": [
-    { "id": "soc", "name": "Security Operations", "description": "Exposure monitoring, triage and security review." },
-    { "id": "code", "name": "Code Room", "description": "Product code and UI work." },
-    { "id": "writing", "name": "Writing Room", "description": "Course, blog and report drafts." }
+    {
+      "id": "soc",
+      "name": "Security Operations",
+      "description": "Exposure monitoring, triage and security review.",
+      "color": "#c8a24a"
+    },
+    {
+      "id": "code",
+      "name": "Code Room",
+      "description": "Product code and UI work.",
+      "color": "#4f7fb5"
+    },
+    {
+      "id": "writing",
+      "name": "Writing Room",
+      "description": "Course, blog and report drafts.",
+      "color": "#e07a3a"
+    },
+    {
+      "id": "marketing",
+      "name": "Marketing",
+      "description": "Campaign and post drafts.",
+      "color": "#3f9a8a"
+    },
+    {
+      "id": "design",
+      "name": "Design Studio",
+      "description": "Image prompts, covers, thumbnails and media adaptations for every platform.",
+      "color": "#8e6bd1"
+    },
+    {
+      "id": "research",
+      "name": "Research",
+      "description": "Sourced research briefs: new vulnerabilities, techniques and sector news, every claim with a link.",
+      "color": "#86cf9f"
+    },
+    {
+      "id": "training",
+      "name": "Training Studio",
+      "description": "Course outlines, lesson plans, lab scenarios and quizzes. Drafts only; nothing is published.",
+      "color": "#b868a8"
+    },
+    {
+      "id": "library",
+      "name": "Library",
+      "description": "The archive: catalogues every result, finds what the office already knows and flags duplicates or stale work.",
+      "color": "#c9a46a"
+    }
   ],
   "default_denied_tools": [
     "Read(**/.env)",
@@ -16,7 +62,9 @@
     "Bash(rm:*)",
     "Bash(git push:*)",
     "Bash(curl:*)",
-    "Bash(open:*)"
+    "Bash(open:*)",
+    "Read(**/CREDENTIALS.md)",
+    "Read(**/SECRETS.md)"
   ],
   "agents": [
     {
@@ -29,43 +77,322 @@
       "trigger_label": "When you speak",
       "description": "You only talk to it; it hands the work to the right agent. Tool-less, produces a plan only.",
       "allowed_tools": [],
-      "preset_tasks": []
+      "preset_tasks": [],
+      "species": "owl"
     },
     {
       "id": "analyst",
       "name": "Analyst",
       "room": "soc",
-      "cwd": "/path/to/your/security-project",
+      "cwd": "/path/to/your/project",
       "model": "sonnet",
       "trigger": "request",
       "trigger_label": "On request",
-      "description": "Security eye over the project: reads code and recent changes, reports risks with file:line. Read-only.",
-      "allowed_tools": ["Read", "Glob", "Grep", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git status:*)"],
-      "preset_tasks": []
+      "description": "Security eye over the project: auth, plan gating, crawlers and configuration. Read-only, reports with file:line.",
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Bash(git diff:*)",
+        "Bash(git log:*)",
+        "Bash(git status:*)"
+      ],
+      "preset_tasks": [
+        {
+          "label": "Security review of recent changes",
+          "prompt": "Review the last commits in this repository (git log/diff). Look for: secrets or credentials in the diff, personal data stored in plain text, missing authorization checks, and unsafe shell or SQL construction. Report at most 8 findings as file:line + why it matters + the safest fix. Read-only: change nothing."
+        },
+        {
+          "label": "Lab / route inventory",
+          "prompt": "Inventory what this project exposes: routes, pages or labs, with the file:line where each is defined. Flag anything that looks unreachable, duplicated or unprotected. Read-only."
+        }
+      ],
+      "species": "kangal"
     },
     {
       "id": "engineer",
       "name": "Engineer",
       "room": "code",
-      "cwd": "/path/to/your/product-project",
+      "cwd": "/path/to/your/project",
       "model": "sonnet",
       "trigger": "request",
       "trigger_label": "On request",
-      "description": "Builds and fixes product code and UI. Writes only inside its own project; never pushes or deploys.",
-      "allowed_tools": ["Read", "Glob", "Grep", "Edit", "Write", "Bash(npm run typecheck:*)", "Bash(npm run lint:*)"],
-      "preset_tasks": []
+      "description": "Reviewer for code changes: reads the real diff in the project, checks correctness, security, accessibility and UX, and gives a verdict (APPROVE / CHANGES NEEDED / BLOCKED) with file:line findings. Read-only; it never edits, pushes or deploys. Runs automatically after every Coder run.",
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Bash(git diff:*)",
+        "Bash(git status:*)",
+        "Bash(git log:*)"
+      ],
+      "preset_tasks": [
+        {
+          "label": "Review the latest changes",
+          "prompt": "Review the most recent changes in this project (git status, git diff, git log -5). Check correctness, security (secrets, injection, missing authorization), error handling and accessibility. First line: APPROVE, CHANGES NEEDED or BLOCKED. Then a table: severity, file:line, what is wrong, the smallest fix. Read-only."
+        },
+        {
+          "label": "UI and accessibility pass",
+          "prompt": "Review the UI code in this project for layout, spacing, contrast, empty states, mobile behaviour and accessibility (labels, focus, keyboard). List at most 10 findings as file:line + the smallest fix. Read-only: change nothing."
+        }
+      ],
+      "species": "raven"
     },
     {
       "id": "writer",
       "name": "Writer",
       "room": "writing",
-      "cwd": "/path/to/your/content-project",
+      "cwd": "/path/to/your/project",
       "model": "sonnet",
       "trigger": "request",
       "trigger_label": "On request",
-      "description": "Turns project notes into course, blog or report drafts, with a source for every claim. Never publishes.",
-      "allowed_tools": ["Read", "Glob", "Grep", "WebSearch", "WebFetch"],
-      "preset_tasks": []
+      "description": "Turns project notes into course, blog or report drafts: SEO, GEO (AI-answer friendly) and humanized writing, with a source for every claim. Never publishes.",
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "preset_tasks": [
+        {
+          "label": "SEO + GEO blog post",
+          "prompt": "Write a blog post for this project's audience. Topic: <TOPIC>. Language: English. Primary keyword: <KEYWORD or 'suggest one'>. Follow your playbook: brief, sourced facts only, SEO, GEO (answer-first, FAQ, JSON-LD) and humanized style. Give the full deliverable: front matter, post, JSON-LD, sources, QA checklist, unverified list and three title options. Do not publish."
+        },
+        {
+          "label": "Draft from the repo notes",
+          "prompt": "Read the project's docs and notes, then draft a 500-word English article for the audience this project serves. Use only facts found in the repo, mark anything unverified as 'unverified', and end with three title options. Do not publish."
+        },
+        {
+          "label": "Turn a lesson into a checklist",
+          "prompt": "Pick one lesson or lab from the repo and turn it into a practical checklist a student can follow (8-12 steps). Every step references the file or command it comes from. Do not publish."
+        }
+      ],
+      "species": "cat",
+      "reviewed_by": "researcher",
+      "review_prompt": "Fact-check and quality-check the blog post or article {name} just wrote (attached). Verify every number, CVE id, statistic and quote against a real source with web search; mark each as confirmed, wrong or unverified. Check the playbook basics: answer-first opening, SEO (keyword in title, headings, meta description), GEO (FAQ, JSON-LD valid), humanized tone (no filler, no invented anecdotes), sources listed, nothing published. First line: APPROVE, CHANGES NEEDED or BLOCKED. Then a table: severity, where, what is wrong, the smallest fix. Read-only: change nothing; write the review in English."
+    },
+    {
+      "id": "coder",
+      "name": "Coder",
+      "room": "code",
+      "cwd": "/path/to/your/project",
+      "model": "sonnet",
+      "trigger": "request",
+      "trigger_label": "On request",
+      "description": "Builds and fixes product code and UI: components, layout, accessibility, typecheck/lint/build clean, and commits locally. Pushes and deploys only when you press Ship. After every successful run the Engineer reviews the change automatically.",
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Edit",
+        "Write",
+        "Bash(npm run typecheck:*)",
+        "Bash(npm run lint:*)",
+        "Bash(npm run build:*)",
+        "Bash(git status:*)",
+        "Bash(git diff:*)",
+        "Bash(git log:*)",
+        "Bash(git add:*)",
+        "Bash(git commit:*)",
+        "Bash(git push:*)",
+        "Bash(./deploy.sh:*)",
+        "Bash(./deploy_VPS_production.sh:*)"
+      ],
+      "preset_tasks": [
+        {
+          "label": "Build, commit, push",
+          "prompt": "Run the build and typecheck. If they pass, commit the current changes with a clear message and push to the remote. If anything fails, stop and report the failure instead of pushing."
+        },
+        {
+          "label": "Dependency and dead-code sweep",
+          "prompt": "List unused dependencies and obviously dead files in this project, with evidence (imports, references). Do not delete anything yet; propose the removals in a short list."
+        }
+      ],
+      "denials_override": [
+        "Bash(git push:*)"
+      ],
+      "species": "raven",
+      "reviewed_by": "engineer",
+      "review_prompt": "Review the work {name} just finished (its report is attached). Run git status and git diff in this project and judge the real changes, not only the report. Check correctness, security (secrets, injection, missing authorization), error handling, accessibility and whether anything was changed that the task did not ask for. First line: APPROVE, CHANGES NEEDED or BLOCKED. Then a table: severity, file:line, what is wrong, the smallest fix. Read-only: change nothing."
+    },
+    {
+      "id": "marketer",
+      "name": "Marketer",
+      "room": "marketing",
+      "cwd": "/path/to/your/project",
+      "model": "sonnet",
+      "trigger": "request",
+      "trigger_label": "On request",
+      "description": "Turns the cybersecurity course work into campaign and post drafts, with sources. Publishes nothing: drafts land in output/ for review. All output in English, even when the task is written in Turkish.",
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "preset_tasks": [
+        {
+          "label": "Three post drafts",
+          "prompt": "Turn the latest work in this project into three short English posts (max 90 words each) for a cybersecurity-education audience. Every claim must be traceable to the repo; no invented statistics. Drafts only, never publish."
+        },
+        {
+          "label": "Campaign angle",
+          "prompt": "Propose three campaign angles for this project for the next month: audience, hook, one-line proof, and the asset needed. Keep it to one page and mark assumptions."
+        }
+      ],
+      "species": "fox",
+      "reviewed_by": "writer",
+      "review_prompt": "Review the social posts or campaign copy {name} just produced (attached). Check: the hook is in the first line, the tone is human and not hype, every claim is true and sourced or marked unverified, no invented statistics, no promises the product cannot keep, platform length and hashtags fit, English throughout, and nothing is posted. First line: APPROVE, CHANGES NEEDED or BLOCKED. Then a table: severity, where, what is wrong, the smallest fix. Read-only: change nothing; write the review in English."
+    },
+    {
+      "id": "designer",
+      "name": "Designer",
+      "room": "design",
+      "cwd": "/path/to/your/project",
+      "model": "sonnet",
+      "species": "cat",
+      "trigger": "request",
+      "trigger_label": "On request",
+      "description": "Turns a post, article or campaign into visuals: image-generation prompts, cover and thumbnail concepts, SVG graphics, alt text and a platform-by-platform media adaptation plan. All output in English. Reads the project for brand cues; creates no raster images itself and publishes nothing.",
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "preset_tasks": [
+        {
+          "label": "Cover + social image set",
+          "prompt": "Read the latest blog draft or lesson in this project and design its visuals. Give: 3 image-generation prompts (hero cover, one social square, one diagram idea), each with style, composition, palette, text-on-image (if any) and a negative prompt; alt text for each; and a size per platform. Follow your playbook. Do not publish."
+        },
+        {
+          "label": "Media adaptation plan",
+          "prompt": "Take the main message of this project's current campaign or newest post and adapt it for LinkedIn, X, Instagram (feed, story), YouTube thumbnail and the blog hero. For each: format and size, visual concept, on-image text, caption note and alt text. One table plus short notes. Mark any platform spec you could not verify."
+        },
+        {
+          "label": "Alt text and caption pass",
+          "prompt": "List the images referenced or present in this project's content (for example an images folder and blog drafts). For each, write accurate alt text and a one-line caption in English. Flag images that need a text-free variant or a different crop. Read-only."
+        }
+      ],
+      "reviewed_by": "marketer",
+      "review_prompt": "Review the visuals {name} just designed (attached). Check brand fit and clarity: one idea per visual, on-image text is short and readable, prompts are complete (subject, composition, style, palette hex, negative prompt), sizes match each platform, alt text is accurate, any SVG is complete and valid, no real people, logos or credentials, nothing fake presented as real data. First line: APPROVE, CHANGES NEEDED or BLOCKED. Then a table: severity, where, what is wrong, the smallest fix. Read-only: change nothing; write the review in English."
+    },
+    {
+      "model": "sonnet",
+      "trigger": "request",
+      "trigger_label": "On request",
+      "cwd": "/path/to/your/project",
+      "id": "trainer",
+      "name": "Trainer",
+      "room": "training",
+      "species": "owl",
+      "description": "Designs training content for the portfolio: learning objectives, lesson and module plans, hands-on lab scenarios (student guide + answer key) and quiz questions with levels. Labs run only on the user's own machines. Drafts only; publishes nothing.",
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "preset_tasks": [
+        {
+          "label": "Lesson plan + lab scenario",
+          "prompt": "Design one lesson on <TOPIC> for this project's learners. Follow your playbook: learning objectives, prerequisites, lesson flow with timings, one hands-on lab scenario (student guide, hints, answer key, safe-scope note), a 5-question quiz with answer rationale, and a list of what is unverified. Do not publish."
+        },
+        {
+          "label": "Quiz from an existing lesson",
+          "prompt": "Pick one lesson or lab in this repo and write 8 quiz questions (mixed easy/medium/hard) with answers and a one-line rationale each. Each question names the file or section it tests. Read-only: do not edit the repo."
+        },
+        {
+          "label": "Learning-path outline",
+          "prompt": "Read the project's existing lessons and labs and propose a beginner-to-intermediate learning path: ordered modules, objective per module, gaps where a lesson is missing, and prerequisites. One table plus short notes. Do not publish."
+        }
+      ],
+      "reviewed_by": "qa",
+      "review_prompt": "Review the training draft {name} just produced (attached). Check: learning objectives are measurable, the lab has a student guide, hints, an answer key and a safe-scope note, quiz answers are correct with rationale, no real targets or credentials, every number/CVE has a source or is marked unverified, and nothing contradicts the existing lessons in this project. First line: APPROVE, CHANGES NEEDED or BLOCKED. Then a table: severity, where, what is wrong, the smallest fix. Read-only."
+    },
+    {
+      "model": "sonnet",
+      "trigger": "request",
+      "trigger_label": "On request",
+      "cwd": "/path/to/your/project",
+      "id": "researcher",
+      "name": "Researcher",
+      "room": "research",
+      "species": "raven",
+      "description": "Sourced research briefs for the portfolio: new vulnerabilities, attack techniques, sector news and competitor content. A link for every claim, 'unverified' when unsure. Feeds the trainer and writer; never publishes.",
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "preset_tasks": [
+        {
+          "label": "Topic brief",
+          "prompt": "Research <TOPIC> for this project's audience. Follow your playbook: a one-paragraph answer, key facts each with a source link and date, what is still unverified, and three angles the writer or trainer could use. Do not publish."
+        },
+        {
+          "label": "What is new this week",
+          "prompt": "Find the most relevant cybersecurity-education and threat news of the last 7 days that fits this project's audience. At most 6 items, each with source link, date, one-line why it matters, and a content idea. Mark anything you could not verify."
+        }
+      ]
+    },
+    {
+      "model": "sonnet",
+      "trigger": "request",
+      "trigger_label": "On request",
+      "cwd": "/path/to/your/project",
+      "id": "qa",
+      "name": "QA",
+      "room": "code",
+      "species": "kangal",
+      "description": "Checks that labs, lessons and pages actually work for a learner: broken links, missing files, answer keys that do not match, steps that cannot be reproduced. Read-only; reports with file:line.",
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Bash(git log:*)",
+        "Bash(git status:*)"
+      ],
+      "preset_tasks": [
+        {
+          "label": "Lab completeness check",
+          "prompt": "For each lab in this project, check by reading: does it have a student guide, a solution or answer key, a stated scope, and are all referenced files present? List problems as file:line + what is missing. Read-only."
+        },
+        {
+          "label": "Link and reference check",
+          "prompt": "Scan this project's lessons and blog drafts for internal links, image paths and file references that point to something that does not exist. Report each as file:line + the broken target. Read-only."
+        }
+      ]
+    },
+    {
+      "id": "librarian",
+      "name": "Librarian",
+      "room": "library",
+      "cwd": ".",
+      "model": "sonnet",
+      "species": "fox",
+      "trigger": "request",
+      "trigger_label": "On request",
+      "description": "Keeps the office's records: catalogues finished results (output/), finds what the office already knows about a topic, links related work and flags duplicates, stale drafts and results nobody reviewed. Read-only; reads only the office's own output, memory and prompts, never run logs or settings.",
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "preset_tasks": [
+        {
+          "label": "Catalogue all results",
+          "prompt": "Catalogue every file in output/ (all agents). Give a table: date, agent, title or topic, one-line summary, and tags. Then list duplicates or overlapping results, drafts that look unfinished, and results that were never reviewed (no matching review file from engineer or qa). Follow your playbook. Read-only."
+        },
+        {
+          "label": "What do we already know about…",
+          "prompt": "Search output/ and memory/ for everything the office already has on this topic: <TOPIC>. Give the relevant results with file path and a one-line reason, the conflicts between them, and what is still missing. Read-only."
+        }
+      ]
     }
   ]
 }

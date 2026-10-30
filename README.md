@@ -35,6 +35,17 @@ daily limit stops it from using too much AI time. The **Help** button in the pag
 
 The sections below are for the person who sets the office up.
 
+## Start in one command
+
+```bash
+./start.sh
+```
+
+It checks Python, tmux and Claude Code or OpenCode, creates your private `agents.json` from the example on the
+first run, installs the OpenCode tool limits, starts the server and opens the browser. Then open **Settings →
+Agents**, point every agent at one of your project folders and pick its runtime and model. Check **Settings →
+Health** until it is green. (`agents.example.json` ships the full team; the Librarian's folder `.` is this one.)
+
 ## Quick try (nothing connected)
 
 ```bash
@@ -177,6 +188,16 @@ Set it per agent in `agents.json` with `"reviewed_by": "<agent id>"` and an opti
 **Chaining.** The CEO can order work with `"after"`: "trainer after researcher" starts the trainer when the
 researcher finishes and hands it that output (as data, cut at 8,000 characters). Without `after`, assignments
 start together. A failed step stops the chain; a follow-up never inherits Ship rights.
+
+### Projects: a big job split into steps
+
+Ask the CEO for something large ("Build a complete beginner course on phishing") and it does not start anything.
+It writes a **project** into the Plan tab: 2 to 12 steps, each with an agent, a title and a task. A step waits for
+the step before it by default and receives that step's output (a step marked independent starts with the project).
+You review the steps, then press **Run next** (starts what is ready) or **Run all** (the office keeps going by
+itself). The project stops on its own when a step fails or its reviewer says BLOCKED or CHANGES NEEDED; then you
+can open the result, **Accept** it, or **Retry** the step. Progress shows as 3/7 steps. The stepping is plain code
+in the scheduler thread, no model; steps never ship; the daily cap and review gates apply to every step.
 
 ### Plan: schedules and planned work
 

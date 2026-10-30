@@ -166,6 +166,13 @@ h3.small{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;l
 .plan-days button{padding:4px 9px;border-radius:999px;border:1px solid rgba(var(--ink-rgb),.16);background:transparent;color:var(--ink-2);font-size:12px;cursor:pointer}
 .plan-days button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .plan-form .row{display:flex;gap:8px;flex-wrap:wrap}.plan-form .row>label{flex:1 1 120px}
+.proj-bar{height:6px;border-radius:99px;background:rgba(var(--ink-rgb),.1);margin:8px 0 10px;overflow:hidden}
+.proj-bar i{display:block;height:100%;background:var(--ink);border-radius:99px;transition:width .3s}
+.proj-step{display:flex;gap:9px;align-items:center;padding:7px 0;border-top:1px solid rgba(var(--ink-rgb),.07)}
+.proj-step .n{width:18px;flex:none;text-align:center;font-size:11px;color:var(--muted)}
+.proj-step.hold b,.proj-step.failed b{color:#b3402c}
+.proj-step.planned{opacity:.7}
+.plan-projects{margin-bottom:18px}
 .plan-empty{color:var(--muted);font-size:13px;padding:6px 2px 10px}
 .plan-form .primary{align-self:flex-start;padding:8px 14px;border-radius:12px;background:var(--ink);color:var(--paper);font-weight:600;font-size:13px;cursor:pointer;border:0}
 .hist-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0 4px}
@@ -626,6 +633,7 @@ body{letter-spacing:-.004em}
         <li><b>Watch it work.</b> The “Live” panel shows who is busy and what they are doing right now.</li>
         <li><b>Read the result.</b> When a helper finishes, a card appears under “Needs you”. Press <b>Full result</b> to read it, then <b>Approve</b> when you are happy.</li>
         <li><b>Come back later.</b> The <b>History</b> tab keeps every question and every result.</li>
+        <li><b>Big jobs.</b> Ask the CEO for something large, like a whole course. It splits the job into steps in the <b>Plan</b> tab. You look at the steps, press <b>Run all</b>, and each helper hands its result to the next one.</li>
         <li><b>Repeat or queue work.</b> The <b>Plan</b> tab lets you schedule a helper (for example every Monday morning) and keep a list of jobs waiting for their turn. Nothing starts unless you scheduled it or pressed Run.</li>
       </ol>
       <h4>Good to know</h4>
@@ -1946,6 +1954,7 @@ function handleEvent(o) {
       if (o.status === 'error') { if (!replay) addStream('ceo', 'The CEO could not produce a valid plan; no run was started', '', '', time); }
       else {
         addStream('ceo', 'CEO: ' + truncate(o.answer || '', 1500), '', '', time);
+        if (o.project && !replay) { addStream('ceo', 'Project “' + o.project.title + '” is ready in the Plan tab (' + o.project.steps + ' steps). Nothing has started yet.', '', 'ok', time); toast('Project ready: open the Plan tab to review and start it.'); }
         (o.rejected || []).forEach(r => addStream(r.agent, 'Not assigned: ' + (findAgent(r.agent)?.name || r.agent) + ' · ' + (r.reason || ''), '', '', time));
       }
       if (replay || !a) return;
@@ -2562,8 +2571,38 @@ async function planPage() {
     form.onsubmit = (e) => { e.preventDefault(); send({ action:'add_task', title:title.value, agent:agent.value, prompt:details.value }, 'Added to the plan'); };
     col.append(form); return col;
   }
-  function draw() { grid.replaceChildren(scheduleCol(), taskCol()); }
-  draw(); holder.append(grid);
+  function projectBlock() {
+    const sec = el('section', 'plan-col plan-projects');
+    sec.append(el('h3', null, 'Projects'), el('p', 'lede', 'A big job split into steps by the CEO. Ask the CEO for something large and it appears here. Run next starts the steps that are ready; Run all keeps going by itself and stops when a step fails or a reviewer says BLOCKED or CHANGES NEEDED.'));
+    if (!(data.projects || []).length) sec.append(el('p', 'plan-empty', 'No projects yet. Try telling the CEO: “Build a complete beginner course on phishing”.'));
+    const LABEL = { planned:'waiting', running:'running', reviewing:'in review', done:'done', failed:'failed', hold:'needs you' };
+    (data.projects || []).forEach(pr => {
+      const card = el('div', 'plan-row proj'); const body = el('div', 'txt');
+      const head = el('b', null, pr.title + ' · ' + pr.done + '/' + pr.total + ' steps' + (pr.auto ? ' · running automatically' : '') + (pr.complete ? ' · complete' : ''));
+      const bar = el('div', 'proj-bar'); const fill = el('i'); fill.style.width = Math.round(100 * pr.done / Math.max(1, pr.total)) + '%'; bar.append(fill);
+      body.append(head, bar);
+      pr.steps.forEach((st, idx) => {
+        const row = el('div', 'proj-step ' + st.status);
+        row.append(el('span', 'n', String(idx + 1)), avatarNode(st.agent));
+        const t = el('div', 'txt');
+        t.append(el('b', null, st.title), el('span', null, st.agent_name + (st.after ? ' · after step ' + (pr.steps.findIndex(x => x.id === st.after) + 1) : '') + ' · ' + LABEL[st.status] + (st.status === 'hold' ? ' (the reviewer found problems)' : '')));
+        row.append(t);
+        const acts = el('div', 'plan-actions');
+        if (st.run_id && ['done', 'hold', 'reviewing', 'failed'].includes(st.status)) acts.append(button('Open', () => showResult({ run_id:st.run_id, agent:st.agent }, findAgent(st.agent))));
+        if (st.status === 'hold') acts.append(button('Accept', () => send({ action:'accept_step', id:pr.id, step:st.id }, 'Step accepted')));
+        if (st.status === 'hold' || st.status === 'failed') acts.append(button('Retry', () => send({ action:'retry_step', id:pr.id, step:st.id })));
+        row.append(acts); body.append(row);
+      });
+      const act = el('div', 'plan-actions');
+      act.append(button('Run next', () => send({ action:'run_project', id:pr.id }, 'Started')),
+        button(pr.auto ? 'Stop auto' : 'Run all', () => send({ action:'set_auto', id:pr.id, auto:!pr.auto }, pr.auto ? 'Stopped' : 'Running automatically')),
+        button('Delete', () => { if (confirm('Delete the project “' + pr.title + '”? Finished results stay in History.')) send({ action:'delete_project', id:pr.id }); }, 'danger'));
+      card.append(body, act); sec.append(card);
+    });
+    return sec;
+  }
+  function draw() { const top = projectBlock(); grid.replaceChildren(scheduleCol(), taskCol()); holder.replaceChildren(top, grid); }
+  draw();
   return [el('h2', null, 'Plan'), el('p', 'lede', 'What is scheduled and what is waiting. The office wakes an agent only for a schedule you set or an item you start; the rest of the time it costs nothing.'), holder];
 }
 async function historyPage() {
@@ -2613,7 +2652,7 @@ async function historyPage() {
       if ((it.runs || []).length) { const box = el('div', 'hist-runs'); it.runs.forEach(r => box.append(runBlock(r))); card.append(box); }
       (it.rejected || []).forEach(r => card.append(el('div', 'hist-run', 'Not assigned: ' + (findAgent(r.agent)?.name || r.agent) + ' · ' + (r.reason || ''))));
     } else {
-      head.append(el('span', null, (t ? clockText(t) : '') + ' · ' + ({ ceo:'started by the CEO', schedule:'scheduled run', plan:'from the plan', chain:'follow-up', review:'automatic review' }[it.source] || 'started directly')));
+      head.append(el('span', null, (t ? clockText(t) : '') + ' · ' + ({ ceo:'started by the CEO', schedule:'scheduled run', plan:'from the plan', project:'project step', chain:'follow-up', review:'automatic review' }[it.source] || 'started directly')));
       card.append(head);
       if (it.prompt) card.append(el('div', 'hist-q', truncate(it.prompt, 500)));
       card.append(el('div', 'hist-runs', null));

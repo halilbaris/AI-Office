@@ -26,3 +26,4 @@ agents.json.bak
 
 # local tooling output
 .openchamber/
+server.log

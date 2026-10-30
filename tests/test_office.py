@@ -156,6 +156,54 @@ class Plan(unittest.TestCase):
         self.assertEqual(plan.due({"schedules": [late]}, friday), ([], []))
 
 
+class Projects(unittest.TestCase):
+    TABLE = {"researcher": {"id": "researcher", "name": "Researcher", "reviewed_by": None}, "trainer": {"id": "trainer", "name": "Trainer"},
+             "ceo": {"id": "ceo"}}
+
+    def raw(self, **over):
+        base = {"title": "Course", "steps": [{"id": "a", "agent": "researcher", "title": "Research", "prompt": "p"},
+                                              {"id": "b", "agent": "trainer", "title": "Lesson", "prompt": "p", "after": "a"}]}
+        return {**base, **over}
+
+    def test_make_project_validates(self):
+        self.assertEqual(len(plan.make_project(self.raw(), self.TABLE)["steps"]), 2)
+        steps = self.raw()["steps"]
+        for bad in (self.raw(steps=steps[:1]), self.raw(steps=[steps[0], {**steps[1], "after": "zz"}]),
+                    self.raw(steps=[steps[0], {**steps[1], "agent": "ceo"}]),
+                    self.raw(steps=steps * 7), self.raw(title=""), None):
+            with self.assertRaises(plan.PlanError):
+                plan.make_project(bad, self.TABLE)
+
+    def test_messy_model_ids_are_normalised_and_still_linked(self):
+        raw = self.raw(steps=[{"id": "step_1: Research", "agent": "researcher", "title": "R", "prompt": "p"},
+                              {"id": "Step 2", "agent": "trainer", "title": "T", "prompt": "p", "after": "step_1: Research"},
+                              {"id": "Step 2", "agent": "trainer", "title": "T2", "prompt": "p", "after": 2}])
+        steps = plan.make_project(raw, self.TABLE)["steps"]
+        self.assertEqual(len({s["id"] for s in steps}), 3)                 # duplicates get their own id
+        self.assertEqual(steps[1]["after"], steps[0]["id"])
+        self.assertEqual(steps[2]["after"], steps[1]["id"])                # "after": 2 means the 2nd step
+
+    def test_steps_default_to_following_the_previous_one_unless_marked_independent(self):
+        raw = self.raw(steps=[{"id": "a", "agent": "researcher", "title": "R", "prompt": "p"},
+                              {"id": "b", "agent": "trainer", "title": "T", "prompt": "p"},
+                              {"id": "c", "agent": "trainer", "title": "T2", "prompt": "p", "after": "none"},
+                              {"id": "d", "agent": "trainer", "title": "T3", "prompt": "p", "after": "a"}])
+        after = [s["after"] for s in plan.make_project(raw, self.TABLE)["steps"]]
+        self.assertEqual(after, [None, "a", None, "a"])
+
+    def test_a_step_is_ready_only_when_the_one_it_waits_for_is_done(self):
+        project = plan.make_project(self.raw(), self.TABLE)
+        ids = lambda st: [s["id"] for s in plan.ready_steps(project, st)]
+        self.assertEqual(ids({}), ["a"])                 # not started yet: ready
+        project["steps"][0]["run_id"] = "r1"             # started: no longer ready, b waits for it
+        self.assertEqual(ids({"a": "running"}), [])
+        self.assertEqual(ids({"a": "reviewing"}), [])
+        self.assertEqual(ids({"a": "hold"}), [])
+        self.assertEqual(ids({"a": "failed"}), [])
+        self.assertEqual(ids({"a": "done"}), ["b"])
+        self.assertEqual(plan.project_summary(project, {"a": "done", "b": "done"})["complete"], True)
+
+
 class Verify(unittest.TestCase):
     def test_extracts_ids_and_https_links_once(self):
         cves, links = verify.extract("See CVE-2026-1234 and CVE-2026-1234, https://example.com/a. Also http://insecure.test/x")

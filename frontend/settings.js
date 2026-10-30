@@ -342,7 +342,14 @@ export function renderSettings(root) {
     const sessions = checkField("Mention my open terminal sessions", settings.show_sessions);
     grid3.append(tokens, sessions);
 
-    fields.append(grid1, grid2, grid3);
+    const grid4 = el("div", "st-grid");
+    grid4.style.marginTop = "14px";
+    const cap = textField("Daily AI limit for the office (tokens, 0 = no limit)", String(settings.daily_token_cap ?? 2000000), 10, "2000000");
+    cap.input.inputMode = "numeric";
+    cap.append(el("small", null, "New work is refused once the office has used this many fresh tokens today. Your own terminal sessions do not count."));
+    grid4.append(cap);
+
+    fields.append(grid1, grid2, grid3, grid4);
 
     const preview = el("aside", "st-preview");
     preview.append(el("p", "st-preview-label", "Welcome card"));
@@ -374,6 +381,7 @@ export function renderSettings(root) {
     section.brandField = brand;
     section.greetingField = greeting;
     section.noteField = note;
+    section.capField = cap;
     section.tokensField = tokens;
     section.sessionsField = sessions;
     return section;
@@ -862,6 +870,7 @@ export function renderSettings(root) {
         note: general.noteField.input.value,
         show_token_summary: general.tokensField.input.checked,
         show_sessions: general.sessionsField.input.checked,
+        daily_token_cap: Number.isNaN(Number.parseInt(general.capField.input.value, 10)) ? 2000000 : Math.max(0, Number.parseInt(general.capField.input.value, 10)),
         rooms: state.rooms.map((r) => ({ id: r.id, name: r.name, description: r.description,
                                           color: r.color || "" })),
         agents: state.agents.map((a) => ({ id: a.id, name: a.name, room: a.room, model: a.model, lean: a.lean })),
