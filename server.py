@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common  # noqa: E402
 import bridge  # noqa: E402
 import token_counter
+import plan  # noqa: E402
 import verify  # noqa: E402
 
 HOST = "127.0.0.1"
@@ -665,14 +666,10 @@ def live_status(agent_id):
     return "sleeping", s
 
 
-def review_state(agent):
-    """What the automatic reviewer said about this agent's latest run: none / running / done + verdict line."""
-    reviewer = agent.get("reviewed_by")
-    last = (common.read_state(agent["id"]) or {}).get("run_id")
-    if not reviewer or not last:
-        return None
+def review_of_run(run_id, reviewer=None):
+    """What the automatic reviewer said about one run: None / running / done + verdict."""
     try:
-        names = sorted((n for n in os.listdir(common.RUNS_DIR) if n.endswith(".arg.json")), reverse=True)[:200]
+        names = sorted((n for n in os.listdir(common.RUNS_DIR) if n.endswith(".arg.json")), reverse=True)[:300]
     except OSError:
         return None
     for name in names:
@@ -681,17 +678,106 @@ def review_state(agent):
                 arg = json.load(f)
         except (OSError, ValueError):
             continue
-        if arg.get("parent") == last and arg.get("source") == "review":
+        if arg.get("parent") == run_id and arg.get("source") == "review":
             out = os.path.join(common.OUTPUT_DIR, str(arg.get("agent")), f"{arg['run_id']}.md")
             if not os.path.isfile(out):
-                return {"state": "running", "reviewer": reviewer, "run_id": arg["run_id"]}
+                return {"state": "running", "reviewer": arg.get("agent"), "run_id": arg["run_id"]}
             with open(out, encoding="utf-8") as f:
                 found = re.search(r"\b(APPROVE|CHANGES NEEDED|BLOCKED)\b", f.read(6000))
-            return {"state": "done", "reviewer": reviewer, "run_id": arg["run_id"],
+            return {"state": "done", "reviewer": arg.get("agent"), "run_id": arg["run_id"],
                     "verdict": found.group(1) if found else "no clear verdict"}
-    return {"state": "none", "reviewer": reviewer}
+    return {"state": "none", "reviewer": reviewer} if reviewer else None
 
 
+def review_state(agent):
+    """The latest run's review for an agent that has a reviewer (shown before Ship)."""
+    last = (common.read_state(agent["id"]) or {}).get("run_id")
+    if not agent.get("reviewed_by") or not last:
+        return None
+    return review_of_run(last, agent["reviewed_by"])
+
+
+# ---------- plan: schedules + backlog ----------
+
+def plan_response():
+    data, table = common.load_agents()
+    p = plan.load()
+    finished = {}
+    for e in read_events():
+        if e.get("type") == "run_finished":
+            finished[e.get("run_id")] = e.get("status")
+    out_s = []
+    for s in p["schedules"]:
+        out_s.append({**s, "agent_name": (table.get(s.get("agent")) or {}).get("name") or s.get("agent"),
+                      "text": plan.describe(s["when"]) if s.get("when") else ""})
+    out_t = []
+    for t in p["tasks"]:
+        rid = t.get("run_id")
+        status = "planned" if not rid else ("running" if rid not in finished else "done" if finished[rid] == "success" else "failed")
+        item = {**t, "status": status, "agent_name": (table.get(t.get("agent")) or {}).get("name") or t.get("agent")}
+        if rid and status != "running":
+            item["review"] = review_of_run(rid)
+        out_t.append(item)
+    return {"schedules": out_s, "tasks": out_t, "agents": [{"id": a["id"], "name": a.get("name") or a["id"]}
+            for a in table.values() if a["id"] != "ceo" and a["installed"]]}
+
+
+def plan_action(payload):
+    action = payload.get("action")
+    _, table = common.load_agents()
+    try:
+        if action in ("run_task", "run_schedule"):
+            current = plan.load()
+            if action == "run_task":
+                item = next((t for t in current["tasks"] if t.get("id") == payload.get("id")), None)
+                if not item:
+                    raise plan.PlanError("planned item not found", 404)
+                started = start_task(item["agent"], label=item["title"], prompt=item["prompt"], source="plan")
+                with plan.locked():
+                    p = plan.load()
+                    for t in p["tasks"]:
+                        if t.get("id") == item["id"]:
+                            t.update(run_id=started["run_id"], started=common.now_iso())
+                    plan.save(p)
+            else:
+                item = next((s for s in current["schedules"] if s.get("id") == payload.get("id")), None)
+                if not item:
+                    raise plan.PlanError("schedule not found", 404)
+                started = start_task(item["agent"], label="Scheduled: " + item["label"], prompt=item["prompt"], source="schedule")
+                plan.mark(item["id"], last_run_id=started["run_id"], last_started=common.now_iso(), last_status="started (run now)")
+        else:
+            plan.apply(action, payload, table)
+    except plan.PlanError as e:
+        raise RequestError(e.code, str(e)) from e
+    return plan_response()
+
+
+def scheduler_tick(now=None):
+    """Starts the schedules that are due. No model is called here; start_task applies the daily cap and busy check."""
+    now = now or datetime.now()
+    fire, missed = plan.due(plan.load(), now)
+    today = now.strftime("%Y-%m-%d")
+    for s in missed:
+        plan.mark(s["id"], last_fired_date=today, last_status=f"missed at {s['when']['time']} (the office was off or busy)")
+    for s in fire:
+        try:
+            started = start_task(s["agent"], label="Scheduled: " + s["label"], prompt=s["prompt"], source="schedule")
+        except RequestError as e:
+            if e.code == 409:
+                continue                     # agent busy: try again next tick, until the grace window ends
+            plan.mark(s["id"], last_fired_date=today, last_status="skipped: " + str(e)[:120])
+            continue
+        plan.mark(s["id"], last_fired_date=today, last_run_id=started["run_id"], last_started=common.now_iso(), last_status="started")
+        common.write_event({"type": "schedule_fired", "schedule": s["id"], "agent": s["agent"], "run_id": started["run_id"]})
+
+
+def scheduler_loop():
+    while True:
+        time.sleep(30)
+        try:
+            scheduler_tick()
+        except Exception as e:  # the scheduler must never die
+            print(f"scheduler error: {type(e).__name__}: {e}", flush=True)
 def agents_response():
     """Agent list for the frontend. cwd and preset prompts never reach the browser (labels only)."""
     data, table = common.load_agents()
@@ -1065,6 +1151,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(200, memory_response())
         if url.path == "/api/health":
             return self._json(200, health_response())
+        if url.path == "/api/plan":
+            return self._json(200, plan_response())
         if url.path == "/api/history":
             return self._json(200, history_response())
         if url.path == "/api/verify":
@@ -1110,6 +1198,8 @@ class Handler(SimpleHTTPRequestHandler):
                 if len(text) > common.MAX_INPUT:
                     raise RequestError(413, f"text is limited to {common.MAX_INPUT} characters")
                 return self._json(200, run_ceo(text, dry=bool(data.get("dry"))))
+            if path == "/api/plan":
+                return self._json(200, plan_action(data))
             if path == "/api/settings":
                 return self._json(200, update_settings(data))
             raise RequestError(404, "not found")
@@ -1188,6 +1278,7 @@ def main():
         f.write(str(port))
     print(f"MyOffice: http://{HOST}:{port}   (demo: http://{HOST}:{port}/?demo=1)", flush=True)
     LIVE_BRIDGE.start()
+    threading.Thread(target=scheduler_loop, daemon=True, name="scheduler").start()
     server.serve_forever()
 
 

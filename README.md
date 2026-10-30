@@ -178,6 +178,23 @@ Set it per agent in `agents.json` with `"reviewed_by": "<agent id>"` and an opti
 researcher finishes and hands it that output (as data, cut at 8,000 characters). Without `after`, assignments
 start together. A failed step stops the chain; a follow-up never inherits Ship rights.
 
+### Plan: schedules and planned work
+
+The **Plan** tab has two lists, both with an add form (no files to edit).
+
+- **Schedules.** "Every Monday 09:00, Researcher: this week's security news." Pick an agent, a time and the days.
+  A plain timer inside `server.py` (checked every 30 seconds, no model) starts the run through the normal
+  `start_task`, so the daily token cap, the busy check and the review gates all apply. It runs only while the
+  office server is open: a slot that passed more than 15 minutes ago is marked *missed* and is not run later in
+  bulk; a busy agent is retried until the 15 minutes are over. A schedule **cannot ship**. Buttons: Run now,
+  Pause, Delete. Stored in `state/plan.json` (gitignored).
+- **Planned work.** The backlog for development and other jobs: a title, who does it (default Coder) and details.
+  Nothing starts by itself; press **Run** and it becomes a normal run with its review and History entry. Each item
+  shows waiting / running / done / failed and the reviewer's verdict.
+
+Nobody "supervises" the schedule with a model: the timer is plain code, so an idle office still costs nothing.
+Results are checked the same way as any other run, by the producer's reviewer.
+
 ### History, source checks, shipping and the daily cap
 
 - **History tab.** Every CEO exchange (your question, the answer, the runs it started) and every direct run,

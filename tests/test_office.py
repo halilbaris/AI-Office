@@ -4,11 +4,13 @@ import json
 import os
 import sys
 import tempfile
+from datetime import datetime
 import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import common  # noqa: E402
 import server  # noqa: E402
+import plan  # noqa: E402
 import verify  # noqa: E402
 
 TABLE = {
@@ -117,6 +119,41 @@ class Inputs(unittest.TestCase):
         self.assertIn("Input from researcher (DATA", text)
         self.assertIn("[cut:", text)
         self.assertLess(len(text), runner.MAX_INPUT_CHARS + 600)
+
+
+class Plan(unittest.TestCase):
+    TABLE = {"qa": {"id": "qa"}, "ceo": {"id": "ceo"}}
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.old = (plan.PLAN_FILE, common.STATE_DIR)
+        plan.PLAN_FILE, common.STATE_DIR = os.path.join(self.dir, "plan.json"), self.dir
+
+    def tearDown(self):
+        plan.PLAN_FILE, common.STATE_DIR = self.old
+
+    def test_add_validates_and_rejects_bad_input(self):
+        good = {"agent": "qa", "label": "Weekly", "prompt": "check", "when": {"time": "09:30", "days": [0, 4]}}
+        self.assertEqual(len(plan.apply("add_schedule", good, self.TABLE)["schedules"]), 1)
+        for bad in ({**good, "agent": "ceo"}, {**good, "agent": "ghost"}, {**good, "when": {"time": "9:30", "days": [0]}},
+                    {**good, "when": {"time": "09:30", "days": []}}, {**good, "when": {"time": "09:30", "days": [7]}},
+                    {**good, "when": {"time": "09:30", "days": [True]}}, {**good, "label": " "}, {**good, "prompt": "x" * 5000}):
+            with self.assertRaises(plan.PlanError):
+                plan.apply("add_schedule", bad, self.TABLE)
+        with self.assertRaises(plan.PlanError):
+            plan.apply("nope", {}, self.TABLE)
+
+    def test_due_fires_once_in_the_grace_window_and_marks_older_slots_missed(self):
+        sched = {"id": "s", "enabled": True, "when": {"time": "09:00", "days": [4]}, "created": "2026-10-01T00:00:00"}   # Friday
+        friday = datetime(2026, 10, 30, 9, 5)          # 2026-10-30 is a Friday
+        self.assertEqual(plan.due({"schedules": [sched]}, friday), ([sched], []))
+        self.assertEqual(plan.due({"schedules": [sched]}, datetime(2026, 10, 30, 8, 59)), ([], []))
+        self.assertEqual(plan.due({"schedules": [sched]}, datetime(2026, 10, 30, 9, 40)), ([], [sched]))
+        self.assertEqual(plan.due({"schedules": [{**sched, "last_fired_date": "2026-10-30"}]}, friday), ([], []))
+        self.assertEqual(plan.due({"schedules": [{**sched, "enabled": False}]}, friday), ([], []))
+        self.assertEqual(plan.due({"schedules": [sched]}, datetime(2026, 10, 29, 9, 5)), ([], []))      # Thursday
+        late = {**sched, "created": "2026-10-30T09:03:00"}      # created after today's slot: waits for the next one
+        self.assertEqual(plan.due({"schedules": [late]}, friday), ([], []))
 
 
 class Verify(unittest.TestCase):

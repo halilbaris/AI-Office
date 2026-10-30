@@ -40,7 +40,7 @@ echo "== api smoke test (port 8798)"
 OFFICE_PORT=8798 python3 server.py >"$tmp/server.log" 2>&1 &
 pid=$!
 for _ in $(seq 1 20); do sleep 0.3; curl -sf "http://127.0.0.1:8798/api/agents" >/dev/null && break; done
-for p in agents counter tokens memory terminals settings history health; do
+for p in agents counter tokens memory terminals settings history health plan; do
   code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8798/api/$p")
   [ "$code" = "200" ] || { echo "GET /api/$p -> $code"; fail=1; }
 done
