@@ -204,7 +204,11 @@ Two things differ on the OpenCode runtime:
   (`"tools": { "*": false }`), so a plan-only call really cannot read or run anything.
 
 Some `opencode-go/*` models require a Global region setting in the provider workspace; if a run fails with
-`This Go model requires Global regions`, pick a different provider/model (for example `deepseek/deepseek-flash`).
+`This Go model requires Global regions`, use the same model from another provider — for example
+`opencode/deepseek-v4.1-flash` or `deepseek/deepseek-flash`.
+
+The office talks to the `opencode` CLI directly, so it works without any Anthropic proxy in front of it. The
+`claude` runtime is only used when an agent explicitly selects it.
 
 ## API
 
