@@ -70,12 +70,44 @@ def append_memory(agent_id, text):
     return entries
 
 
+def opencode_agent_name(agent):
+    """Maps our tool list onto one of the office agents defined in ~/.config/opencode/opencode.json.
+
+    OpenCode cannot restrict shell commands, so the boundary is drawn per capability: read (no shell),
+    review (shell, no editor), browse (read + web), write (everything).
+    """
+    explicit = agent.get("opencode_agent")
+    if isinstance(explicit, str) and explicit:
+        return explicit
+    tools = agent.get("allowed_tools") or []
+    if any(t in ("Write", "Edit", "NotebookEdit") for t in tools):
+        return "office-write"
+    if any(str(t) == "Bash" or str(t).startswith("Bash(") for t in tools):
+        return "office-review"
+    if any(t in ("WebFetch", "WebSearch") for t in tools):
+        return "office-browse"
+    return "office-read"
+
+
+def opencode_agents_available():
+    """True when the office agents exist in the global OpenCode config (see scripts/setup-opencode-agents.py)."""
+    path = os.path.expanduser("~/.config/opencode/opencode.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        return "office-read" in (data.get("agent") or {})
+    except (OSError, json.JSONDecodeError):
+        return False
+
+
 def build_command(agent, default_denied, output_dir):
     if agent.get("runtime") == "opencode":
-        # OpenCode runtime: `opencode run --format json --model provider/model`. The prompt goes in as one
-        # argv element, never through a shell. --auto is only added for agents that may write files.
+        # OpenCode runtime: `opencode run --agent <office-*> --format json --model provider/model`.
+        # The prompt goes in as one argv element, never through a shell.
         opencode = shutil.which("opencode") or os.path.expanduser("~/.opencode/bin/opencode")
         command = [opencode, "run", "--format", "json", "--model", agent["model"]]
+        if opencode_agents_available():
+            command[2:2] = ["--agent", opencode_agent_name(agent)]
         if any(t in (agent.get("allowed_tools") or []) for t in ("Write", "Edit")):
             command.append("--auto")
         return command
@@ -158,6 +190,21 @@ def opencode_session_usage(session_id):
     return (usage if any(usage.values()) else None), cost
 
 
+def opencode_text(output):
+    """Assistant text from `opencode run --format json` output (used by the fallback retry)."""
+    texts = []
+    for line in (output or "").splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == "text":
+            piece = (event.get("part") or {}).get("text") or ""
+            if piece.strip():
+                texts.append(piece.strip())
+    return "\n\n".join(texts)
+
+
 def summarize_tool(tool_input):
     for key in ("file_path", "pattern", "path", "command", "url", "query", "description"):
         if isinstance(tool_input, dict) and tool_input.get(key):
@@ -211,6 +258,7 @@ def run(argument_file):
     prompt_full = TASK_TEMPLATE.format(name=agent["name"], room=agent["room"], today=common.today(),
                                        memory=read_memory(agent["id"]), task=task)
     command = build_command(agent, data.get("default_denied_tools", []), output_dir)
+    fallback_model = (data.get("settings") or {}).get("fallback_model")
     opencode = agent.get("runtime") == "opencode"
     if opencode:
         command = [*command, prompt_full]
@@ -222,17 +270,22 @@ def run(argument_file):
                                      "label": args.get("label")})
     common.write_event({**context, "type": "run_started", "model": agent["model"],
                         "label": args.get("label"), "log": os.path.relpath(log_path, common.ROOT)})
-    print(f"▶ {agent['name']} ({agent['model']}) · {agent['cwd']}\n  task: {task[:200]}\n", flush=True)
+    print(f"▶ {agent['name']} ({agent['model']}) · {args.get('project') or agent['cwd']}\n  task: {task[:200]}\n", flush=True)
 
     result, error = None, None
     counter = {"date": common.today(), "deduper": token_counter.MessageDeduper()}
     try:
         with open(log_path, "w", encoding="utf-8") as log:
-            work_dir = LEAN_DIR if agent.get("lean") else agent["cwd"]
-            os.makedirs(work_dir, exist_ok=True)
+            # a task may name a project (validated by the server); otherwise the agent's own folder
+            work_dir = args.get("project") or (LEAN_DIR if agent.get("lean") else agent["cwd"])
+            if not os.path.isdir(work_dir):
+                raise FileNotFoundError(f"working folder not found: {work_dir}")
+            # PWD has to follow cwd: the OpenCode CLI resolves its project directory from the
+            # environment, not only from the process working directory.
+            child_env = {**os.environ, "PWD": work_dir}
             process = subprocess.Popen(command, cwd=work_dir, stdin=subprocess.PIPE,
                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                                       start_new_session=True)
+                                       start_new_session=True, env=child_env)
             timed_out = {"hit": False}
 
             def stop_run():
@@ -290,6 +343,21 @@ def run(argument_file):
             if timed_out["hit"]:
                 error = f"run timed out after {timeout_s}s"
                 result = None if not (result or {}).get("result") else result
+            if error and fallback_model and fallback_model != agent.get("model") and not timed_out["hit"]:
+                # one retry on the configured fallback model (provider hiccup, model retired, region gate)
+                retry = [c if c != agent.get("model") else fallback_model for c in command]
+                print(f"↻ retrying on {fallback_model}", flush=True)
+                common.write_event({**context, "type": "progress", "tool": "retry", "detail": fallback_model})
+                try:
+                    again = subprocess.run(retry, cwd=work_dir, stdin=subprocess.DEVNULL, capture_output=True,
+                                           text=True, timeout=timeout_s, env=child_env)
+                    text = opencode_text(again.stdout) if opencode else ""
+                    if again.returncode == 0 and text:
+                        result = {"type": "result", "is_error": False, "result": text,
+                                  "usage": None, "total_cost_usd": None}
+                        error = None
+                except (OSError, subprocess.SubprocessError):
+                    pass
     except Exception as e:  # a run must always end with a finish event
         error = f"{type(e).__name__}: {e}"
 

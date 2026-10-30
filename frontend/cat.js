@@ -185,9 +185,50 @@ export function makePose(base, changes = {}) {
   return completePose(o);
 }
 
+// Every animal sleeps its own way: the cat curls up, the owl turns its head, the raven tucks it in,
+// the kangal lies down with its chin on the desk.
+export const SLEEP_POSE = {
+  cat: POSE.curl,
+  owl: makePose('curl', {
+    body: P([0, .24, -.02], [.05, 0, 0], [.30, .30, .27]),
+    chest: P([0, .24, .13], [.1, 0, 0], [.16, .17, .11]),
+    neck: P([.02, .34, .12], [.35, 0, 0], [.85, .85, .85]),
+    head: P([.03, .40, .10], [.15, 1.15, .15], [.92, .92, .92]),   // head turned the owl way
+    earL: P([-.13, .16, -.02], [-.2, 0, .55]),
+  }),
+  raven: makePose('curl', {
+    body: P([0, .22, -.02], [.02, 0, 0], [.31, .26, .28]),
+    chest: P([0, .22, .13], [.12, 0, 0], [.16, .15, .11]),
+    neck: P([0, .30, .10], [.75, 0, 0], [.8, .8, .8]),
+    head: P([.02, .30, .04], [1.05, .12, 0], [.9, .9, .9]),        // beak tucked into the shoulder
+    earL: P([-.13, .14, -.02], [-.2, 0, .3]),
+  }),
+  kangal: makePose('curl', {
+    body: P([0, .16, -.05], [0, 0, 0], [.42, .19, .33]),
+    chest: P([0, .16, .16], [.05, 0, 0], [.19, .13, .12]),
+    hipL: P([-.16, .12, -.08], [0, 0, 0], [.16, .12, .2]),
+    footL: P([-.15, .05, .22], [0, 0, 0], [.07, .04, .13]),
+    neck: P([0, .22, .22], [.5, 0, 0], [.85, .85, .85]),
+    head: P([.02, .24, .34], [.45, 0, 0], [.9, .9, .9]),           // chin on the desk
+  }),
+};
+
+/* ---------- species profiles ----------
+   The rig is shared; a species only changes proportions and adds one beak. Values are multipliers on the
+   meshes (never on the animated nodes), so poses and memes keep working for every animal. */
+export const SPECIES = {
+  cat:    { head: 1.00, ear: 1.00, tail: 1.00, beak: 0,   pattern: null },
+  kangal: { head: 1.06, ear: 1.35, tail: 1.18, beak: 0,   pattern: 'tabby' },
+  owl:    { head: 1.24, ear: 0.45, tail: 0.35, beak: 1.0, pattern: 'tuxedo' },
+  raven:  { head: 0.94, ear: 0.12, tail: 1.30, beak: 1.7, pattern: 'tuxedo' },
+};
+
 /* ---------- cat ---------- */
 const FACE0 = { open:1, pupil:0, lookX:0, lookY:0, lid:0, mouth:0, brow:0, happy:0, wide:0, crossed:0 };
-export function createCat({ pattern = 'tabby', tone = 0, kitten = false, accessory = {} } = {}) {
+export function createCat({ pattern = 'tabby', tone = 0, kitten = false, accessory = {}, species = 'cat' } = {}) {
+  const profile = SPECIES[species] || SPECIES.cat;
+  if (!pattern && profile.pattern) pattern = profile.pattern;
+  pattern = pattern || 'tabby';
   const { p, m } = patternMaterials(pattern, tone, kitten);
   const group = new THREE.Group();
   const dark = new THREE.Color(p.body).getHSL({}).l < .25 && !p.mask || pattern === 'tuxedo';
@@ -228,10 +269,11 @@ export function createCat({ pattern = 'tabby', tone = 0, kitten = false, accesso
     const brow = add(g, GEO.sphere, SHARED.line, [-s * .005, .085, .015], [.055, .011, .01], false); brow.visible = false;
     return { g, openGroup, pupil, glint, glint2, arc, brow, s };
   });
+  const earMeshes = [];
   ['L', 'R'].forEach(s => {
     const k = nodeGroup('ear' + s, skull);
-    add(k, GEO.ear, m.ear, [0, 0, 0], [1, 1, .55]);
-    add(k, GEO.innerEar, m.inner, [0, .005, .028], [1, 1, .4], false);
+    earMeshes.push(add(k, GEO.ear, m.ear, [0, 0, 0], [1, 1, .55]));
+    earMeshes.push(add(k, GEO.innerEar, m.inner, [0, .005, .028], [1, 1, .4], false));
   });
 
   // front legs (down from the shoulder) and the paw tip
@@ -243,12 +285,13 @@ export function createCat({ pattern = 'tabby', tone = 0, kitten = false, accesso
   });
 
   // tail chain
+  const tailMeshes = [];
   let upper = rootNode;
   for (let i = 0; i < 6; i++) {
     const g = nodeGroup('tail' + i, upper);
     const r = 1 - i * .07;
     const tailMaterial = p.siamese && i < 2 ? m.body : m.ring;
-    add(g, GEO.tail, tailMaterial, [0, 0, 0], [r, 1, r]);
+    tailMeshes.push(add(g, GEO.tail, tailMaterial, [0, 0, 0], [r, 1, r]));
     upper = g;
   }
 
@@ -291,10 +334,11 @@ export function createCat({ pattern = 'tabby', tone = 0, kitten = false, accesso
   }
   const waking = () => wakeAt >= 0 && t - wakeAt < 1.1;
 
+  const sleepPose = SLEEP_POSE[species] || POSE.curl;
   function targetPose() {
     if (meme && !waking()) return memePose;
     if (meme || status !== 'sleeping') return POSE.sit;
-    return POSE.curl;
+    return sleepPose;
   }
   function targetFace() {
     if (meme && !waking()) return { ...FACE0, ...meme.face };
@@ -389,6 +433,20 @@ export function createCat({ pattern = 'tabby', tone = 0, kitten = false, accesso
   }
 
   update(0);
+  // species: proportions only, applied to the meshes so every pose and meme keeps working
+  if (profile.head !== 1) skull.scale.multiplyScalar(profile.head);
+  if (profile.ear !== 1) earMeshes.forEach(mesh => mesh.scale.multiplyScalar(profile.ear));
+  if (profile.tail !== 1) {
+    tailMeshes.forEach(mesh => { mesh.scale.x *= profile.tail; mesh.scale.z *= profile.tail; });
+  }
+  if (profile.beak > 0) {
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(.042 * profile.beak, .11 * profile.beak, 14), m.nose);
+    beak.position.set(0, -.078, .258);
+    beak.rotation.x = Math.PI / 2;
+    beak.castShadow = true;
+    skull.add(beak);
+  }
+
   return { group, nodes, setStatus, setMeme, setOutline, update, get status() { return status; }, pattern };
 }
 

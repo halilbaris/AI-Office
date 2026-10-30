@@ -81,6 +81,7 @@ h3.small{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;l
 .stream li.step{display:none}
 .stream.show-steps li.step{display:flex}
 .today{display:flex;gap:14px;justify-content:space-between;padding:10px 16px;font-size:11.5px;color:var(--muted);flex:none}
+.cards .empty{padding:14px 4px;font-size:12.5px;line-height:1.5;color:var(--muted);text-align:center}
 .today b{color:var(--ink);font-size:13px}
 .pill-results{color:var(--coral-dark);font-weight:600}
 .pill-results::before{content:" · "}
@@ -259,8 +260,70 @@ td.number,th.number{text-align:right}
 .mode.demo .dot{background:#c9a24a}
 .mode.live .dot{background:#5aa06e}
 .mode.disconnected .dot{background:#d0554a}
+.project-row{margin:2px 0 8px}
+.project-select{width:100%;padding:8px 10px;border-radius:10px;border:1px solid rgba(59,52,44,.16);
+  background:#fffdf9;font:inherit;font-size:12.5px;color:#4d453c}
 .toast{position:fixed;left:calc((100% - var(--side-width) - 16px) / 2);bottom:92px;transform:translateX(-50%);padding:10px 16px;font-size:13.5px;font-weight:500;border-radius:12px;z-index:6;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.show{opacity:1}
+
+/* ---------- modern pass: surfaces, type scale, motion ---------- */
+:root{--radius:16px;--shadow-1:0 1px 2px rgba(58,44,28,.05);--shadow-2:0 18px 40px -22px rgba(58,44,28,.35);
+  --ease:cubic-bezier(.2,.7,.2,1)}
+body{letter-spacing:-.004em}
+.topbar{height:64px;gap:18px;padding:0 18px;background:rgba(252,248,241,.8);border-bottom:1px solid rgba(59,52,44,.07)}
+.brand b{font-size:15px;letter-spacing:-.015em}
+.tabs{gap:2px;background:rgba(59,52,44,.055);padding:4px;border-radius:12px;height:auto}
+.tabs button{padding:7px 13px;border-radius:9px;font-size:13px;color:#6d6357;transition:background .18s var(--ease),color .18s}
+.tabs button.selected{background:#fffdf9;color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(58,44,28,.14)}
+.tabs button.selected::after{display:none}
+.tabs button:hover{color:var(--ink)}
+.pill{gap:8px;padding:7px 13px;border-radius:999px;background:#fffdf9;border:1px solid rgba(59,52,44,.1);
+  font-size:12.5px;font-weight:500;box-shadow:var(--shadow-1);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
+.pill:hover{transform:translateY(-1px);box-shadow:var(--shadow-2)}
+.clock{font-variant-numeric:tabular-nums;font-size:12.5px}
+.button.ghost{border-radius:10px;font-size:12.5px;padding:8px 12px;transition:background .18s}
+.button.ghost:hover{background:#fffdf9}
+.side{gap:12px}
+.sec{border-radius:18px;box-shadow:var(--shadow-2)}
+.sec-head{padding:14px 16px 8px}
+.sec-title{font-size:14px;letter-spacing:-.012em}
+.sec-head small{font-size:11.5px}
+.card{border-radius:14px;border:1px solid rgba(59,52,44,.08);background:#fffdf9;padding:12px 14px;
+  transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
+.card:hover{transform:translateY(-1px);box-shadow:var(--shadow-2)}
+.card h4{font-size:13px;letter-spacing:-.008em}
+.card p{font-size:12.5px;line-height:1.5;color:#5c5247;display:-webkit-box;-webkit-line-clamp:3;
+  -webkit-box-orient:vertical;overflow:hidden}
+.card .buttons button{font-size:11.5px;border-radius:8px;padding:5px 10px}
+.done-head{padding:10px 2px 0}
+.today{gap:10px;padding:12px 14px}
+.today span{display:grid;gap:1px;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#a3937f}
+.today b{font-family:"Space Grotesk",sans-serif;font-size:17px;letter-spacing:-.02em;color:var(--ink)}
+.command{border-radius:18px;padding:8px;box-shadow:var(--shadow-2);background:rgba(255,252,247,.92)}
+.command input{font-size:14.5px;padding:11px 6px}
+.command .ceo-icon{border-radius:9px}
+.command .kbd{font-size:10px;color:#a3937f;border:1px solid rgba(59,52,44,.14);border-radius:6px;padding:3px 6px;margin-right:2px}
+.send{border-radius:12px;padding:10px 18px;font-weight:600;font-size:13px;background:var(--coral);color:#fff;
+  box-shadow:0 10px 20px -10px rgba(233,96,63,.8);transition:transform .18s var(--ease),background .18s}
+.send:hover{transform:translateY(-1px);background:var(--coral-dark)}
+.send:disabled{opacity:.6;transform:none}
+.greeting{border-radius:16px;box-shadow:var(--shadow-2)}
+.page{border-radius:20px}
+#panel{border-radius:20px;box-shadow:var(--shadow-2)}
+.label3d{border-radius:10px;box-shadow:0 6px 18px -8px rgba(58,44,28,.35)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:rgba(59,52,44,.16);border-radius:99px}
+::-webkit-scrollbar-track{background:transparent}
+@media (max-width:900px){
+  .brand small{display:none}
+  .side{left:12px;right:12px;width:auto;top:auto;bottom:86px;max-height:46vh}
+  #needsSec{max-height:44%}
+  .greeting{display:none}
+  .command{left:12px;right:12px;width:auto;transform:none;bottom:12px}
+  .tabs button{padding:6px 10px;font-size:12px}
+  .clock{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <script type="importmap">
 {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
@@ -342,13 +405,15 @@ td.number,th.number{text-align:right}
 
 <form class="command glass" id="command" autocomplete="off">
   <span class="ceo-icon">CEO</span>
-  <input id="commandInput" maxlength="600" placeholder="Tell the CEO what you need…">
+  <span class="kbd" aria-hidden="true">⌘K</span>
+  <input id="commandInput" maxlength="600" placeholder="Tell the CEO what you need…" aria-label="Message to the CEO">
   <button class="send" id="commandSend" type="submit">Send</button>
 </form>
 <div class="toast glass" id="toast"></div>
 <div class="mode" id="mode"><span class="dot"></span><span id="modeText">Live</span></div>
 
 <script type="module">
+
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -624,7 +689,7 @@ aoPatch(scene, PLINTH_W * 1.56, PLINTH_D * 1.61, CENTER.x + 1, CENTER.z + 3, -1.
 const groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(400 * BIG, 400 * BIG), new THREE.MeshStandardMaterial({ color:'#ebe2d3', roughness:1 }));
 groundPlane.rotation.x = -Math.PI / 2; groundPlane.position.set(CENTER.x, -1.8, CENTER.z); groundPlane.receiveShadow = true; scene.add(groundPlane);
 OVERVIEW.target.copy(CENTER).add(new THREE.Vector3(.6, 0, 3.4).multiplyScalar(SCALE));
-OVERVIEW.position.copy(OVERVIEW.target).add(new THREE.Vector3(35.9, 52.5, 62.1).multiplyScalar(SCALE));
+OVERVIEW.position.copy(OVERVIEW.target).add(new THREE.Vector3(32.4, 47.4, 56.1).multiplyScalar(SCALE));
 camera.position.copy(OVERVIEW.position); controls.target.copy(OVERVIEW.target);
 camera.far = 400 * BIG; setView();
 controls.maxDistance = 100 * BIG;
@@ -1048,7 +1113,7 @@ function buildAgent(a) {
   a.lamp.position.set(0, 1.1, 1.055); a.lamp.rotation.x = .22; g.add(a.lamp);
   // the agent figure = cat (pattern per room, a slight tone shift for roommates)
   const tone = AGENTS.filter(x => x.room === a.room).indexOf(a) * .5 - .25;
-  a.cat = createCat({ pattern:agentPattern(a.id, a.room), tone, accessory:agentAccessory(a.id, a.room) });
+  a.cat = createCat({ pattern:agentPattern(a.id, a.room), tone, accessory:agentAccessory(a.id, a.room), species:a.species || 'cat' });
   a.cat.group.position.set(0, .56, 0); g.add(a.cat.group);
   deskLamp(g, .82, .52);
   a.faceMaterial = new THREE.MeshBasicMaterial(); // status changes still set a face texture; invisible on the cat
@@ -1571,7 +1636,8 @@ function modelName(m) {
 function modelLine(a) {
   const office = modelName(a.model);
   const term = [...new Set([...terminals.values()].filter(t => t.agent === a.id && t.model).map(t => modelName(t.model)))];
-  return term.length ? `Office run: ${office} · Terminal: ${term.join(', ')}` : office;
+  // terminal sessions run in your own CLI, whose model name says nothing about the office
+  return term.length ? `Office: ${office} · Terminal session: ${term.join(', ')}` : office;
 }
 async function loadTerminals() {
   if (DEMO) return;
@@ -1606,6 +1672,13 @@ function firstStatus() {
     refreshScreen(a);
   });
 }
+let projectsCache = null;
+async function loadProjects() {
+  if (projectsCache) return projectsCache;
+  try { projectsCache = await getJSON('/api/projects'); } catch { projectsCache = { projects:[] }; }
+  return projectsCache;
+}
+
 async function giveTask(agentId, body) {
   const a = findAgent(agentId); if (!a) return;
   SOUND.send();
@@ -1802,12 +1875,37 @@ function agentPanel(a) {
     (a.preset_tasks || []).forEach(p => {
       const btn = el('button', null, p.label);
       btn.onmouseenter = () => SOUND.hover();
-      btn.onclick = () => giveTask(a.id, { label:p.label });
+      btn.onclick = () => {
+        const body = { label:p.label };
+        const sel = panel.querySelector('.project-select');
+        if (sel && sel.value) body.project = sel.value;
+        giveTask(a.id, body);
+      };
       presets.append(btn);
     });
     input.placeholder = 'Write a task…';
-    form.onsubmit = e => { e.preventDefault(); const v = input.value.trim().slice(0, 600); if (v) { giveTask(a.id, { prompt:v }); input.value = ''; } };
-    parts.push(el('h3', null, 'Ready-made tasks'), presets, el('h3', null, 'Give a task'), form);
+    const projectSelect = el('select', 'project-select');
+    const own = el('option', null, 'Default folder (' + a.room + ')');
+    own.value = '';
+    projectSelect.append(own);
+    loadProjects().then(data => {
+      (data.projects || []).forEach(p => {
+        const option = el('option', null, p.name);
+        option.value = p.name;
+        projectSelect.append(option);
+      });
+    });
+    form.onsubmit = e => {
+      e.preventDefault();
+      const v = input.value.trim().slice(0, 600);
+      if (!v) return;
+      const body = { prompt:v };
+      if (projectSelect.value) body.project = projectSelect.value;
+      giveTask(a.id, body);
+      input.value = '';
+    };
+    parts.push(el('h3', null, 'Ready-made tasks'), presets, el('h3', null, 'Give a task'),
+      el('div', 'project-row', projectSelect), form);
   }
   panel.replaceChildren(...parts);
   panel.classList.add('open');
@@ -2044,6 +2142,13 @@ canvasEl.addEventListener('pointerup', e => {
   } else { goRoom(room); roomPanel(room); }
 });
 $('command').addEventListener('submit', e => { e.preventDefault(); const i = $('commandInput'); askCeo(i.value); i.value = ''; });
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && String(e.key).toLowerCase() === 'k') {
+    e.preventDefault();
+    openTab('office');
+    $('commandInput').focus();
+  }
+});
 
 /* ---------- persistent agent labels (collision-free) ---------- */
 const labelRoot = $('labels');

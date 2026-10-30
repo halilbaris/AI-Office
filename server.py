@@ -72,6 +72,41 @@ class RequestError(Exception):
         self.code = code
 
 
+# ---------- projects ----------
+
+def projects_root():
+    """Folder whose direct children can be picked as a task working directory."""
+    data, _ = common.load_agents()
+    configured = (data.get("settings") or {}).get("projects_root") or "~/Projeler"
+    return os.path.realpath(os.path.expanduser(str(configured)))
+
+
+def list_projects():
+    root = projects_root()
+    items = []
+    try:
+        entries = sorted(os.scandir(root), key=lambda e: e.name.lower())
+    except OSError:
+        return {"root": root, "projects": []}
+    for entry in entries:
+        if not entry.is_dir(follow_symlinks=False) or entry.name.startswith("."):
+            continue
+        items.append({"name": entry.name, "path": entry.path, "git": os.path.isdir(os.path.join(entry.path, ".git"))})
+    return {"root": root, "projects": items}
+
+
+def resolve_project(project):
+    """Accepts a project name (child of the root) or an absolute path inside the root."""
+    root = projects_root()
+    candidate = project if os.path.isabs(project) else os.path.join(root, project)
+    resolved = os.path.realpath(candidate)
+    if resolved != root and not resolved.startswith(root + os.sep):
+        raise RequestError(400, "project must live inside the projects root")
+    if not os.path.isdir(resolved):
+        raise RequestError(400, f"project folder not found: {project}")
+    return resolved
+
+
 # ---------- starting runs ----------
 
 def prepare_tmux():
@@ -82,7 +117,7 @@ def prepare_tmux():
     return tmux
 
 
-def start_task(agent_id, label=None, prompt=None, source="button"):
+def start_task(agent_id, label=None, prompt=None, source="button", project=None):
     _, table = common.load_agents()
     agent = table.get(agent_id)
     if not agent or agent_id == "ceo":
@@ -98,6 +133,11 @@ def start_task(agent_id, label=None, prompt=None, source="button"):
         raise RequestError(400, "label or prompt required")
     if len(prompt) > common.MAX_INPUT:
         raise RequestError(413, f"prompt is limited to {common.MAX_INPUT} characters")
+    work_dir = None
+    if project:
+        if not isinstance(project, str) or len(project) > 300:
+            raise RequestError(400, "invalid project")
+        work_dir = resolve_project(project)
 
     with START_LOCK:
         if common.agent_busy(agent_id):
@@ -106,7 +146,8 @@ def start_task(agent_id, label=None, prompt=None, source="button"):
         argument_path = os.path.join(common.RUNS_DIR, f"{run_id}.arg.json")
         with open(argument_path, "w", encoding="utf-8") as f:
             json.dump({"run_id": run_id, "agent": agent_id, "label": label,
-                       "prompt": prompt, "source": source}, f, ensure_ascii=False)
+                       "prompt": prompt, "source": source,
+                       **({"project": work_dir} if work_dir else {})}, f, ensure_ascii=False)
         common.write_state(agent_id, {"status": "starting", "run_id": run_id, "pid": None,
                                       "started_ts": time.time()})
         try:
@@ -120,7 +161,8 @@ def start_task(agent_id, label=None, prompt=None, source="button"):
             common.write_event({"type": "error", "agent": agent_id, "run_id": run_id,
                                 "detail": f"tmux: {type(e).__name__}"})
             raise RequestError(500, "run could not be started") from e
-    return {"run_id": run_id, "agent": agent_id, "tmux": f"{TMUX_SESSION}:{agent_id}"}
+    return {"run_id": run_id, "agent": agent_id, "tmux": f"{TMUX_SESSION}:{agent_id}",
+            "project": work_dir}
 
 
 # ---------- CEO ----------
@@ -299,6 +341,7 @@ def settings_response():
                     "installed": a["installed"]} for a in table.values()],
         "rooms": rooms_view(data, table),
         "profiles": sorted(TOOL_PROFILES),
+        "projects_root": projects_root(),
         "config_file": os.path.basename(common.AGENTS_FILE),
     }
 
@@ -337,6 +380,16 @@ def update_settings(payload):
                 if config.get(key) != value.strip():
                     config[key] = value.strip()
                     touched = True
+        if "projects_root" in payload:
+            value = payload["projects_root"]
+            if not isinstance(value, str) or not value.strip() or len(value) > 300:
+                raise RequestError(400, "projects_root must be a path")
+            expanded = os.path.realpath(os.path.expanduser(value.strip()))
+            if not os.path.isdir(expanded):
+                raise RequestError(400, f"projects root not found: {value}")
+            if config.get("projects_root") != expanded:
+                config["projects_root"] = expanded
+                touched = True
         for key in ("show_token_summary", "show_sessions"):
             if key in payload:
                 value = bool(payload[key])
@@ -696,6 +749,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(200, settings_response())
         if url.path == "/api/terminals":
             return self._json(200, {"terminals": LIVE_BRIDGE.list_sessions()})
+        if url.path == "/api/projects":
+            return self._json(200, list_projects())
         if url.path == "/api/events":
             return self._sse(parse_qs(url.query))
         if url.path.startswith("/api/"):
@@ -716,7 +771,10 @@ class Handler(SimpleHTTPRequestHandler):
                 if (label is not None and not isinstance(label, str)) or \
                         (prompt is not None and not isinstance(prompt, str)):
                     raise RequestError(400, "label/prompt must be text")
-                return self._json(202, start_task(agent, label=label, prompt=prompt))
+                project = data.get("project") or None
+                if project is not None and not isinstance(project, str):
+                    raise RequestError(400, "project must be text")
+                return self._json(202, start_task(agent, label=label, prompt=prompt, project=project))
             if path == "/api/ceo":
                 text = data.get("text")
                 if not isinstance(text, str) or not text.strip():

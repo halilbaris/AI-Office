@@ -21,7 +21,7 @@ export function buildPortraits(agents, { pattern, accessory, color }) {
   const headPos = new THREE.Vector3(), forward = new THREE.Vector3(), q = new THREE.Quaternion();
 
   agents.forEach(a => {
-    const cat = createCat({ pattern:pattern(a), accessory:accessory(a) });
+    const cat = createCat({ pattern:pattern(a), accessory:accessory(a), species:a.species || 'cat' });
     scene.add(cat.group);
     const m = findMeme(a.id, a.room);
     if (m) {

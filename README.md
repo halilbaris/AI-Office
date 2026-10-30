@@ -40,14 +40,22 @@ cp bridge.example.json bridge.json      # optional: terminal bridge mapping
    `allowed_tools` as narrow as possible, and give it only the preset tasks you actually want. An agent whose
    folder is missing counts as "not installed" and is never run.
 
-3. **Start the server.**
+3. **Register the OpenCode agents (once).** If your agents run on OpenCode, this is what keeps the tool boundary
+   real — the office then asks for `office-read`, `office-review`, `office-browse` or `office-write` instead of
+   trusting the model:
+
+```bash
+python3 scripts/setup-opencode-agents.py     # writes ~/.config/opencode/opencode.json (keeps a .bak)
+```
+
+4. **Start the server.**
 
 ```bash
 python3 server.py            # http://127.0.0.1:8796, next free port when busy (written to ./port)
 tmux attach -t office        # watch running agents live (one window per run)
 ```
 
-4. **Open `http://127.0.0.1:8796`.** Click an agent to give it a preset task, or use the bottom box to tell the
+5. **Open `http://127.0.0.1:8796`.** Click an agent to give it a preset task, or use the bottom box to tell the
    CEO what you need.
 
 Health check: `./scripts/check.sh` compiles the Python, validates the JSON, syntax-checks the frontend modules,
@@ -170,6 +178,9 @@ The **Settings** tab edits the office without touching the file by hand:
   moves its desk; the layout is recomputed.
 - **Rooms** — display name, description and scene order, plus adding a room or removing an empty one. Room ids are
   permanent because agents reference them, and a room holding agents cannot be removed.
+- **Projects** — the folder whose children can be chosen as a task's working directory (default `~/Projeler`).
+  The agent panel gets a project picker, and `POST /api/task` accepts `"project": "<name>"`; the server resolves it
+  inside that root and refuses anything outside (`GET /api/projects` lists them).
 
 New agents are added from the same tab: id, name, room, folder, model, runtime and a **permission profile**
 (`read`, `review`, `build`, `research`, `deploy`). The profile is the only way to grant tools from the browser; an
@@ -198,11 +209,15 @@ single-step answer emits no usage event of its own). `--auto` is added only for 
 `Write`/`Edit`. Everything else — tmux window, output file, memory block, event stream, token counter — behaves
 the same as a Claude Code run. Pick the runtime per agent in **Settings → Agents**.
 
+Tool permissions on the OpenCode runtime are enforced by the four agents the setup script installs
+(`office-read`, `office-review`, `office-browse`, `office-write`); the runner maps an agent's tool list onto one of
+them. Without those agents the runner still works but falls back to OpenCode's default permissions, so run the
+setup script. `claude -p` keeps using `allowed_tools` / `default_denied_tools` as before.
+
 Two things differ on the OpenCode runtime:
 
-- **Tool permissions are OpenCode's, not ours.** `allowed_tools` / `default_denied_tools` are only enforced by
-  `claude -p`; on OpenCode an agent can use whatever the project's `opencode.json` allows. Use the Claude runtime
-  when the tool boundary has to be guaranteed.
+- **Shell commands cannot be filtered by prefix.** OpenCode allows or denies the shell as a whole, which is why the
+  boundary is drawn per capability instead.
 - **The CEO stays tool-less** through the `ceo` agent defined in this folder's `opencode.json`
   (`"tools": { "*": false }`), so a plan-only call really cannot read or run anything.
 
@@ -212,6 +227,18 @@ Some `opencode-go/*` models require a Global region setting in the provider work
 
 The office talks to the `opencode` CLI directly, so it works without any Anthropic proxy in front of it. The
 `claude` runtime is only used when an agent explicitly selects it.
+
+## The office itself
+
+- **Six animals, six ways of sleeping.** `"species": "cat" | "kangal" | "owl" | "raven"` per agent changes head,
+  ear and tail proportions plus a beak, and each species has its own sleeping pose (the cat curls up, the owl turns
+  its head, the raven tucks its beak, the kangal rests its chin on the desk). Poses and memes keep working for all
+  of them because the profile only scales meshes, never the animated nodes.
+- **One screen, three questions.** The header shows a single status pill (running agents + results waiting), the
+  side column answers *needs you* → *live* → *today*, and tool chatter stays behind **show tool steps**.
+- **Results open in a modal** with the full markdown (`GET /api/output?run=…`), and approved results stay listed
+  behind **Show** instead of disappearing.
+- **⌘K / Ctrl-K** jumps to the command box; the greeting card is a compact pill that expands on hover.
 
 ## API
 
@@ -225,6 +252,8 @@ The office talks to the `opencode` CLI directly, so it works without any Anthrop
 | `GET /api/tokens` | today's tokens per agent |
 | `GET /api/counter` | today's run count, active agents, per-run duration/usage/cost |
 | `GET /api/memory` | entry count and the last 3 entries of every `memory/<agent>.md` |
+| `GET /api/output?run=<id>` | the full markdown of a finished run (used by the result modal) |
+| `GET /api/projects` | folders under the projects root that a task may run in |
 | `GET /api/settings` | greeting/brand card options, rooms and per-agent name/room/model/lean |
 | `POST /api/settings` | same shape, saved into `agents.json` (atomic, `.bak` backup, validated) |
 
@@ -256,7 +285,9 @@ The office talks to the `opencode` CLI directly, so it works without any Anthrop
 | `common.py` | paths, agent table, event log |
 | `agents.example.json`, `bridge.example.json` | empty templates |
 | `CLAUDE.md` | CEO constitution template |
-| `frontend/` | `index.html` (scene + panels), `cat.js` (procedural animal), `meme.js` (meme poses), `portrait.js` (panel avatars), `decor.js` (room props), `demo-data.json` |
+| `frontend/` | `index.html` (scene + panels), `cat.js` (procedural animals), `settings.js` (settings tab), `meme.js` (meme poses), `portrait.js` (panel avatars), `decor.js` (room props), `demo-data.json` |
+| `scripts/check.sh` | syntax, JSON, leftover-Turkish sweep and an endpoint smoke test on a throwaway port |
+| `scripts/setup-opencode-agents.py` | installs the four `office-*` OpenCode agents (one-time, idempotent) |
 
 ## License
 

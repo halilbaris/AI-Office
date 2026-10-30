@@ -38,6 +38,12 @@ const CSS = `
           background: #fffaf3; display: grid; gap: 8px; }
 .st-new .st-grid { display: grid; gap: 8px; grid-template-columns: 1fr 1fr 1fr 1fr; }
 .st-new h4 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #9b8b79; }
+.st-projects { display: grid; gap: 4px; margin-top: 10px; max-height: 220px; overflow: auto; }
+.st-project { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 6px 8px; border-radius: 8px;
+              background: #fff8ef; border: 1px solid #f0e2d0; font-size: 12.5px; align-items: center; }
+.st-project-name { font-weight: 600; color: #4b4137; }
+.st-badge { font-size: 10px; padding: 1px 6px; border-radius: 999px; background: #ecdfcd; color: #8a7358; }
+.st-project-path { grid-column: 1 / -1; font-size: 10.5px; color: #a3937f; font-family: ui-monospace, monospace; }
 `;
 
 function el(tag, cls, text) {
@@ -325,6 +331,51 @@ export function renderSettings(root) {
     return box;
   }
 
+  function projectsCard() {
+    const card = el("section", "st-card");
+    card.append(el("h3", null, "Projects"));
+    card.append(el("p", "st-hint",
+      "Tasks can run inside any folder under this root. Pick the folder per task in the agent panel."));
+    const row = el("div", "st-row");
+    row.style.gridTemplateColumns = "1fr auto";
+    const root = textField("Projects root", state.data.projects_root, 300, "~/Projeler");
+    const save = el("button", "st-btn", "Save root");
+    save.style.alignSelf = "end";
+    save.addEventListener("click", async () => {
+      save.disabled = true;
+      try {
+        const data = await api("/api/settings", { projects_root: root.input.value.trim() });
+        state.data = data;
+        draw();
+        say("Projects root saved.", "ok");
+      } catch (err) {
+        say(err.message, "error");
+        save.disabled = false;
+      }
+    });
+    row.append(root, save);
+    card.append(row);
+
+    const list = el("div", "st-projects");
+    list.append(el("p", "st-note", "Loading…"));
+    card.append(list);
+    api("/api/projects").then((data) => {
+      list.replaceChildren();
+      if (!data.projects.length) {
+        list.append(el("p", "st-note", "No folders found under this root."));
+        return;
+      }
+      for (const p of data.projects) {
+        const item = el("div", "st-project");
+        item.append(el("span", "st-project-name", p.name));
+        if (p.git) item.append(el("span", "st-badge", "git"));
+        item.append(el("span", "st-project-path", p.path));
+        list.append(item);
+      }
+    }).catch(() => list.replaceChildren(el("p", "st-note", "Projects could not be listed.")));
+    return card;
+  }
+
   function roomsCard() {
     const card = el("section", "st-card");
     card.append(el("h3", null, "Rooms"));
@@ -457,7 +508,7 @@ export function renderSettings(root) {
   function draw() {
     const general = generalCard();
     state.currentGeneral = general;
-    wrap.replaceChildren(general, agentsCard(), roomsCard());
+    wrap.replaceChildren(general, agentsCard(), roomsCard(), projectsCard());
 
     const actions = el("div", "st-actions");
     const save = el("button", "st-btn", "Save");
