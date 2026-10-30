@@ -2898,6 +2898,42 @@ function updateRoomNames() {
   });
 }
 
+/* ---------- focus: rooms that work grow and glow, the others are dimmed (nothing working = everything normal) ---------- */
+const FOCUS_GROW = .06, FOCUS_DIM = .5;
+ROOMS.forEach(room => {
+  const h = room.glass ? 4.6 : 3.6;
+  const dim = new THREE.Mesh(new THREE.BoxGeometry(room.w + .1, h, room.d + .1),
+    new THREE.MeshBasicMaterial({ color:'#14100c', transparent:true, opacity:0, depthWrite:false }));
+  dim.position.y = h / 2; dim.renderOrder = 6; dim.visible = false;      // front faces of a box never overlap: one even veil
+  room.group.add(dim); Object.assign(room, { dim, focus:0, veil:0 });
+});
+const isBusy = a => a.status === 'working' || a.status === 'waiting' || a.status === 'thinking' || a.status === 'done';
+function updateFocus(dt) {
+  const busyRooms = new Set(AGENTS.filter(isBusy).map(a => a.room));
+  const k = 1 - Math.exp(-dt * 4);
+  ROOMS.forEach(room => {
+    const busy = busyRooms.has(room.id);
+    room.focus += ((busy ? 1 : 0) - room.focus) * k;
+    room.veil += ((busyRooms.size && !busy ? 1 : 0) - room.veil) * k;
+    if (Math.abs(room.focus) < .002) room.focus = 0;
+    if (Math.abs(room.veil) < .002) room.veil = 0;
+    const s = 1 + FOCUS_GROW * room.focus;
+    room.group.scale.set(s, s, s);
+    room.dim.visible = room.veil > 0;
+    room.dim.material.opacity = FOCUS_DIM * room.veil;
+    const selected = room.id === selectedRoom ? .12 : room.id === hovered?.room ? .06 : 0;
+    room.floorMesh.material.emissiveIntensity = Math.max(selected, .2 * room.focus);
+    AGENTS.forEach(a => {
+      if (a.room !== room.id) return;
+      const base = a.group.userData.base || (a.group.userData.base = { p:a.group.position.clone(), s:a.group.scale.x });
+      a.group.position.set(room.cx + (base.p.x - room.cx) * s, base.p.y, room.cz + (base.p.z - room.cz) * s);
+      a.group.scale.setScalar(base.s * s);
+      const label = labelFor(a).d;
+      label.style.filter = room.veil > .01 ? `opacity(${(1 - .6 * room.veil).toFixed(2)})` : '';
+    });
+  });
+}
+
 /* ---------- loop ---------- */
 const clock = new THREE.Clock();
 let ledTime = 0, panelTime = 0, lineTime = 0;
@@ -2932,6 +2968,7 @@ function frame() {
   const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
   updateCamera(dt);
   AGENTS.forEach(a => animateAgent(a, t, dt));
+  updateFocus(dt);
   updateEnvelopes(dt); updateFlows(dt); updateCore(t, dt); animateSubAgents(t, dt);
   if (t - ledTime > .16) { ledTime = t; drawLed(t); }
   if (t - lineTime > 1.7) {
