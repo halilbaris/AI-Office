@@ -10,6 +10,7 @@ export const PATTERNS = {
   'black':     { body:'#2b2828', belly:'#322e2e', muzzle:'#3a3434', cheek:'#302c2c', paw:'#2b2828', ear:'#2b2828', tail:'#2b2828', eye:'#dcc43a', whisker:'#f4f1ea', nose:'#b9767c', inner:'#8a5e62' },
   'tuxedo':    { body:'#272424', belly:'#f8f5ef', muzzle:'#f8f5ef', cheek:'#f8f5ef', paw:'#f8f5ef', ear:'#272424', tail:'#272424', eye:'#b9cd3e', whisker:'#fffdf8', nose:'#e8999f', inner:'#e3a2a6', mask:1 },
   'grey-white': { body:'#8d9196', belly:'#f7f5f1', muzzle:'#f7f5f1', cheek:'#f7f5f1', paw:'#f7f5f1', ear:'#8d9196', tail:'#8d9196', eye:'#e3b548', whisker:'#fffdf8', nose:'#eaa0a6', inner:'#eeaab0', mask:1 },
+  'fox':       { body:'#d97a3a', stripe:'#b4561f', belly:'#fbf1e2', muzzle:'#fbf1e2', cheek:'#f4dcc2', paw:'#3a2b22', ear:'#c9632b', tail:'#d97a3a', eye:'#c9a227', whisker:'#fffaf0', nose:'#2f2420', inner:'#e8a07a' },
   'siamese':   { body:'#efe3cd', point:'#57402f', belly:'#f6eedf', muzzle:'#5f4635', cheek:'#a88a6e', paw:'#57402f', ear:'#57402f', tail:'#57402f', eye:'#5aa2e6', whisker:'#fffaf0', nose:'#5a3f36', inner:'#b08478', siamese:1 },
 };
 
@@ -221,6 +222,7 @@ export const SPECIES = {
   kangal: { head: 1.04, ear: 1.30, tail: 1.14, beak: 0,   pattern: 'tabby',      eyes: 0.92, muzzle: 1.5,  disc: 0, whiskers: true,  bird: false, body: [1.06, 1.03, 1.05], size: 1.14 },
   owl:    { head: 1.30, ear: 0.18, tail: 0.00, beak: 0.9, pattern: 'grey-white', eyes: 1.35, muzzle: 0.25, disc: 1, whiskers: false, bird: true,  body: [1.16, 1.06, 1.14], size: 1.02 },
   raven:  { head: 0.92, ear: 0.00, tail: 1.35, beak: 2.0, pattern: 'black',      eyes: 0.95, muzzle: 0.55, disc: 0, whiskers: false, bird: true,  body: [.86, .94, .88], size: 0.96 },
+  fox:    { head: 1.02, ear: 1.30, tail: 1.25, beak: 0,   pattern: 'fox',        eyes: 0.92, muzzle: 1.45, disc: 0, whiskers: true,  bird: false, body: [.98, .98, 1.0], size: 1.02 },
 };
 
 /* ---------- species kits ----------
@@ -262,6 +264,24 @@ const SPECIES_KIT = {
     ['armL', 'armR'].forEach(n => { c.nodes[n].visible = false; });
     c.birdFeet();
   },
+  fox(c) {
+    // pointed ears that stay up, a slim snout and a heavy brush of a tail
+    const snout = c.add(c.skull, c.GEO.sphere, c.m.body, [0, -.10, .32], [.075, .065, .19]);
+    snout.rotation.x = .14;
+    c.add(c.skull, c.GEO.sphere, c.m.belly, [0, -.135, .30], [.07, .05, .14], false);
+    c.add(c.skull, c.GEO.sphere, c.m.nose, [0, -.105, .49], [.038, .03, .026], false);
+    ['L', 'R'].forEach(side => {
+      const ear = c.nodes['ear' + side];
+      const mesh = ear && ear.children && ear.children[0];
+      if (mesh) { mesh.scale.set(1.2, 1.45, .8); }
+    });
+    (c.tailMeshes || []).forEach((mesh, i) => {
+      mesh.scale.x *= 1.9 - i * .12;
+      mesh.scale.z *= 1.9 - i * .12;
+    });
+    c.add(c.nodes.tail2, c.GEO.sphere, c.m.belly, [0, .06, .02], [.05, .05, .12], false);  // white tail tip
+  },
+
   kangal(c) {
     // a fur-coloured snout instead of the cat muzzle, folded-out ears, heavier tail
     const snout = c.add(c.skull, c.GEO.sphere, c.m.body, [0, -.10, .33], [.095, .085, .21]);
