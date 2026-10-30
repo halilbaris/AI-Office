@@ -42,6 +42,8 @@ const CSS = `
 .st-project { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 6px 8px; border-radius: 8px;
               background: var(--paper-warm); border: 1px solid var(--line); font-size: 12.5px; align-items: center; }
 .st-project-name { font-weight: 600; color: var(--ink); }
+.st-color { width: 34px; height: 26px; padding: 2px; border-radius: 8px; border: 1px solid var(--line);
+            background: var(--paper); cursor: pointer; }
 .st-badge { font-size: 10px; padding: 1px 6px; border-radius: 999px; background: var(--paper-deep); color: var(--muted); }
 .st-project-path { grid-column: 1 / -1; font-size: 10.5px; color: var(--muted-2); font-family: ui-monospace, monospace; }
 `;
@@ -490,7 +492,8 @@ export function renderSettings(root) {
         note: general.noteField.input.value,
         show_token_summary: general.tokensField.input.checked,
         show_sessions: general.sessionsField.input.checked,
-        rooms: state.rooms.map((r) => ({ id: r.id, name: r.name, description: r.description })),
+        rooms: state.rooms.map((r) => ({ id: r.id, name: r.name, description: r.description,
+                                          color: r.color || "" })),
         agents: state.agents.map((a) => ({ id: a.id, name: a.name, room: a.room, model: a.model, lean: a.lean })),
       });
       const after = data.agents.map((a) => a.id).join() + "|" + data.rooms.map((r) => r.id).join();

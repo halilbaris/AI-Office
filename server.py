@@ -316,7 +316,8 @@ def rooms_view(data, table):
             continue
         seen.add(r["id"])
         rooms.append({"id": r["id"], "name": str(r.get("name") or default_room_name(r["id"]))[:40],
-                      "description": str(r.get("description") or "")[:200], "declared": True})
+                      "description": str(r.get("description") or "")[:200],
+                      "color": str(r.get("color") or ""), "declared": True})
     counts = {}
     for a in table.values():
         counts[a["room"]] = counts.get(a["room"], 0) + 1
@@ -324,7 +325,8 @@ def rooms_view(data, table):
         if room_id == "ceo" or room_id in seen:
             continue
         seen.add(room_id)
-        rooms.append({"id": room_id, "name": default_room_name(room_id), "description": "", "declared": False})
+        rooms.append({"id": room_id, "name": default_room_name(room_id), "description": "",
+                      "color": "", "declared": False})
     for r in rooms:
         r["agents"] = counts.get(r["id"], 0)
     return rooms
@@ -421,6 +423,11 @@ def update_settings(payload):
                 if not isinstance(description, str) or len(description) > 200:
                     raise RequestError(400, f"room description is limited to 200 characters: {room_id}")
                 entry = {"id": room_id, "name": name.strip(), "description": description.strip()}
+                color = (row.get("color") or "").strip()
+                if color:
+                    if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+                        raise RequestError(400, f"room colour must be a #rrggbb value: {room_id}")
+                    entry["color"] = color.lower()
                 old = next((o for o in (data.get("rooms") or [])
                             if isinstance(o, dict) and o.get("id") == room_id), None)
                 if isinstance(old, dict) and isinstance(old.get("note"), str):

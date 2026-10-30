@@ -217,10 +217,63 @@ export const SLEEP_POSE = {
    The rig is shared; a species only changes proportions and adds one beak. Values are multipliers on the
    meshes (never on the animated nodes), so poses and memes keep working for every animal. */
 export const SPECIES = {
-  cat:    { head: 1.00, ear: 1.00, tail: 1.00, beak: 0,   pattern: null,         eyes: 1,    muzzle: 1,    disc: 0, whiskers: true,  body: [1, 1, 1] },
-  kangal: { head: 1.04, ear: 1.30, tail: 1.14, beak: 0,   pattern: 'tabby',      eyes: 0.92, muzzle: 1.5,  disc: 0, whiskers: true,  body: [1.06, 1.03, 1.05] },
-  owl:    { head: 1.30, ear: 0.18, tail: 0.00, beak: 0.9, pattern: 'grey-white', eyes: 1.35, muzzle: 0.25, disc: 1, whiskers: false, body: [1.16, 1.06, 1.14] },
-  raven:  { head: 0.92, ear: 0.00, tail: 1.35, beak: 2.0, pattern: 'black',      eyes: 0.95, muzzle: 0.55, disc: 0, whiskers: false, body: [.86, .94, .88] },
+  cat:    { head: 1.00, ear: 1.00, tail: 1.00, beak: 0,   pattern: null,         eyes: 1,    muzzle: 1,    disc: 0, whiskers: true,  bird: false, body: [1, 1, 1], size: 1 },
+  kangal: { head: 1.04, ear: 1.30, tail: 1.14, beak: 0,   pattern: 'tabby',      eyes: 0.92, muzzle: 1.5,  disc: 0, whiskers: true,  bird: false, body: [1.06, 1.03, 1.05], size: 1.14 },
+  owl:    { head: 1.30, ear: 0.18, tail: 0.00, beak: 0.9, pattern: 'grey-white', eyes: 1.35, muzzle: 0.25, disc: 1, whiskers: false, bird: true,  body: [1.16, 1.06, 1.14], size: 1.02 },
+  raven:  { head: 0.92, ear: 0.00, tail: 1.35, beak: 2.0, pattern: 'black',      eyes: 0.95, muzzle: 0.55, disc: 0, whiskers: false, bird: true,  body: [.86, .94, .88], size: 0.96 },
+};
+
+/* ---------- species kits ----------
+   The rig stays the same (nodes are what poses animate); a kit swaps the *meshes* so the silhouette reads as
+   the animal: wings and tufts for the owl, a feathered tail and thin legs for the raven, a heavy snout and
+   drooping ears for the kangal. Birds also lose the front legs, so they stand on two feet. */
+const SPECIES_KIT = {
+  owl(c) {
+    // folded wings against the body
+    [-1, 1].forEach(side => {
+      const wing = c.add(c.nodes.body, c.GEO.sphere, c.m.ear, [side * .22, .02, -.02], [.075, .24, .30]);
+      wing.rotation.z = side * .18;
+    });
+    // ear tufts and a fanned chest
+    [-1, 1].forEach(side => {
+      const tuft = c.add(c.skull, new THREE.ConeGeometry(.045, .13, 10), c.m.head, [side * .13, .21, -.01]);
+      tuft.rotation.z = side * -.4;
+    });
+    [0, .07, -.07].forEach((z, i) => {
+      c.add(c.nodes.chest, c.GEO.sphere, c.m.head, [0, -.02 + i * .01, z + .04], [.07, .05, .02], false);
+    });
+    // two legs, not four
+    ['armL', 'armR'].forEach(n => { c.nodes[n].visible = false; });
+  },
+  raven(c) {
+    // sleek folded wings and a long feathered tail
+    [-1, 1].forEach(side => {
+      const wing = c.add(c.nodes.body, c.GEO.sphere, c.m.ear, [side * .19, .03, -.03], [.05, .20, .34]);
+      wing.rotation.z = side * .1;
+    });
+    [0, .8, 1.6].forEach((_, i) => {
+      const feather = c.add(c.nodes.tail0, new THREE.ConeGeometry(.05, .42, 8), c.m.ring, [0, -.02, -.16 - i * .03]);
+      feather.rotation.x = -Math.PI / 2 - .1;
+      feather.scale.set(1 - i * .2, 1, .25);
+    });
+    // thin bird legs
+    ['hipL', 'hipR'].forEach(n => { c.nodes[n].scale.multiplyScalar(.8); });
+    ['footL', 'footR'].forEach(n => { c.nodes[n].scale.set(.05, .16, .05); });
+    ['armL', 'armR'].forEach(n => { c.nodes[n].visible = false; });
+  },
+  kangal(c) {
+    // long muzzle and drooping ears, heavier tail
+    const snout = c.add(c.skull, c.GEO.sphere, c.m.muzzle, [0, -.10, .30], [.085, .07, .13]);
+    snout.rotation.x = .12;
+    c.add(c.skull, c.GEO.sphere, c.m.nose, [0, -.095, .41], [.035, .028, .022], false);
+    ['L', 'R'].forEach((side, i) => {
+      const ear = c.nodes['ear' + side];
+      if (!ear) return;
+      ear.rotation.z = (i ? -1 : 1) * .55;
+      ear.scale.multiplyScalar(1.15);
+    });
+    (c.tailMeshes || []).forEach(mesh => { mesh.scale.x *= 1.5; mesh.scale.z *= 1.5; });
+  },
 };
 
 /* ---------- cat ---------- */
@@ -436,6 +489,13 @@ export function createCat({ pattern = null, tone = 0, kitten = false, accessory 
   }
 
   update(0);
+  // overall size: the root sits at the feet, so scaling keeps the animal planted on the chair
+  if (profile.size && profile.size !== 1) group.scale.setScalar(profile.size);
+
+  // species kit: extra or removed meshes, then proportions
+  const kit = SPECIES_KIT[species];
+  if (kit) kit({ add, nodes, skull, m, GEO, profile, tailMeshes, earMeshes });
+
   // species: proportions only, applied to the meshes so every pose and meme keeps working
   if (profile.head !== 1) skull.scale.multiplyScalar(profile.head);
   if (profile.ear === 0) earMeshes.forEach(mesh => { mesh.visible = false; });
@@ -460,6 +520,12 @@ export function createCat({ pattern = null, tone = 0, kitten = false, accessory 
     });
   }
   if (!profile.whiskers) whiskerLine.visible = false;
+  if (profile.bird) {
+    // a beak replaces the cat muzzle: drop the muzzle, cheeks and nose meshes
+    skull.children.forEach(ch => {
+      if (ch.isMesh && (ch.material === m.muzzle || ch.material === m.cheek || ch.material === m.nose)) ch.visible = false;
+    });
+  }
   if (profile.disc) {
     [-1, 1].forEach(side => {
       const disc = new THREE.Mesh(GEO.sphere, m.belly);
