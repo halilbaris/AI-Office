@@ -73,6 +73,10 @@ h3.small{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;l
 .dark:hover{background:#2a241e}
 .ceo-box{flex:0 1 auto;max-height:52%}
 .cards{display:flex;flex-direction:column;gap:8px;overflow:auto;min-height:0}
+.card.approved-card{opacity:.68}
+.card pre.output{margin:8px 0 0;padding:10px;border-radius:10px;background:#f7efe5;color:#4b4137;
+  font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;max-height:260px;overflow:auto}
+.card pre.output:empty{display:none}
 .card{background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.95);border-radius:12px;padding:10px 12px;animation:enter .35s ease}
 .card .top{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);font-weight:500}
 .avatar{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:10px;font-weight:700;color:#fff;flex:none}
@@ -1151,21 +1155,40 @@ function addCard(o) {
 }
 function drawCards() {
   const root = $('cards');
-  const ordered = [...cards.filter(k => !k.approved && !k.later), ...cards.filter(k => !k.approved && k.later)];
+  const pendingCards = [...cards.filter(k => !k.approved && !k.later), ...cards.filter(k => !k.approved && k.later)];
+  const approvedCards = cards.filter(k => k.approved).slice(0, 3);
+  const ordered = [...pendingCards, ...approvedCards];
   const pending = ordered.length;
   $('ceoSub').textContent = pending ? plural(pending, 'output') + ' waiting for your review' : 'nothing waiting for your review';
   $('approveAll').style.display = pending > 1 ? '' : 'none';
-  if (!pending) { root.replaceChildren(el('div', 'empty', 'When a run finishes, its output shows up here as a “Review” card.')); updateTopbar(); return; }
-  root.replaceChildren(...ordered.slice(0, 5).map(k => {
+  if (!ordered.length) { root.replaceChildren(el('div', 'empty', 'When a run finishes, its output shows up here as a “Review” card.')); updateTopbar(); return; }
+  root.replaceChildren(...ordered.map(k => {
     const a = findAgent(k.agent);
-    const card = el('div', 'card' + (k.later ? ' later-card' : ''));
-    const top = el('div', 'top'); top.append(avatarNode(k.agent), document.createTextNode((a?.name || k.agent) + ' · ' + (k.time ? clockText(new Date(k.time)) : '') + (k.duration ? ' · ' + Math.round(k.duration) + 's' : '')));
-    const buttons = el('div', 'buttons');
-    const approveBtn = el('button', 'approve', 'Approve'); const laterBtn = el('button', 'later', 'Later');
-    approveBtn.onclick = () => { SOUND.click(); approveCard(k); };
-    laterBtn.onclick = () => { SOUND.click(); k.later = true; drawCards(); };
-    buttons.append(approveBtn, laterBtn);
-    card.append(top, el('h4', null, 'Review: ' + (a?.name || k.agent) + '’s output'), el('p', null, k.summary || '(no summary)'), buttons);
+    const card = el('div', 'card' + (k.later ? ' later-card' : '') + (k.approved ? ' approved-card' : ''));
+    const top = el('div', 'top');
+    top.append(avatarNode(k.agent), document.createTextNode((a?.name || k.agent) + ' · ' + (k.time ? clockText(new Date(k.time)) : '') + (k.duration ? ' · ' + Math.round(k.duration) + 's' : '') + (k.approved ? ' · approved' : '')));
+    card.append(top, el('h4', null, 'Result from ' + (a?.name || k.agent)), el('p', null, k.summary || '(no summary)'));
+    if (!k.approved) {
+      const buttons = el('div', 'buttons');
+      const approveBtn = el('button', 'approve', 'Approve'); const laterBtn = el('button', 'later', 'Later');
+      approveBtn.onclick = () => { SOUND.click(); approveCard(k); };
+      laterBtn.onclick = () => { SOUND.click(); k.later = true; drawCards(); };
+      buttons.append(approveBtn, laterBtn);
+      card.append(buttons);
+    }
+    // full output: the card used to cut the text at 400 characters
+    const fullBtn = el('button', 'later', 'Full result');
+    const pre = el('pre', 'output');
+    fullBtn.onclick = async () => {
+      if (pre.textContent) { pre.textContent = ''; fullBtn.textContent = 'Full result'; return; }
+      fullBtn.textContent = 'Loading…';
+      try {
+        const data = await getJSON('/api/output?run=' + encodeURIComponent(k.run_id));
+        pre.textContent = data.text || '(empty)';
+        fullBtn.textContent = 'Hide result';
+      } catch { fullBtn.textContent = 'Could not load the output'; }
+    };
+    card.append(fullBtn, pre);
     return card;
   }));
   updateTopbar();
