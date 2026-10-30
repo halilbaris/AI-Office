@@ -219,9 +219,9 @@ knowledge of what happened in the world last week. The **Alert Writer** supplies
 
 Use it on its own, or as a project: Researcher (incident brief) → Alert Writer.
 
-### Plan: schedules and planned work
+### Plan: schedules, planned work and goals
 
-The **Plan** tab has two lists, both with an add form (no files to edit).
+The **Plan** tab holds goals, schedules, planned work and projects, each with an add form (no files to edit).
 
 - **Schedules.** "Every Monday 09:00, Researcher: this week's security news." Pick an agent, a time and the days.
   A plain timer inside `server.py` (checked every 30 seconds, no model) starts the run through the normal
@@ -230,8 +230,15 @@ The **Plan** tab has two lists, both with an add form (no files to edit).
   bulk; a busy agent is retried until the 15 minutes are over. A schedule **cannot ship**. Buttons: Run now,
   Pause, Delete. Stored in `state/plan.json` (gitignored).
 - **Planned work.** The backlog for development and other jobs: a title, who does it (default Coder) and details.
-  Nothing starts by itself; press **Run** and it becomes a normal run with its review and History entry. Each item
-  shows waiting / running / done / failed and the reviewer's verdict.
+  Press **Run** and it becomes a normal run with its review and History entry. Each item shows waiting / running /
+  done / failed and the reviewer's verdict. Tick **Start by itself when the agent is free** (or press *Start by
+  itself* on an item) and the agent takes its oldest such item as soon as it is idle, one per agent per check.
+  This is plain code too: it goes through `start_task`, so caps, review gates and "never ship" apply, and an item
+  the office cannot start (cap reached, folder missing) stops asking and shows why.
+- **Goals.** Why the work exists, in a few words plus one sentence of reasoning ("Launch the SOC course" because
+  "first students start in December"). Attach a goal to a schedule, a planned item or a project and the agent
+  starts its task with *Goal this work serves: ...*, so it can judge what matters; chained and review runs keep
+  the goal, and History shows it. Deleting a goal keeps the work, which just stops carrying it.
 
 Nobody "supervises" the schedule with a model: the timer is plain code, so an idle office still costs nothing.
 Results are checked the same way as any other run, by the producer's reviewer.
@@ -253,6 +260,10 @@ Results are checked the same way as any other run, by the producer's reviewer.
 - **Daily token cap.** `settings.daily_token_cap` in `agents.json` limits the *fresh* tokens (input, output, cache
   writes) the office spends per day; default 2,000,000, `0` turns it off. Cache reads and your own terminal
   sessions do not count. At the cap, new runs and CEO questions are refused until tomorrow. Health warns at 80%.
+- **Per-agent budget.** Each agent can also have its own daily limit (Settings, "Daily limit" on the agent's row;
+  `daily_token_budget` in `agents.json`; empty or `0` means none). An agent that used up its budget is refused
+  until tomorrow while the others keep working, and the Cost tab shows a bar for every agent that has one. The
+  office-wide cap still applies on top.
 - **Tests.** `python3 -m unittest discover -s tests -v` (offline, no models) covers the CEO plan validation,
   history grouping, source-check safety rules and the localhost-only checks. `./scripts/check.sh` runs them with
   the rest of the health check.

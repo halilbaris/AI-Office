@@ -68,6 +68,14 @@ def _cap(value):
         return DEFAULT_TOKEN_CAP
 
 
+def agent_budget(agent):
+    """An agent's own daily limit of fresh tokens, or 0 for none. It sits inside the office-wide cap."""
+    try:
+        return max(0, int((agent or {}).get("daily_token_budget") or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
 def settings(data):
     """UI settings: greeting name, brand and the welcome card options. All optional."""
     s = data.get("settings") if isinstance(data.get("settings"), dict) else {}

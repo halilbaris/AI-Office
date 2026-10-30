@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 import common
 
 PLAN_FILE = os.path.join(common.STATE_DIR, "plan.json")
-MAX_SCHEDULES, MAX_TASKS, MAX_PROJECTS, MAX_STEPS = 30, 100, 20, 12
+MAX_SCHEDULES, MAX_TASKS, MAX_PROJECTS, MAX_STEPS, MAX_GOALS = 30, 100, 20, 12, 20
 STEP_ID_RE = re.compile(r"^[a-z0-9]{1,6}$")
 HOLD_VERDICTS = ("BLOCKED", "CHANGES NEEDED")      # a reviewer verdict that stops the next step until you decide
 GRACE_MIN = 15          # a schedule fires up to 15 minutes late (server was busy); later than that it counts as missed
@@ -29,7 +29,7 @@ class PlanError(Exception):
 
 
 def _empty():
-    return {"schedules": [], "tasks": [], "projects": []}
+    return {"schedules": [], "tasks": [], "projects": [], "goals": []}
 
 
 def load():
@@ -42,7 +42,8 @@ def load():
         return _empty()
     return {"schedules": [s for s in data.get("schedules", []) if isinstance(s, dict)],
             "tasks": [t for t in data.get("tasks", []) if isinstance(t, dict)],
-            "projects": [x for x in data.get("projects", []) if isinstance(x, dict)]}
+            "projects": [x for x in data.get("projects", []) if isinstance(x, dict)],
+            "goals": [g for g in data.get("goals", []) if isinstance(g, dict)]}
 
 
 def save(data):
@@ -78,6 +79,15 @@ def _agent(value, table):
     return value
 
 
+def _goal(value, plan):
+    """A goal id the user picked, or None. Work that carries a goal tells the agent why it matters."""
+    if value in (None, ""):
+        return None
+    if not isinstance(value, str) or not any(g.get("id") == value for g in plan["goals"]):
+        raise PlanError("that goal does not exist (any more)")
+    return value
+
+
 def _when(value):
     if not isinstance(value, dict):
         raise PlanError("when is required")
@@ -107,7 +117,8 @@ def apply(action, payload, table):
             plan["schedules"].append({
                 "id": "s-" + secrets.token_hex(3), "agent": _agent(payload.get("agent"), table),
                 "label": _text(payload.get("label"), "name", 80), "prompt": _text(payload.get("prompt"), "task", common.MAX_INPUT),
-                "when": _when(payload.get("when")), "enabled": True, "created": common.now_iso()})
+                "when": _when(payload.get("when")), "enabled": True, "created": common.now_iso(),
+                **({"goal": g} if (g := _goal(payload.get("goal"), plan)) else {})})
         elif action in ("toggle_schedule", "delete_schedule"):
             item = next((s for s in plan["schedules"] if s.get("id") == payload.get("id")), None)
             if not item:
@@ -123,13 +134,33 @@ def apply(action, payload, table):
                 "id": "t-" + secrets.token_hex(3), "title": _text(payload.get("title"), "title", 80),
                 "agent": _agent(payload.get("agent") or "coder", table),
                 "prompt": _text(payload.get("prompt") or payload.get("title"), "details", common.MAX_INPUT),
-                "created": common.now_iso()})
+                "created": common.now_iso(), "auto": payload.get("auto") is True,
+                **({"goal": g} if (g := _goal(payload.get("goal"), plan)) else {})})
+        elif action == "add_goal":
+            if len(plan["goals"]) >= MAX_GOALS:
+                raise PlanError(f"at most {MAX_GOALS} goals")
+            plan["goals"].append({"id": "g-" + secrets.token_hex(3), "title": _text(payload.get("title"), "goal", 80),
+                                  "why": _text(payload.get("why") or "", "why", 300, required=False), "created": common.now_iso()})
+        elif action == "delete_goal":
+            goal = next((g for g in plan["goals"] if g.get("id") == payload.get("id")), None)
+            if not goal:
+                raise PlanError("goal not found", 404)
+            plan["goals"].remove(goal)
+            for item in plan["schedules"] + plan["tasks"] + plan["projects"]:      # work keeps going, it just stops carrying the goal
+                if item.get("goal") == goal["id"]:
+                    item.pop("goal")
+        elif action == "toggle_auto_task":
+            item = next((t for t in plan["tasks"] if t.get("id") == payload.get("id")), None)
+            if not item:
+                raise PlanError("planned item not found", 404)
+            item["auto"] = not item.get("auto")
+            item.pop("note", None)
         elif action == "delete_task":
             item = next((t for t in plan["tasks"] if t.get("id") == payload.get("id")), None)
             if not item:
                 raise PlanError("planned item not found", 404)
             plan["tasks"].remove(item)
-        elif action in ("delete_project", "set_auto", "retry_step", "accept_step"):
+        elif action in ("delete_project", "set_auto", "set_goal", "retry_step", "accept_step"):
             project = next((x for x in plan["projects"] if x.get("id") == payload.get("id")), None)
             if not project:
                 raise PlanError("project not found", 404)
@@ -137,6 +168,11 @@ def apply(action, payload, table):
                 plan["projects"].remove(project)
             elif action == "set_auto":
                 project["auto"] = payload.get("auto") is True
+            elif action == "set_goal":
+                goal = _goal(payload.get("goal"), plan)
+                project.pop("goal", None)
+                if goal:
+                    project["goal"] = goal
             else:
                 step = next((s for s in project["steps"] if s.get("id") == payload.get("step")), None)
                 if not step:
@@ -245,3 +281,16 @@ def ready_steps(project, statuses):
 def project_summary(project, statuses):
     done = sum(1 for s in project["steps"] if statuses.get(s["id"]) == "done")
     return {"done": done, "total": len(project["steps"]), "complete": done == len(project["steps"])}
+
+
+# ---------- queue: planned work an agent picks up by itself ----------
+
+def queued(plan):
+    """Planned items marked to start by themselves, oldest first, not started yet."""
+    return [t for t in plan["tasks"] if t.get("auto") and not t.get("run_id")]
+
+
+def goal_context(plan, goal_id):
+    """{id, title, why} for a goal id, or None when it is gone: the agent is told what the work is for."""
+    g = next((g for g in plan["goals"] if g.get("id") == goal_id), None)
+    return {"id": g["id"], "title": g["title"], "why": g.get("why", "")} if g else None

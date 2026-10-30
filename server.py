@@ -124,31 +124,44 @@ def prepare_tmux():
     return tmux
 
 
+FRESH_TOKENS = ("input_tokens", "output_tokens", "cache_creation_input_tokens")
+
+
+def fresh_tokens_by_agent():
+    """agent id -> fresh tokens (input + output + cache writes) of office runs today; cache reads are cheap and your
+    own terminal sessions are not the office's, so neither counts."""
+    return {agent: sum((rec.get("office") or {}).get(k, 0) for k in FRESH_TOKENS)
+            for agent, rec in token_counter.day_summary(common.today()).items()}
+
+
 def office_tokens_today():
-    """Fresh tokens (input + output + cache writes) the office spent today; cache reads are cheap and your own
-    terminal sessions are not the office's, so neither counts."""
-    fresh = ("input_tokens", "output_tokens", "cache_creation_input_tokens")
-    return sum(sum((rec.get("office") or {}).get(k, 0) for k in fresh)
-               for rec in token_counter.day_summary(common.today()).values())
+    return sum(fresh_tokens_by_agent().values())
 
 
-def check_budget():
-    data, _ = common.load_agents()
+def check_budget(agent_id=None):
+    """The office-wide daily cap, then (when an agent is named) that agent's own daily budget."""
+    data, table = common.load_agents()
     cap = common.settings(data)["daily_token_cap"]
-    if cap and office_tokens_today() >= cap:
+    used = fresh_tokens_by_agent()
+    if cap and sum(used.values()) >= cap:
         raise RequestError(429, f"Daily token cap reached ({cap:,} tokens). Raise or switch it off with "
                                 "settings.daily_token_cap in agents.json; it resets tomorrow.")
+    agent = table.get(agent_id) if agent_id else None
+    budget = common.agent_budget(agent)
+    if budget and used.get(agent_id, 0) >= budget:
+        raise RequestError(429, f"{agent['name']}'s daily budget is used up ({budget:,} tokens). Raise it in Settings; "
+                                "it resets tomorrow.")
 
 
 def start_task(agent_id, label=None, prompt=None, source="button", project=None, ship=False,
-               then=None, inputs=None, parent=None):
+               then=None, inputs=None, parent=None, goal=None):
     _, table = common.load_agents()
     agent = table.get(agent_id)
     if not agent or agent_id == "ceo":
         raise RequestError(404, "unknown agent")
     if not agent["installed"]:
         raise RequestError(409, "agent not installed (folder missing)")
-    check_budget()
+    check_budget(agent_id)
     if ship and (source == "ceo" or "Bash(git push:*)" not in (agent.get("denials_override") or [])):
         raise RequestError(403, "only the coder agent can ship, and only from the Ship button, never from the CEO")
     if label and not prompt:
@@ -166,6 +179,7 @@ def start_task(agent_id, label=None, prompt=None, source="button", project=None,
             raise RequestError(400, "invalid project")
         work_dir = resolve_project(project)
 
+    goal_info = plan.goal_context(plan.load(), goal) if goal else None      # what the work is for, told to the agent
     with START_LOCK:
         if common.agent_busy(agent_id):
             raise RequestError(409, "agent is already running")
@@ -176,7 +190,7 @@ def start_task(agent_id, label=None, prompt=None, source="button", project=None,
                        "prompt": prompt, "source": source,
                        **({"ship": True} if ship else {}),
                        **({"then": then} if then else {}), **({"inputs": inputs} if inputs else {}),
-                       **({"parent": parent} if parent else {}),
+                       **({"parent": parent} if parent else {}), **({"goal": goal_info} if goal_info else {}),
                        **({"project": work_dir} if work_dir else {})}, f, ensure_ascii=False)
         common.write_state(agent_id, {"status": "starting", "run_id": run_id, "pid": None,
                                       "started_ts": time.time()})
@@ -347,7 +361,7 @@ def run_ceo(text, dry=False):
     ceo = table.get("ceo")
     if not ceo:
         raise RequestError(404, "'ceo' is missing from agents.json")
-    check_budget()
+    check_budget('ceo')
     ceo_id = f"{datetime.now():%Y-%m-%d-%H%M%S}-ceo-{secrets.token_hex(2)}"
     common.write_event({"type": "ceo_started", "run_id": ceo_id, "agent": "ceo", "room": "ceo", "request": text[:2000]})
     prompt = ceo_prompt(text, table)
@@ -445,6 +459,7 @@ def settings_response():
         "agents": [{"id": a["id"], "name": a.get("name") or a["id"], "room": a["room"],
                     "model": a.get("model") or "", "lean": bool(a.get("lean")),
                     "runtime": "opencode" if a.get("runtime") == "opencode" else "claude",
+                    "daily_token_budget": common.agent_budget(a),
                     "installed": a["installed"]} for a in table.values()],
         "rooms": rooms_view(data, table),
         "profiles": sorted(TOOL_PROFILES),
@@ -661,6 +676,17 @@ def update_settings(payload):
                             agent["runtime"] = runtime
                         touched = True
                         mark(agent["id"], "runtime")
+                if "daily_token_budget" in row:
+                    value = row["daily_token_budget"]
+                    if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 1_000_000_000:
+                        raise RequestError(400, f"daily_token_budget must be a whole number from 0 to 1,000,000,000: {agent.get('id')}")
+                    if common.agent_budget(agent) != value:
+                        if value:
+                            agent["daily_token_budget"] = value
+                        else:
+                            agent.pop("daily_token_budget", None)
+                        touched = True
+                        mark(agent["id"], "budget")
                 if "lean" in row:
                     lean = bool(row["lean"])
                     if bool(agent.get("lean")) != lean:
@@ -762,7 +788,7 @@ def plan_response():
         stats = step_statuses(pr, fin)
         steps = [{**st, "agent_name": (table.get(st["agent"]) or {}).get("name") or st["agent"], "status": stats[st["id"]]} for st in pr["steps"]]
         out_p.append({**pr, "steps": steps, **plan.project_summary(pr, stats)})
-    return {"schedules": out_s, "tasks": out_t, "projects": out_p, "agents": [{"id": a["id"], "name": a.get("name") or a["id"]}
+    return {"schedules": out_s, "tasks": out_t, "projects": out_p, "goals": p["goals"], "agents": [{"id": a["id"], "name": a.get("name") or a["id"]}
             for a in table.values() if a["id"] != "ceo" and a["installed"]]}
 
 
@@ -776,7 +802,7 @@ def plan_action(payload):
                 item = next((t for t in current["tasks"] if t.get("id") == payload.get("id")), None)
                 if not item:
                     raise plan.PlanError("planned item not found", 404)
-                started = start_task(item["agent"], label=item["title"], prompt=item["prompt"], source="plan")
+                started = start_task(item["agent"], label=item["title"], prompt=item["prompt"], source="plan", goal=item.get("goal"))
                 with plan.locked():
                     p = plan.load()
                     for t in p["tasks"]:
@@ -787,7 +813,7 @@ def plan_action(payload):
                 item = next((s for s in current["schedules"] if s.get("id") == payload.get("id")), None)
                 if not item:
                     raise plan.PlanError("schedule not found", 404)
-                started = start_task(item["agent"], label="Scheduled: " + item["label"], prompt=item["prompt"], source="schedule")
+                started = start_task(item["agent"], label="Scheduled: " + item["label"], prompt=item["prompt"], source="schedule", goal=item.get("goal"))
                 plan.mark(item["id"], last_run_id=started["run_id"], last_started=common.now_iso(), last_status="started (run now)")
         elif action == "run_project":
             if advance_project(str(payload.get("id"))) == 0:
@@ -849,7 +875,7 @@ def advance_project(project_id):
         dep = by_id.get(st.get("after"))
         try:
             started = start_task(st["agent"], label=f"{project['title']}: {st['title']}", prompt=st["prompt"], source="project",
-                                 inputs=[dep["run_id"]] if dep and dep.get("run_id") else None)
+                                 inputs=[dep["run_id"]] if dep and dep.get("run_id") else None, goal=project.get("goal"))
         except RequestError as e:
             if e.code == 409:
                 continue                      # agent busy: the next tick or press tries again
@@ -866,6 +892,34 @@ def advance_project(project_id):
     return started_n
 
 
+def queue_tick():
+    """Planned items marked "start by itself": an agent that is free takes its oldest one. One per agent per tick.
+    No model is called here; start_task applies the caps, the busy check and the "never ship" rule."""
+    taken = set()
+    for t in plan.queued(plan.load()):
+        if t["agent"] in taken:
+            continue
+        try:
+            started = start_task(t["agent"], label=t["title"], prompt=t["prompt"], source="queue", goal=t.get("goal"))
+        except RequestError as e:
+            if e.code == 409:
+                continue                     # busy: it waits its turn
+            with plan.locked():              # a cap or a missing folder: stop asking, tell the user why
+                data = plan.load()
+                for x in data["tasks"]:
+                    if x.get("id") == t["id"]:
+                        x.update(auto=False, note="not started by itself: " + str(e)[:140])
+                plan.save(data)
+            continue
+        taken.add(t["agent"])
+        with plan.locked():
+            data = plan.load()
+            for x in data["tasks"]:
+                if x.get("id") == t["id"]:
+                    x.update(run_id=started["run_id"], started=common.now_iso())
+            plan.save(data)
+
+
 def scheduler_tick(now=None):
     """Starts the schedules that are due. No model is called here; start_task applies the daily cap and busy check."""
     now = now or datetime.now()
@@ -875,7 +929,7 @@ def scheduler_tick(now=None):
         plan.mark(s["id"], last_fired_date=today, last_status=f"missed at {s['when']['time']} (the office was off or busy)")
     for s in fire:
         try:
-            started = start_task(s["agent"], label="Scheduled: " + s["label"], prompt=s["prompt"], source="schedule")
+            started = start_task(s["agent"], label="Scheduled: " + s["label"], prompt=s["prompt"], source="schedule", goal=s.get("goal"))
         except RequestError as e:
             if e.code == 409:
                 continue                     # agent busy: try again next tick, until the grace window ends
@@ -883,6 +937,7 @@ def scheduler_tick(now=None):
             continue
         plan.mark(s["id"], last_fired_date=today, last_run_id=started["run_id"], last_started=common.now_iso(), last_status="started")
         common.write_event({"type": "schedule_fired", "schedule": s["id"], "agent": s["agent"], "run_id": started["run_id"]})
+    queue_tick()
     finished = None
     for project in plan.load()["projects"]:
         if not project.get("auto"):
@@ -908,9 +963,11 @@ def agents_response():
     """Agent list for the frontend. cwd and preset prompts never reach the browser (labels only)."""
     data, table = common.load_agents()
     items = []
+    fresh = fresh_tokens_by_agent()
     for a in table.values():
         status, s = live_status(a["id"])
         public = {k: v for k, v in a.items() if k not in ("cwd", "preset_tasks", "denied_tools")}
+        public["budget_used"] = fresh.get(a["id"], 0)
         public["can_ship"] = "Bash(git push:*)" in (a.get("denials_override") or [])
         if public["can_ship"]:
             public["review"] = review_state(a)
@@ -996,6 +1053,8 @@ def history_response(limit=150):
             r["source"] = arg.get("source")
             if arg.get("parent"):
                 r["parent"] = arg["parent"]
+            if isinstance(arg.get("goal"), dict):
+                r["goal"] = str(arg["goal"].get("title") or "")[:80]
         except (OSError, ValueError):
             pass
         r["agent_name"] = (table.get(r.get("agent")) or {}).get("name") or r.get("agent")

@@ -457,6 +457,15 @@ td.number,th.number{text-align:right}
 .label3d .detail li.on::before{content:"●";color:var(--coral);margin-right:5px;font-size:8px;vertical-align:1px}
 .label3d .detail li.off::before{content:"○";color:var(--muted);margin-right:5px;font-size:8px;vertical-align:1px}
 .label3d .detail button{margin-top:8px;font:inherit;font-size:11.5px;font-weight:600;color:var(--coral-dark);background:none;border:0;padding:0;cursor:pointer}
+.budget-list{display:grid;gap:8px;margin:6px 0 18px}
+.budget-row{display:grid;grid-template-columns:130px 1fr auto;gap:12px;align-items:center;font-size:12.5px}
+.budget-row.near i{background:var(--gold)!important}
+.budget-row.over i{background:var(--coral-dark)!important}
+.plan-note{color:var(--coral-dark)!important;font-weight:600}
+.plan-check{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;font-size:12.5px}
+.plan-check input{width:auto!important;margin:0}
+.proj-goal{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;color:var(--muted)}
+.proj-goal select{max-width:260px}
 .label3d .stem{position:absolute;left:50%;top:100%;width:1px;background:rgba(var(--ink-rgb),.35);height:0}
 .label3d .bubble{white-space:normal;width:300px;font-size:12.5px;line-height:1.42;color:var(--ink);background:var(--paper);border-radius:8px;padding:8px 10px;margin-top:6px;border:1px solid rgba(var(--coral-rgb),.35)}
 .room-name{position:absolute;left:0;top:0;pointer-events:none;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap;will-change:transform;text-shadow:0 1px 0 var(--text-halo)}
@@ -2525,7 +2534,7 @@ async function openTab(name) {
   if (name === 'office') { page.classList.remove('open'); return; }
   closePanel();
   const content = name === 'rooms' ? roomsPage() : name === 'plan' ? await planPage() : name === 'history' ? await historyPage() : name === 'memory' ? await memoryPage()
-    : name === 'settings' ? settingsPage() : costPage();
+    : name === 'settings' ? settingsPage() : await costPage();
   if (activeTab !== name) return;
   page.replaceChildren(...content); page.classList.add('open');
 }
@@ -2577,6 +2586,29 @@ async function planPage() {
   const field = (label, input) => { const l = el('label'); l.append(el('span', null, label), input); return l; };
   const agentSelect = (preferred) => { const sel = el('select'); data.agents.forEach(a => { const o = el('option', null, a.name); o.value = a.id; sel.append(o); }); if (preferred) sel.value = preferred; return sel; };
   function button(text, fn, cls) { const b = el('button', cls || null, text); b.type = 'button'; b.onclick = () => { SOUND.click(); fn(); }; return b; }
+  const goalName = id => (data.goals || []).find(g => g.id === id)?.title;
+  const goalSelect = (current) => { const sel = el('select'); const none = el('option', null, 'No goal'); none.value = ''; sel.append(none); (data.goals || []).forEach(g => { const o = el('option', null, truncate(g.title, 50)); o.value = g.id; sel.append(o); }); sel.value = current || ''; return sel; };
+
+  function goalBlock() {
+    const sec = el('section', 'plan-col plan-goals');
+    sec.append(el('h3', null, 'Goals'), el('p', 'lede', 'Why the work exists. Attach a goal to a schedule, a planned item or a project and the agent is told what the work is for, so it can judge what matters. Optional.'));
+    if (!(data.goals || []).length) sec.append(el('p', 'plan-empty', 'No goals yet. For example: “Launch the SOC course” because “the first paying students start in December”.'));
+    (data.goals || []).forEach(g => {
+      const row = el('div', 'plan-row'); const txt = el('div', 'txt');
+      const n = [...data.schedules, ...data.tasks, ...(data.projects || [])].filter(x => x.goal === g.id).length;
+      txt.append(el('b', null, g.title), el('span', null, g.why || 'No reason written'), el('span', null, n === 1 ? '1 item carries this goal' : n + ' items carry this goal'));
+      const act = el('div', 'plan-actions');
+      act.append(button('Delete', () => { if (confirm('Delete the goal “' + g.title + '”? The work stays, it just stops carrying the goal.')) send({ action:'delete_goal', id:g.id }); }, 'danger'));
+      row.append(txt, act); sec.append(row);
+    });
+    const form = el('form', 'plan-form');
+    const title = el('input'); title.placeholder = 'The goal, in a few words'; title.maxLength = 80;
+    const why = el('input'); why.placeholder = 'Why it matters (one sentence)'; why.maxLength = 300;
+    const add = el('button', 'primary', 'Add goal'); add.type = 'submit';
+    form.append(el('b', null, 'New goal'), field('Goal', title), field('Why', why), add);
+    form.onsubmit = (e) => { e.preventDefault(); send({ action:'add_goal', title:title.value, why:why.value }, 'Goal added'); };
+    sec.append(form); return sec;
+  }
 
   function scheduleCol() {
     const col = el('section', 'plan-col');
@@ -2586,7 +2618,7 @@ async function planPage() {
       const row = el('div', 'plan-row' + (s.enabled === false ? ' off' : ''));
       row.append(avatarNode(s.agent));
       const txt = el('div', 'txt');
-      txt.append(el('b', null, s.label), el('span', null, s.agent_name + ' · ' + s.text + (s.enabled === false ? ' · paused' : '')),
+      txt.append(el('b', null, s.label), el('span', null, s.agent_name + ' · ' + s.text + (s.enabled === false ? ' · paused' : '') + (goalName(s.goal) ? ' · goal: ' + goalName(s.goal) : '')),
         el('span', null, s.last_status ? 'Last: ' + s.last_status + (s.last_started ? ' · ' + new Date(s.last_started).toLocaleString('en-US') : '') : 'Has not run yet'));
       const act = el('div', 'plan-actions');
       act.append(button('Run now', () => send({ action:'run_schedule', id:s.id }, s.agent_name + ' started')),
@@ -2602,21 +2634,24 @@ async function planPage() {
     DAYS.forEach((d, i) => { const b = el('button', null, d); b.type = 'button'; b.setAttribute('aria-pressed', String(days.has(i))); b.onclick = () => { days.has(i) ? days.delete(i) : days.add(i); b.setAttribute('aria-pressed', String(days.has(i))); }; dayBox.append(b); });
     const prompt = el('textarea'); prompt.placeholder = 'What should the agent do each time?'; prompt.maxLength = 4000;
     const add = el('button', 'primary', 'Add schedule'); add.type = 'submit';
+    const goal = goalSelect();
     const row = el('div', 'row'); row.append(field('Agent', agent), field('Time', time));
-    form.append(el('b', null, 'New schedule'), field('Name', name), row, field('Days', dayBox), field('Task', prompt), add);
-    form.onsubmit = (e) => { e.preventDefault(); send({ action:'add_schedule', agent:agent.value, label:name.value, prompt:prompt.value, when:{ time:time.value, days:[...days] } }, 'Schedule added'); };
+    form.append(el('b', null, 'New schedule'), field('Name', name), row, field('Days', dayBox), field('Task', prompt), field('Goal', goal), add);
+    form.onsubmit = (e) => { e.preventDefault(); send({ action:'add_schedule', agent:agent.value, label:name.value, prompt:prompt.value, goal:goal.value, when:{ time:time.value, days:[...days] } }, 'Schedule added'); };
     col.append(form); return col;
   }
   function taskCol() {
     const col = el('section', 'plan-col');
-    col.append(el('h3', null, 'Planned work'), el('p', 'lede', 'Development and other jobs waiting their turn. Nothing starts by itself: press Run when you want it. Code work goes to the Coder, is reviewed by the Engineer, and shipping stays your button.'));
+    col.append(el('h3', null, 'Planned work'), el('p', 'lede', 'Jobs waiting their turn. Press Run to start one, or tick “start by itself” and the agent takes it when it is free. Code work goes to the Coder, is reviewed by the Engineer, and shipping stays your button.'));
     if (!data.tasks.length) col.append(el('p', 'plan-empty', 'Nothing planned yet.'));
     data.tasks.forEach(t => {
       const row = el('div', 'plan-row'); row.append(avatarNode(t.agent));
       const txt = el('div', 'txt');
       const verdict = t.review?.state === 'done' ? ' · review: ' + t.review.verdict : t.review?.state === 'running' ? ' · review running' : '';
-      txt.append(el('b', null, t.title), el('span', null, t.agent_name + ' · ' + (t.status === 'planned' ? 'waiting' : t.status) + verdict), el('span', null, truncate(t.prompt, 140)));
+      txt.append(el('b', null, t.title), el('span', null, t.agent_name + ' · ' + (t.status === 'planned' ? (t.auto ? 'waiting for a free agent' : 'waiting') : t.status) + verdict + (goalName(t.goal) ? ' · goal: ' + goalName(t.goal) : '')), el('span', null, truncate(t.prompt, 140)));
+      if (t.note) txt.append(el('span', 'plan-note', t.note));
       const act = el('div', 'plan-actions');
+      if (t.status === 'planned') act.append(button(t.auto ? 'Stop auto-start' : 'Start by itself', () => send({ action:'toggle_auto_task', id:t.id }, t.auto ? 'It will wait for you' : 'It starts when ' + t.agent_name + ' is free')));
       if (t.status === 'planned' || t.status === 'failed') act.append(button(t.status === 'failed' ? 'Run again' : 'Run', () => send({ action:'run_task', id:t.id }, t.agent_name + ' started')));
       act.append(button('Remove', () => { if (confirm('Remove “' + t.title + '” from the plan?')) send({ action:'delete_task', id:t.id }); }, 'danger'));
       row.append(txt, act); col.append(row);
@@ -2626,8 +2661,10 @@ async function planPage() {
     const agent = agentSelect('coder');
     const details = el('textarea'); details.placeholder = 'Details: what should be done, which screen or file, what “done” looks like'; details.maxLength = 4000;
     const add = el('button', 'primary', 'Add to plan'); add.type = 'submit';
-    form.append(el('b', null, 'New planned item'), field('Title', title), field('Who does it', agent), field('Details', details), add);
-    form.onsubmit = (e) => { e.preventDefault(); send({ action:'add_task', title:title.value, agent:agent.value, prompt:details.value }, 'Added to the plan'); };
+    const goal = goalSelect(); const auto = el('input'); auto.type = 'checkbox';
+    const autoLabel = el('label', 'plan-check'); autoLabel.append(auto, el('span', null, 'Start by itself when the agent is free'));
+    form.append(el('b', null, 'New planned item'), field('Title', title), field('Who does it', agent), field('Details', details), field('Goal', goal), autoLabel, add);
+    form.onsubmit = (e) => { e.preventDefault(); send({ action:'add_task', title:title.value, agent:agent.value, prompt:details.value, goal:goal.value, auto:auto.checked }, 'Added to the plan'); };
     col.append(form); return col;
   }
   function projectBlock() {
@@ -2640,6 +2677,11 @@ async function planPage() {
       const head = el('b', null, pr.title + ' · ' + pr.done + '/' + pr.total + ' steps' + (pr.auto ? ' · running automatically' : '') + (pr.complete ? ' · complete' : ''));
       const bar = el('div', 'proj-bar'); const fill = el('i'); fill.style.width = Math.round(100 * pr.done / Math.max(1, pr.total)) + '%'; bar.append(fill);
       body.append(head, bar);
+      if ((data.goals || []).length) {
+        const g = goalSelect(pr.goal); g.setAttribute('aria-label', 'Goal of this project');
+        g.onchange = () => send({ action:'set_goal', id:pr.id, goal:g.value }, g.value ? 'Goal attached' : 'Goal removed');
+        const wrap = el('label', 'proj-goal'); wrap.append(el('span', null, 'Goal'), g); body.append(wrap);
+      }
       pr.steps.forEach((st, idx) => {
         const row = el('div', 'proj-step ' + st.status);
         row.append(el('span', 'n', String(idx + 1)), avatarNode(st.agent));
@@ -2660,7 +2702,7 @@ async function planPage() {
     });
     return sec;
   }
-  function draw() { const top = projectBlock(); grid.replaceChildren(scheduleCol(), taskCol()); holder.replaceChildren(top, grid); }
+  function draw() { const top = projectBlock(); grid.replaceChildren(scheduleCol(), taskCol()); holder.replaceChildren(goalBlock(), top, grid); }
   draw();
   return [el('h2', null, 'Plan'), el('p', 'lede', 'What is scheduled and what is waiting. The office wakes an agent only for a schedule you set or an item you start; the rest of the time it costs nothing.'), holder];
 }
@@ -2683,6 +2725,7 @@ async function historyPage() {
     txt.append(el('b', null, (r.agent_name || r.agent) + (r.label ? ' · ' + r.label : '')), el('span', null, truncate(cleanText(r.summary) || r.prompt || '', 140)));
     const st = el('span', 'hist-st' + (r.status === 'error' ? ' error' : ''), r.status === 'success' ? 'done' + (r.duration_s != null ? ' · ' + Math.round(r.duration_s) + 's' : '') : (r.status || 'running'));
     row.append(txt, st);
+    if (r.goal) row.append(el('span', 'hist-st', 'goal: ' + truncate(r.goal, 30)));
     if (r.source_problems) row.append(el('span', 'hist-st error', r.source_problems + ' source problem' + (r.source_problems > 1 ? 's' : '')));
     if (r.source === 'review') row.classList.add('review');
     if (r.has_output) {
@@ -2757,7 +2800,9 @@ async function memoryPage() {
   const total = list.reduce((t, m) => t + (m.entry_count || 0), 0);
   return [el('h2', null, 'Memory'), el('p', 'lede', 'Each agent’s persistent memory: your preferences and corrections. An agent learns a job once, then adds a new entry at the end of a run. ' + total + ' entries in total, most recently updated first.'), grid];
 }
-function costPage() {
+async function costPage() {
+  let budgets = [];
+  try { budgets = (await getJSON('/api/agents')).agents.filter(a => a.daily_token_budget); } catch { /* the budgets are optional */ }
   const runs = counter.runs || [];
   const tokens = u => u ? (u.input_tokens || 0) + (u.output_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0) : null;
   const summary = el('div', 'summary-stats');
@@ -2776,7 +2821,21 @@ function costPage() {
   });
   if (!runs.length) { const tr = el('tr'); const td = el('td', null, 'No runs yet today.'); td.colSpan = 6; tr.append(td); table.append(tr); }
   const capLine = counter.token_cap ? ' Daily cap: ' + (counter.office_tokens || 0).toLocaleString('en-US') + ' of ' + counter.token_cap.toLocaleString('en-US') + ' office tokens used.' : ' No daily token cap is set.';
-  return [el('h2', null, 'Cost'), el('p', 'lede', capLine.trim() + ' ' + (counter.cost_note || 'Agents only run when work arrives; no model calls while idle.')), summary, table];
+  const parts = [el('h2', null, 'Cost'), el('p', 'lede', capLine.trim() + ' ' + (counter.cost_note || 'Agents only run when work arrives; no model calls while idle.')), summary];
+  if (budgets.length) {
+    parts.push(el('h3', null, 'Agent budgets today'));
+    const box = el('div', 'budget-list');
+    budgets.forEach(a => {
+      const pct = Math.min(100, Math.round(100 * (a.budget_used || 0) / a.daily_token_budget));
+      const row = el('div', 'budget-row' + (pct >= 100 ? ' over' : pct >= 80 ? ' near' : ''));
+      const bar = el('div', 'proj-bar'); const fill = el('i'); fill.style.width = pct + '%'; bar.append(fill);
+      row.append(el('b', null, a.name), bar, el('span', null, (a.budget_used || 0).toLocaleString('en-US') + ' of ' + a.daily_token_budget.toLocaleString('en-US') + (pct >= 100 ? ' · used up, resets tomorrow' : '')));
+      box.append(row);
+    });
+    parts.push(box);
+  }
+  parts.push(table);
+  return parts;
 }
 document.querySelectorAll('#tabs button').forEach(b => { b.onclick = () => { SOUND.click(); openTab(b.dataset.tab); }; b.onmouseenter = () => SOUND.hover(); });
 

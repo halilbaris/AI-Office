@@ -6,6 +6,7 @@ import sys
 import tempfile
 from datetime import datetime
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import common  # noqa: E402
@@ -203,6 +204,113 @@ class Projects(unittest.TestCase):
         self.assertEqual(ids({"a": "failed"}), [])
         self.assertEqual(ids({"a": "done"}), ["b"])
         self.assertEqual(plan.project_summary(project, {"a": "done", "b": "done"})["complete"], True)
+
+
+class Budgets(unittest.TestCase):
+    DATA = ({"settings": {"daily_token_cap": 1000}}, {"qa": {"id": "qa", "name": "QA", "daily_token_budget": 300}, "writer": {"id": "writer", "name": "Writer"}})
+
+    def check(self, agent, used):
+        with mock.patch.object(common, "load_agents", return_value=self.DATA), \
+                mock.patch.object(server, "fresh_tokens_by_agent", return_value=used):
+            server.check_budget(agent)
+
+    def test_budget_value_is_a_plain_number(self):
+        self.assertEqual(common.agent_budget({"daily_token_budget": 250}), 250)
+        for junk in (None, "x", -4, {}):
+            self.assertEqual(common.agent_budget({"daily_token_budget": junk}), 0)
+
+    def test_an_agent_stops_at_its_own_budget_but_others_keep_working(self):
+        self.check("qa", {"qa": 299})
+        with self.assertRaises(server.RequestError) as e:
+            self.check("qa", {"qa": 300})
+        self.assertEqual(e.exception.code, 429)
+        self.check("writer", {"qa": 300})            # the writer has no budget of its own
+
+    def test_the_office_cap_still_wins(self):
+        with self.assertRaises(server.RequestError):
+            self.check("writer", {"qa": 200, "writer": 900})
+
+
+class Goals(unittest.TestCase):
+    TABLE = {"qa": {"id": "qa"}, "ceo": {"id": "ceo"}}
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.old = (plan.PLAN_FILE, common.STATE_DIR)
+        plan.PLAN_FILE, common.STATE_DIR = os.path.join(self.dir, "plan.json"), self.dir
+
+    def tearDown(self):
+        plan.PLAN_FILE, common.STATE_DIR = self.old
+
+    def goal(self):
+        return plan.apply("add_goal", {"title": "Launch the SOC course", "why": "first paying students"}, self.TABLE)["goals"][0]["id"]
+
+    def test_goal_is_validated_and_carried_by_work(self):
+        gid = self.goal()
+        done = plan.apply("add_task", {"title": "Quiz", "agent": "qa", "goal": gid, "auto": True}, self.TABLE)
+        self.assertEqual((done["tasks"][0]["goal"], done["tasks"][0]["auto"]), (gid, True))
+        with self.assertRaises(plan.PlanError):
+            plan.apply("add_task", {"title": "x", "agent": "qa", "goal": "g-nope"}, self.TABLE)
+        with self.assertRaises(plan.PlanError):
+            plan.apply("add_goal", {"title": " "}, self.TABLE)
+
+    def test_deleting_a_goal_keeps_the_work(self):
+        gid = self.goal()
+        plan.apply("add_task", {"title": "Quiz", "agent": "qa", "goal": gid}, self.TABLE)
+        left = plan.apply("delete_goal", {"id": gid}, self.TABLE)
+        self.assertEqual((left["goals"], len(left["tasks"]), "goal" in left["tasks"][0]), ([], 1, False))
+
+    def test_goal_text_reaches_the_agent_and_a_missing_goal_does_not(self):
+        gid = self.goal()
+        self.assertEqual(plan.goal_context(plan.load(), gid)["title"], "Launch the SOC course")
+        self.assertIsNone(plan.goal_context(plan.load(), "g-gone"))
+
+
+class Queue(unittest.TestCase):
+    TABLE = {"qa": {"id": "qa"}, "writer": {"id": "writer"}, "ceo": {"id": "ceo"}}
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.old = (plan.PLAN_FILE, common.STATE_DIR)
+        plan.PLAN_FILE, common.STATE_DIR = os.path.join(self.dir, "plan.json"), self.dir
+
+    def tearDown(self):
+        plan.PLAN_FILE, common.STATE_DIR = self.old
+
+    def add(self, title, agent, auto=True):
+        plan.apply("add_task", {"title": title, "agent": agent, "auto": auto}, self.TABLE)
+
+    def tasks(self):
+        return {t["title"]: t for t in plan.load()["tasks"]}
+
+    def test_a_free_agent_takes_its_oldest_item_one_per_tick(self):
+        self.add("first", "qa"); self.add("second", "qa"); self.add("manual", "writer", auto=False)
+        calls = []
+        def fake(agent, **kw):
+            calls.append((agent, kw["label"], kw["source"]))
+            return {"run_id": "r-" + kw["label"]}
+        with mock.patch.object(server, "start_task", side_effect=fake):
+            server.queue_tick()
+        self.assertEqual(calls, [("qa", "first", "queue")])          # not the second, not the manual one
+        self.assertEqual(self.tasks()["first"]["run_id"], "r-first")
+        self.assertNotIn("run_id", self.tasks()["second"])
+
+    def test_a_busy_agent_waits_but_a_refusal_stops_the_item_and_says_why(self):
+        self.add("busy", "qa"); self.add("capped", "writer")
+        def fake(agent, **kw):
+            raise server.RequestError(409 if agent == "qa" else 429, "no")
+        with mock.patch.object(server, "start_task", side_effect=fake):
+            server.queue_tick()
+        t = self.tasks()
+        self.assertTrue(t["busy"]["auto"])
+        self.assertFalse(t["capped"]["auto"])
+        self.assertIn("not started by itself", t["capped"]["note"])
+
+    def test_queue_never_asks_for_shipping(self):
+        self.add("job", "qa")
+        with mock.patch.object(server, "start_task", return_value={"run_id": "r"}) as m:
+            server.queue_tick()
+        self.assertNotIn("ship", m.call_args.kwargs)
 
 
 class Briefs(unittest.TestCase):

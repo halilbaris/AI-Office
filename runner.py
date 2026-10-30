@@ -312,7 +312,8 @@ def dispatch_followups(agent, table, args, context, success):
             continue
         try:
             server.start_task(target, label=label, prompt=prompt, source=source, then=then,
-                              inputs=[context["run_id"]], parent=context["run_id"])
+                              inputs=[context["run_id"]], parent=context["run_id"],
+                              goal=(args.get("goal") or {}).get("id") if isinstance(args.get("goal"), dict) else None)
         except server.RequestError as e:
             common.write_event({**context, "type": "progress", "tool": "chain", "detail": f"{target} not started: {e}"[:200]})
 
@@ -328,7 +329,9 @@ def run(argument_file):
     output_dir = os.path.join(common.OUTPUT_DIR, agent["id"])
     os.makedirs(output_dir, exist_ok=True)
 
-    task = args["prompt"].replace("{today}", common.today()) + read_inputs(args.get("inputs"))
+    goal = args.get("goal") if isinstance(args.get("goal"), dict) else None
+    goal_text = (f"Goal this work serves: {goal['title']}." + (f" Why it matters: {goal['why']}" if goal.get("why") else "") + "\n\n") if goal else ""
+    task = goal_text + args["prompt"].replace("{today}", common.today()) + read_inputs(args.get("inputs"))
     prompt_full = TASK_TEMPLATE.format(name=agent["name"], room=agent["room"], today=common.today(),
                                        memory=read_memory(agent["id"]), playbook=read_playbook(agent["id"]), task=task)
     command = build_command(agent, data.get("default_denied_tools", []), output_dir, ship=bool(args.get("ship")))

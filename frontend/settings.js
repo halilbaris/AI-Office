@@ -76,6 +76,7 @@ const CSS = `
 .st-agent-fields .st-field.st-model{flex:2 1 240px}
 .st-agent-fields .st-field.st-runtime{flex:0 1 165px}
 .st-agent-fields .st-field.st-lean{flex:0 0 auto}
+.st-agent-fields .st-field.st-budget{flex:0 1 120px}
 .st-rooms{display:flex;flex-direction:column}
 .st-room{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:10px;align-items:start;padding:15px 0;
   border-top:1px solid var(--line-soft)}
@@ -511,7 +512,22 @@ export function renderSettings(root) {
       const leanField = el("label", "st-switch st-lean");
       leanField.append(lean, el("span", null, "Lean"));
 
-      fields.append(nameField, roomField, modelField, runtimeField, leanField);
+      const budget = el("input");
+      budget.type = "number";
+      budget.min = "0";
+      budget.step = "10000";
+      budget.placeholder = "no limit";
+      budget.value = agent.daily_token_budget ? String(agent.daily_token_budget) : "";
+      budget.setAttribute("aria-label", "Daily token limit (empty = none)");
+      budget.title = "Most fresh tokens this agent may use per day. Empty means no limit of its own; the office-wide cap still applies.";
+      budget.addEventListener("input", () => {
+        const n = Number.parseInt(budget.value, 10);
+        agent.daily_token_budget = Number.isNaN(n) ? 0 : Math.max(0, n);
+      });
+      const budgetField = el("label", "st-field st-budget");
+      budgetField.append(el("span", null, "Daily limit"), budget);
+
+      fields.append(nameField, roomField, modelField, runtimeField, budgetField, leanField);
       row.append(identity, fields);
       list.append(row);
     }
@@ -873,7 +889,7 @@ export function renderSettings(root) {
         daily_token_cap: Number.isNaN(Number.parseInt(general.capField.input.value, 10)) ? 2000000 : Math.max(0, Number.parseInt(general.capField.input.value, 10)),
         rooms: state.rooms.map((r) => ({ id: r.id, name: r.name, description: r.description,
                                           color: r.color || "" })),
-        agents: state.agents.map((a) => ({ id: a.id, name: a.name, room: a.room, model: a.model, lean: a.lean })),
+        agents: state.agents.map((a) => ({ id: a.id, name: a.name, room: a.room, model: a.model, lean: a.lean, daily_token_budget: Number(a.daily_token_budget) || 0 })),
       });
       const after = data.agents.map((a) => a.id).join() + "|" + data.rooms.map((r) => r.id).join();
       state.data = data;
