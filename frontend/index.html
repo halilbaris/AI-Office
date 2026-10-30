@@ -2853,11 +2853,14 @@ function updateLabels() {
     const tokensText = !a.sub && cls !== 'sleeping' && agentTokens(a.id).total ? shortNumber(agentTokens(a.id).total) + ' tokens' : '';
     if (e.tokens && e.tokensText !== tokensText) { e.tokens.textContent = tokensText; e.tokens.style.display = tokensText ? '' : 'none'; e.tokensText = tokensText; changed = true; }
     if (e.cls !== cls) { e.d.className = 'label3d ' + cls; e.cls = cls; changed = true; }
+    // a sleeping desk shows its name only under the mouse or while its panel is open; busy ones always show theirs
+    const hidden = !a.sub && cls === 'sleeping' && hovered?.agent !== a.id && panelAgent !== a.id;
+    if (e.hidden !== hidden) { e.d.style.opacity = hidden ? '0' : ''; e.hidden = hidden; }
     if (e.bubbleText !== bubbleText) { e.bubble.textContent = bubbleText || ''; e.bubble.style.display = bubbleText ? 'block' : 'none'; e.bubbleText = bubbleText; changed = true; }
     if (changed || !e.w) { e.w = e.d.offsetWidth; e.h = e.d.offsetHeight; }
     tmpV.set(0, a.sub ? .1 : 2.2, 0); a.group.localToWorld(tmpV); tmpV.project(camera);
     const x = (tmpV.x * .5 + .5) * innerWidth, y = (-tmpV.y * .5 + .5) * innerHeight;
-    items.push({ e, x, y, sub:!!a.sub, priority:a.sub ? -1 : cls === 'sleeping' ? 0 : 1 });
+    if (!hidden) items.push({ e, x, y, sub:!!a.sub, priority:a.sub ? -1 : cls === 'sleeping' ? 0 : 1 });
   });
   // working labels place first, then the ones in front; an overlapping label slides to a nearby free spot (above / beside)
   items.sort((p, q) => q.priority - p.priority || q.y - p.y);
