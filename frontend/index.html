@@ -840,7 +840,7 @@ const LIGHT = new URLSearchParams(location.search).has('light');
 const renderer = new THREE.WebGLRenderer({ canvas:canvasEl, antialias:!LIGHT, powerPreference:'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, LIGHT ? 1 : 1.5));
 renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = false;      // no cast shadows: a flatter, calmer look (and cheaper); the soft contact patches under furniture stay
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
@@ -888,7 +888,7 @@ const hemi = new THREE.HemisphereLight('#ffffff', '#e4e4e0', 1.15);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight('#fff2df', 3.2);
 sun.position.set(-22, 40, 24);
-sun.castShadow = true;
+sun.castShadow = false;
 sun.shadow.mapSize.set(LIGHT ? 1024 : 2048, LIGHT ? 1024 : 2048);
 Object.assign(sun.shadow.camera, { left:-32, right:32, top:26, bottom:-26, near:5, far:110 });
 sun.shadow.bias = -.0004; sun.shadow.normalBias = .03; sun.shadow.radius = 4;
