@@ -46,10 +46,19 @@ h3.small{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;l
 .button:hover{background:#fff}.button:active{transform:scale(.97)}
 
 /* greeting */
-.greeting{position:fixed;top:78px;left:22px;width:330px;padding:18px 20px;z-index:3}
-.greeting .date{font-size:12px;color:var(--muted);font-weight:500}
-.greeting h1{font-family:"Space Grotesk",sans-serif;font-size:30px;font-weight:700;letter-spacing:-.02em;margin:2px 0 8px}
-.greeting p{font-size:14px;line-height:1.5;color:#4d453c}
+.greeting{position:fixed;top:78px;left:22px;width:330px;padding:10px 16px;z-index:3;cursor:pointer;
+  transition:width .18s ease,padding .18s ease,box-shadow .2s ease}
+.greeting .date{font-size:11px;color:var(--muted);font-weight:500;line-height:1.2}
+.greeting h1{font-family:"Space Grotesk",sans-serif;font-size:19px;font-weight:700;letter-spacing:-.02em;
+  margin:1px 0 0;transition:font-size .18s ease}
+.greeting .chev{float:right;margin-top:2px;color:var(--muted);font-size:11px;transition:transform .18s ease}
+.greeting p{font-size:14px;line-height:1.5;color:#4d453c;max-height:0;opacity:0;overflow:hidden;
+  margin:0;transition:max-height .22s ease,opacity .18s ease,margin .18s ease}
+.greeting:hover,.greeting.expanded,.greeting:focus-visible{width:352px;padding:16px 20px}
+.greeting:hover h1,.greeting.expanded h1,.greeting:focus-visible h1{font-size:27px}
+.greeting:hover .date,.greeting.expanded .date{font-size:12px}
+.greeting:hover p,.greeting.expanded p,.greeting:focus-visible p{max-height:240px;opacity:1;margin-top:8px}
+.greeting:hover .chev,.greeting.expanded .chev{transform:rotate(180deg)}
 .greeting p b{color:var(--ink)}
 .greeting .summary-button{margin-top:12px;background:var(--ink);color:#fff7ee;font-size:13px;font-weight:600;padding:8px 14px;border-radius:10px}
 .greeting .summary-button:hover{background:#2a241e}
@@ -239,7 +248,9 @@ td.number,th.number{text-align:right}
   <button class="button" id="overview">Overview</button>
 </header>
 
-<section class="greeting glass" id="greeting">
+<section class="greeting glass" id="greeting" tabindex="0" aria-expanded="false" role="button"
+         aria-label="Daily summary — hover or press to expand">
+  <span class="chev" aria-hidden="true">▾</span>
   <div class="date" id="date"></div>
   <h1 id="greetingTitle">Hello.</h1>
   <p id="greetingText">Loading the office…</p>
@@ -1099,6 +1110,16 @@ function greet() {
   $('clock').textContent = clockText();
 }
 greet(); setInterval(greet, 30000);
+// Collapsed by default; hover expands it (CSS), click or Enter pins it open, Escape closes it.
+(() => {
+  const card = $('greeting');
+  const pin = (open) => { card.classList.toggle('expanded', open); card.setAttribute('aria-expanded', String(open)); };
+  card.addEventListener('click', () => pin(!card.classList.contains('expanded')));
+  card.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pin(!card.classList.contains('expanded')); }
+    if (e.key === 'Escape') pin(false);
+  });
+})();
 
 /* stream */
 function avatarNode(agentId, extra = '') {
@@ -1464,17 +1485,35 @@ let ceoBusy = false;
 async function askCeo(text) {
   const clean = text.trim().slice(0, 600); if (!clean || ceoBusy) return;
   SOUND.click(); addStream('ceo', YOU + ' → CEO: ' + truncate(clean, 120));
-  ceoBusy = true; $('commandSend').disabled = true;
+  ceoBusy = true;
+  const sendBtn = $('commandSend');
+  sendBtn.disabled = true;
+  const startedAt = Date.now();
+  const ticker = setInterval(() => {
+    sendBtn.textContent = 'Thinking ' + Math.round((Date.now() - startedAt) / 1000) + 's…';
+  }, 1000);
+  const stopTicker = () => { clearInterval(ticker); sendBtn.textContent = 'Send'; sendBtn.disabled = false; };
   const ceo = findAgent('ceo');
   if (ceo) { Object.assign(ceo, { status:'thinking', task:'listening to you', action:'thinking…', t0:Date.now(), bubble:null }); ceo.faceMaterial.map = FACE.open; core.thinking = true; refreshScreen(ceo); updateTopbar(); }
   try {
     if (DEMO) await demo.ceo(clean);
     else {
-      const { status, data } = await postJSON('/api/ceo', { text:clean });
-      if (status !== 200) { toast('CEO: ' + (data.error || 'error ' + status)); if (ceo) { core.thinking = false; sleepAgent(ceo); } }
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 210000);
+      try {
+        const res = await fetch('/api/ceo', {
+          method:'POST', headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ text:clean }), signal:controller.signal,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { toast('CEO: ' + (data.error || 'error ' + res.status)); if (ceo) { core.thinking = false; sleepAgent(ceo); } }
+      } finally { clearTimeout(timer); }
     }
-  } catch { toast('Could not reach the CEO.'); if (ceo) { core.thinking = false; sleepAgent(ceo); } }
-  ceoBusy = false; $('commandSend').disabled = false;
+  } catch (err) {
+    toast(err && err.name === 'AbortError' ? 'The CEO took too long and was cancelled.' : 'Could not reach the CEO.');
+    if (ceo) { core.thinking = false; sleepAgent(ceo); }
+  }
+  ceoBusy = false; stopTicker();
 }
 let toastTimer = null;
 function toast(text) { const t = $('toast'); t.textContent = text; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3600); }
