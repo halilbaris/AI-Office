@@ -64,7 +64,37 @@ h3.small{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;l
 .greeting .summary-button:hover{background:#2a241e}
 
 /* side column */
-.side{position:fixed;top:76px;right:16px;bottom:42px;width:var(--side-width);display:flex;flex-direction:column;gap:12px;z-index:3}
+.side{position:fixed;top:76px;right:16px;bottom:42px;width:var(--side-width);display:flex;flex-direction:column;gap:10px;z-index:3}
+.sec{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;padding:0;overflow:hidden}
+#needsSec{flex:0 0 auto;max-height:58%;min-height:112px}
+.sec-head{display:flex;align-items:baseline;gap:8px;width:100%;padding:14px 16px 10px;text-align:left;cursor:pointer}
+.sec-title{font-family:"Space Grotesk",sans-serif;font-size:15px;font-weight:700;letter-spacing:-.01em}
+.sec-head small{font-size:11.5px;color:var(--muted)}
+.sec-chev{margin-left:auto;color:var(--muted);font-size:11px;transition:transform .2s}
+.sec.collapsed .sec-body{display:none}
+.sec.collapsed .sec-chev{transform:rotate(-90deg)}
+.sec-body{display:flex;flex-direction:column;min-height:0;padding:0 12px 14px;gap:6px}
+.sec-tools{display:flex;justify-content:flex-end;min-height:24px}
+.dark.small{font-size:11.5px;padding:4px 10px;border-radius:8px}
+.steps-toggle{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);cursor:pointer}
+.steps-toggle input{accent-color:var(--coral);width:12px;height:12px}
+.stream li.step{display:none}
+.stream.show-steps li.step{display:flex}
+.today{display:flex;gap:14px;justify-content:space-between;padding:10px 16px;font-size:11.5px;color:var(--muted);flex:none}
+.today b{color:var(--ink);font-size:13px}
+.pill-results{color:var(--coral-dark);font-weight:600}
+.pill-results::before{content:" · "}
+.button.ghost{background:transparent;border:1px solid rgba(59,52,44,.14);color:#5d5348}
+.done-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;
+  color:var(--muted);padding:6px 2px 2px;border-top:1px dashed rgba(59,52,44,.12);margin-top:2px}
+.done-head .later{background:transparent;border:0;color:var(--coral-dark);font-size:11.5px;font-weight:600;padding:2px 4px;cursor:pointer}
+.modal{position:fixed;inset:0;background:rgba(46,37,29,.34);backdrop-filter:blur(2px);z-index:9;display:grid;place-items:center;padding:40px 24px}
+.modal[hidden]{display:none}
+.modal-card{width:min(820px,92vw);max-height:78vh;display:flex;flex-direction:column;padding:0;overflow:hidden}
+.modal-card header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid rgba(59,52,44,.1)}
+.modal-card h3{font-family:"Space Grotesk",sans-serif;font-size:17px;margin:0}
+.modal-card header small{font-size:11.5px;color:var(--muted)}
+.modal-card pre{margin:0;padding:18px;overflow:auto;white-space:pre-wrap;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:#3f372f}
 .box{padding:16px 16px 12px;display:flex;flex-direction:column;min-height:0}
 .box .head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
 .box .head h2{font-family:"Space Grotesk",sans-serif;font-size:16px;font-weight:600}
@@ -204,7 +234,11 @@ td.number,th.number{text-align:right}
 @keyframes pulse2{50%{opacity:.25}}
 .label3d.done{border-color:rgba(76,150,96,.5)}
 .label3d.done .what{color:#3f8a55;font-weight:600}
-.label3d.sleeping{background:rgba(255,251,246,.78)}
+.label3d.sleeping{background:rgba(255,251,246,.78);opacity:.66;padding:3px 7px 4px;transition:opacity .2s ease,padding .2s ease}
+/* a sleeping desk only shows who sits there; the working detail stays for the busy ones */
+.label3d.sleeping .what,.label3d.sleeping .tokens{display:none}
+.label3d.sleeping:hover{opacity:1;padding:5px 9px 6px}
+.label3d.done{opacity:.8}
 .label3d .tokens{font-size:10.5px;font-weight:700;color:#6d6357;line-height:1.25;margin-top:2px;font-variant-numeric:tabular-nums}
 .label3d.working .tokens{color:var(--coral-dark)}
 .token-card{margin:12px 0 4px;padding:14px 16px;border-radius:14px;background:#fff;border:1px solid rgba(255,122,89,.35);box-shadow:0 4px 16px rgba(255,122,89,.12)}
@@ -247,9 +281,12 @@ td.number,th.number{text-align:right}
     <button data-tab="settings">Settings</button>
   </nav>
   <div class="spacer"></div>
-  <div class="pill"><span class="dot" id="activeDot"></span><b id="active">0</b> agents working</div>
+  <button class="pill" id="statusPill" title="Open the review cards">
+    <span class="dot" id="activeDot"></span><b id="active">0</b> <span id="activeLabel">agents working</span>
+    <span id="pillResults" class="pill-results" hidden></span>
+  </button>
   <span class="clock" id="clock"></span>
-  <button class="button" id="overview">Overview</button>
+  <button class="button ghost" id="overview" title="Back to the overview camera">Overview</button>
 </header>
 
 <section class="greeting glass" id="greeting" tabindex="0" aria-expanded="false" role="button"
@@ -261,15 +298,44 @@ td.number,th.number{text-align:right}
 </section>
 
 <aside class="side">
-  <section class="box glass ceo-box">
-    <div class="head"><div><h2>CEO asks</h2><small id="ceoSub">nothing waiting for your review</small></div><button class="dark" id="approveAll">Approve all</button></div>
-    <div class="cards" id="cards"></div>
+  <section class="box glass sec" id="needsSec">
+    <button class="sec-head" data-section="needs">
+      <span class="sec-title">Needs you</span>
+      <small id="ceoSub">nothing waiting for your review</small>
+      <span class="sec-chev">▾</span>
+    </button>
+    <div class="sec-body">
+      <div class="sec-tools"><button class="dark small" id="approveAll">Approve all</button></div>
+      <div class="cards" id="cards"></div>
+    </div>
   </section>
-  <section class="box glass stream-box">
-    <div class="head"><h2>What your agents just did</h2><span class="live-badge"><span class="dot live"></span>Live</span></div>
-    <ul class="stream" id="stream"></ul>
+  <section class="box glass sec" id="liveSec">
+    <button class="sec-head" data-section="live">
+      <span class="sec-title">Live</span>
+      <span class="live-badge"><span class="dot live"></span>events</span>
+      <span class="sec-chev">▾</span>
+    </button>
+    <div class="sec-body">
+      <div class="sec-tools"><label class="steps-toggle"><input type="checkbox" id="stepsToggle"> show tool steps</label></div>
+      <ul class="stream" id="stream"></ul>
+    </div>
+  </section>
+  <section class="box glass today" id="todaySec">
+    <span><b id="todayRuns">0</b> tasks</span>
+    <span><b id="todayTokens">0</b> tokens</span>
+    <span><b id="todayResults">0</b> results</span>
   </section>
 </aside>
+
+<div class="modal" id="resultModal" hidden>
+  <div class="modal-card glass" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+    <header>
+      <div><h3 id="resultTitle">Result</h3><small id="resultMeta"></small></div>
+      <button class="button ghost" id="resultClose" title="Close">✕</button>
+    </header>
+    <pre id="resultBody"></pre>
+  </div>
+</div>
 
 <aside class="panel glass" id="panel" aria-live="polite"></aside>
 <section class="page glass" id="page"></section>
@@ -283,6 +349,7 @@ td.number,th.number{text-align:right}
 <div class="mode" id="mode"><span class="dot"></span><span id="modeText">Live</span></div>
 
 <script type="module">
+
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -1082,7 +1149,17 @@ function clockText(date = new Date()) { return String(date.getHours()).padStart(
 function updateTopbar() {
   const n = workingAgents().length;
   $('active').textContent = n;
+  $('activeLabel').textContent = n === 1 ? 'agent working' : 'agents working';
   $('activeDot').classList.toggle('live', n > 0);
+  const waiting = cards.filter(k => !k.approved).length;
+  const resultsChip = $('pillResults');
+  resultsChip.hidden = !waiting;
+  if (waiting) resultsChip.textContent = plural(waiting, 'result');
+  if ($('todayRuns')) {
+    $('todayRuns').textContent = counter.runs_today ?? 0;
+    $('todayTokens').textContent = totalTokens() ? shortNumber(totalTokens()) : '0';
+    $('todayResults').textContent = cards.filter(k => k.approved).length;
+  }
   const total = AGENTS.length;
   const sleeping = total - n;
   const runs = counter.runs_today ?? 0;
@@ -1145,6 +1222,7 @@ const APPROVAL_KEY = 'myoffice-approvals';
 const approvals = (() => { try { return new Set(JSON.parse(localStorage.getItem(APPROVAL_KEY) || '[]')); } catch { return new Set(); } })();
 const saveApprovals = () => { try { localStorage.setItem(APPROVAL_KEY, JSON.stringify([...approvals].slice(-200))); } catch { /* without browser storage this session only */ } };
 let cards = [];
+let doneOpen = false;                      // "approved results" block in Needs you
 const terminals = new Map();               // live terminal bridge: session_name -> {agent, status, last_tool, last_target, window_name}
 const cleanText = s => String(s || '').replace(/[#*`>_|]/g, ' ').replace(/\s+/g, ' ').trim();
 function addCard(o) {
@@ -1156,49 +1234,87 @@ function addCard(o) {
 function drawCards() {
   const root = $('cards');
   const pendingCards = [...cards.filter(k => !k.approved && !k.later), ...cards.filter(k => !k.approved && k.later)];
-  const approvedCards = cards.filter(k => k.approved).slice(0, 3);
-  const ordered = [...pendingCards, ...approvedCards];
-  const pending = ordered.length;
-  $('ceoSub').textContent = pending ? plural(pending, 'output') + ' waiting for your review' : 'nothing waiting for your review';
+  const approvedCards = cards.filter(k => k.approved);
+  const pending = pendingCards.length;
+
+  $('ceoSub').textContent = pending
+    ? plural(pending, 'result') + ' waiting for you'
+    : (approvedCards.length ? plural(approvedCards.length, 'result') + ' approved today' : 'nothing waiting for you');
   $('approveAll').style.display = pending > 1 ? '' : 'none';
-  if (!ordered.length) { root.replaceChildren(el('div', 'empty', 'When a run finishes, its output shows up here as a “Review” card.')); updateTopbar(); return; }
-  root.replaceChildren(...ordered.map(k => {
+  const rows = [];
+  const cardRow = (k) => {
     const a = findAgent(k.agent);
     const card = el('div', 'card' + (k.later ? ' later-card' : '') + (k.approved ? ' approved-card' : ''));
     const top = el('div', 'top');
-    top.append(avatarNode(k.agent), document.createTextNode((a?.name || k.agent) + ' · ' + (k.time ? clockText(new Date(k.time)) : '') + (k.duration ? ' · ' + Math.round(k.duration) + 's' : '') + (k.approved ? ' · approved' : '')));
+    top.append(avatarNode(k.agent), document.createTextNode((a?.name || k.agent) + ' · ' +
+      (k.time ? clockText(new Date(k.time)) : '') + (k.duration ? ' · ' + Math.round(k.duration) + 's' : '') +
+      (k.approved ? ' · approved' : '')));
     card.append(top, el('h4', null, 'Result from ' + (a?.name || k.agent)), el('p', null, k.summary || '(no summary)'));
+    const buttons = el('div', 'buttons');
+    const full = el('button', 'later', 'Full result');
+    full.onclick = () => showResult(k, a);
+    buttons.append(full);
     if (!k.approved) {
-      const buttons = el('div', 'buttons');
-      const approveBtn = el('button', 'approve', 'Approve'); const laterBtn = el('button', 'later', 'Later');
+      const approveBtn = el('button', 'approve', 'Approve');
       approveBtn.onclick = () => { SOUND.click(); approveCard(k); };
+      const laterBtn = el('button', 'later', 'Later');
       laterBtn.onclick = () => { SOUND.click(); k.later = true; drawCards(); };
       buttons.append(approveBtn, laterBtn);
-      card.append(buttons);
     }
-    // full output: the card used to cut the text at 400 characters
-    const fullBtn = el('button', 'later', 'Full result');
-    const pre = el('pre', 'output');
-    fullBtn.onclick = async () => {
-      if (pre.textContent) { pre.textContent = ''; fullBtn.textContent = 'Full result'; return; }
-      fullBtn.textContent = 'Loading…';
-      try {
-        const data = await getJSON('/api/output?run=' + encodeURIComponent(k.run_id));
-        pre.textContent = data.text || '(empty)';
-        fullBtn.textContent = 'Hide result';
-      } catch { fullBtn.textContent = 'Could not load the output'; }
-    };
-    card.append(fullBtn, pre);
+    card.append(buttons);
     return card;
-  }));
+  };
+  pendingCards.forEach(k => rows.push(cardRow(k)));
+  if (approvedCards.length) {
+    const done = el('div', 'done-head');
+    done.append(el('span', null, plural(approvedCards.length, 'approved result')));
+    const toggle = el('button', 'later', doneOpen ? 'Hide' : 'Show');
+    toggle.onclick = () => { doneOpen = !doneOpen; drawCards(); };
+    done.append(toggle);
+    rows.push(done);
+    if (doneOpen) approvedCards.slice(0, 5).forEach(k => rows.push(cardRow(k)));
+  }
+  if (!rows.length) {
+    root.replaceChildren(el('div', 'empty', 'When a run finishes, its result shows up here.'));
+  } else {
+    root.replaceChildren(...rows);
+  }
   updateTopbar();
 }
+
+function showResult(k, agent) {
+  const modal = $('resultModal');
+  $('resultTitle').textContent = 'Result from ' + (agent?.name || k.agent);
+  $('resultMeta').textContent = [k.run_id, k.time ? new Date(k.time).toLocaleString('en-US') : '',
+    k.duration ? Math.round(k.duration) + 's' : ''].filter(Boolean).join(' · ');
+  const body = $('resultBody');
+  body.textContent = 'Loading…';
+  modal.hidden = false;
+  $('resultClose').focus();
+  getJSON('/api/output?run=' + encodeURIComponent(k.run_id))
+    .then(data => { body.textContent = data.text || '(empty output)'; })
+    .catch(() => { body.textContent = 'The full output could not be loaded. It is in output/' + k.agent + '/' + k.run_id + '.md'; });
+}
+
+function closeResult() { $('resultModal').hidden = true; }
 function approveCard(k) {
   k.approved = true; approvals.add(k.run_id); saveApprovals();
-  addStream(k.agent, 'Approved: ' + (findAgent(k.agent)?.name || k.agent) + '’s output', '', 'ok');
   drawCards();
 }
-$('approveAll').onclick = () => { SOUND.click(); cards.filter(k => !k.approved).forEach(approveCard); };
+$('approveAll').onclick = () => { SOUND.click(); cards.filter(k => !k.approved).forEach(k => { k.approved = true; approvals.add(k.run_id); }); saveApprovals(); drawCards(); addStream('ceo', 'All results approved', '', 'ok'); };
+$('resultClose').onclick = closeResult;
+$('resultModal').addEventListener('click', (e) => { if (e.target === $('resultModal')) closeResult(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('resultModal').hidden) closeResult(); });
+document.querySelectorAll('.sec-head').forEach(head => {
+  head.onclick = () => { SOUND.click(); document.getElementById(head.dataset.section + 'Sec').classList.toggle('collapsed'); };
+});
+$('stepsToggle').onchange = (e) => { $('stream').classList.toggle('show-steps', e.target.checked); };
+$('statusPill').onclick = () => {
+  const needs = document.getElementById('needsSec');
+  needs.classList.remove('collapsed');
+  needs.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  if (!cards.some(k => !k.approved)) openTab('office');
+};
 
 /* ---------- human language: tool events ---------- */
 function splitDetail(detail) {
@@ -1309,7 +1425,7 @@ function handleEvent(o) {
         if ((o.tool === 'Task' || o.tool === 'Agent') && !replay) addSubAgent(a, o.detail);
         refreshScreen(a); refreshPanel();
       }
-      if (!replay) addStream(o.agent, name + ', ' + e.past, '', '', time);
+      if (!replay) addStream(o.agent, name + ', ' + e.past, '', 'step', time);
     },
     run_finished() {
       const label = runLabels.get(o.run_id);
@@ -1369,7 +1485,7 @@ function handleEvent(o) {
       const now = Date.now();
       if (now - (terminalStreamAt.get(o.agent) || 0) < TERMINAL_STREAM_S * 1000) return;
       terminalStreamAt.set(o.agent, now);
-      addStream(o.agent, name + ' (terminal) ' + e.past, 'terminal', '', time);
+      addStream(o.agent, name + ' (terminal) ' + e.past, 'terminal', 'step', time);
     },
   };
   (handlers[o.type] || (() => {}))();
