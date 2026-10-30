@@ -10,6 +10,7 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import common  # noqa: E402
 import server  # noqa: E402
+import briefcheck  # noqa: E402
 import plan  # noqa: E402
 import verify  # noqa: E402
 
@@ -202,6 +203,38 @@ class Projects(unittest.TestCase):
         self.assertEqual(ids({"a": "failed"}), [])
         self.assertEqual(ids({"a": "done"}), ["b"])
         self.assertEqual(plan.project_summary(project, {"a": "done", "b": "done"})["complete"], True)
+
+
+class Briefs(unittest.TestCase):
+    def brief(self, **over):
+        return {"id": "b1", "title": "Phishing with QR code", "scenario_context": "A finance employee receives a mail with a QR code that leads to a lookalike Microsoft 365 sign-in page; the proxy logs show the redirect chain and the identity provider logs a sign-in from an unusual country a few minutes later. The analyst must decide whether the account is compromised.",
+                "sector_code": "FINANCE", "difficulty": "Intermediate", "campaign_pack": "phishing", "count": 3,
+                "verdict_mix": {"true_positive": 2, "false_positive": 1, "benign": 0}, "severity_counts": {"Low": 0, "Medium": 1, "High": 2, "Critical": 0},
+                "mitre": ["T1566.001"], "incident_refs": [{"url": "https://example.com/report", "date": "2026-10-12", "what": "x"}], **over}
+
+    def test_good_brief_passes_inside_a_fenced_block(self):
+        out = briefcheck.check_text("Summary...\n```json\n" + json.dumps({"briefs": [self.brief()]}) + "\n```\n")
+        self.assertEqual((out["found"], len(out["briefs"]), out["problems"]), (True, 1, []))
+
+    def test_problems_reject_the_brief_with_a_reason(self):
+        cases = {"ip": {"scenario_context": self.brief()["scenario_context"] + " Source 10.0.30.5."},
+                 "short": {"scenario_context": "too short"}, "sector": {"sector_code": "SPACE"}, "difficulty": {"difficulty": "Easy"},
+                 "pack": {"campaign_pack": "zero-day"}, "count": {"count": 11}, "mix": {"verdict_mix": {"true_positive": 1, "false_positive": 1}},
+                 "sev": {"severity_counts": {"Low": 1, "Urgent": 2}}, "mitre": {"mitre": ["phishing"]},
+                 "nosource": {"incident_refs": []}, "http": {"incident_refs": [{"url": "http://x.test", "date": "2026-10-12"}]}}
+        for name, over in cases.items():
+            out = briefcheck.check_text(json.dumps({"briefs": [self.brief(**over)]}))
+            self.assertEqual((name, len(out["briefs"]), len(out["problems"])), (name, 0, 1))
+
+    def test_no_json_or_no_briefs_key_is_reported_as_not_found(self):
+        self.assertFalse(briefcheck.check_text("just prose")["found"])
+        self.assertFalse(briefcheck.check_text('{"other": 1}')["found"])
+
+    def test_duplicate_ids_and_the_12_brief_limit(self):
+        out = briefcheck.check_text(json.dumps({"briefs": [self.brief(), self.brief()]}))
+        self.assertEqual((len(out["briefs"]), len(out["problems"])), (1, 1))
+        many = briefcheck.check_text(json.dumps({"briefs": [self.brief(id=f"b{i}") for i in range(14)]}))
+        self.assertEqual(len(many["briefs"]), 12)
 
 
 class Verify(unittest.TestCase):

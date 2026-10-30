@@ -110,6 +110,7 @@ The shipped roster is deliberately small: one desk per kind of work.
 | Trainer | Training Studio | lesson plans, lab scenarios with answer keys, quizzes; drafts only |
 | QA | Code Room | read-only check that labs and lessons work for a learner, `file:line` reports |
 | Coder | Code Room | builds, runs typecheck/lint/build and commits; pushes and deploys **only** from the Ship button |
+| Alert Writer | Security Operations | turns fresh real incidents into scenario briefs for the platforms' alert generator (no SQL, drafts only) |
 | Librarian | Library | keeps the records: catalogues results, finds what the office already knows, flags duplicates and unreviewed work (read-only) |
 
 Add an agent by appending an entry to `agents.json`. Rooms are derived from the agents: whatever `room` an agent
@@ -177,6 +178,7 @@ by itself when the work finishes successfully. Reviewers are read-only and never
 | Writer | Researcher | every number/CVE/quote against a source; SEO, GEO and tone checklist |
 | Marketer | Writer | hook, tone, true and sourced claims, platform fit |
 | Designer | Marketer | brand fit, readable on-image text, complete prompts, platform sizes, valid SVG |
+| Alert Writer | Analyst | realistic and current scenario, sourced incident, no real victim or working attack detail |
 | Trainer | QA | measurable objectives, lab with answer key and safe scope, correct quiz answers |
 | Researcher, Marketer, Writer, Designer, Trainer | automatic source check | CVE ids exist, links answer (token-free, shown as a badge) |
 
@@ -198,6 +200,24 @@ You review the steps, then press **Run next** (starts what is ready) or **Run al
 itself). The project stops on its own when a step fails or its reviewer says BLOCKED or CHANGES NEEDED; then you
 can open the result, **Accept** it, or **Retry** the step. Progress shows as 3/7 steps. The stepping is plain code
 in the scheduler thread, no model; steps never ship; the daily cap and review gates apply to every step.
+
+### Alert Writer: fresh incidents into platform alerts
+
+The training platforms (the platform, the platform) already build alerts themselves: they pick hosts, users and IPs from
+their own corporate inventory, keep operating systems consistent and generate the answer playbook. What they lack is
+knowledge of what happened in the world last week. The **Alert Writer** supplies that without touching a database:
+
+1. It reads the platform's generator (sector list, campaign packs, how the Scenario Context is used), finds recent
+   real incidents (or takes the Researcher's brief) and writes **scenario briefs**: a plain-prose scenario plus the
+   settings to choose (sector, difficulty, campaign pack, counts, verdict and severity mix, MITRE ids, sources).
+2. `briefcheck.py` validates every brief automatically (plain code): values the generator accepts, counts that add
+   up, no IP address or host name in the scenario text, at least one https source with a date. A brief with a
+   problem is rejected with the reason; the Analyst reviews the rest.
+3. In the result view each usable brief has **Copy scenario**. In the dashboard: Create Alert → Scenario Context,
+   choose the listed options, generate. The platform produces valid alerts with its own validation and playbooks.
+   No SQL is written and nothing is sent to production by the office.
+
+Use it on its own, or as a project: Researcher (incident brief) → Alert Writer.
 
 ### Plan: schedules and planned work
 

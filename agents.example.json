@@ -393,6 +393,41 @@
           "prompt": "Search output/ and memory/ for everything the office already has on this topic: <TOPIC>. Give the relevant results with file path and a one-line reason, the conflicts between them, and what is still missing. Read-only."
         }
       ]
+    },
+    {
+      "id": "alertwriter",
+      "name": "Alert Writer",
+      "room": "soc",
+      "cwd": "/path/to/your/project",
+      "model": "sonnet",
+      "species": "owl",
+      "trigger": "request",
+      "trigger_label": "On request",
+      "description": "Turns the latest real security incidents into scenario briefs for your SOC training platform's own alert generator: a ready-to-paste Scenario Context plus the sector, difficulty, campaign pack and counts to select. It does not write alerts or SQL: the platform builds the alerts with its own asset inventory and playbooks. Fictional framing, a source for every incident, drafts only.",
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "brief_check": true,
+      "reviewed_by": "analyst",
+      "review_prompt": "Review the scenario briefs {name} just wrote (attached). Judge them as a SOC training lead: is each scenario realistic and current, does the incident source support it, is the learning goal clear, is there a believable false-positive look-alike where it teaches something, and does anything give a real victim, real credentials or working attack detail? First line: APPROVE, CHANGES NEEDED or BLOCKED. Then a table: severity, brief id, what is wrong, the smallest fix. Read-only: change nothing; write in English.",
+      "preset_tasks": [
+        {
+          "label": "Briefs from this month's incidents",
+          "prompt": "Find the most relevant real security incidents of the last 30 days for a SOC training audience (use primary sources: vendor advisories, CISA, reputable incident write-ups). First read this project's alert generator (src/utils/aiService.js, the sector and campaign pack lists) and the Create Alert screen presets so the briefs fit the platform. Then write 5 scenario briefs following your playbook, with a source and date for every incident. Draft only."
+        },
+        {
+          "label": "Briefs from an incident brief",
+          "prompt": "Turn the attached research brief into scenario briefs for the platform's alert generator, one brief per distinct technique, following your playbook. Draft only."
+        },
+        {
+          "label": "Briefs for one campaign pack",
+          "prompt": "Write 4 scenario briefs for the campaign pack <PACK: ransomware | apt | phishing | cloud | ai_security> based on incidents of the last 60 days, each from a different sector. Follow your playbook. Draft only."
+        }
+      ]
     }
   ]
 }

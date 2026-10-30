@@ -21,6 +21,7 @@ import common  # noqa: E402
 import bridge  # noqa: E402
 import token_counter
 import plan  # noqa: E402
+import briefcheck  # noqa: E402
 import verify  # noqa: E402
 
 HOST = "127.0.0.1"
@@ -235,6 +236,9 @@ def ceo_prompt(text, table):
         "- Security review, route/lab inventory -> analyst (read-only).\n"
         "- UI and product code changes, build and commit -> coder (it never pushes on its own; only the user can ship). "
         "Engineer is the read-only reviewer: assign it only for an explicit review request.\n"
+        "- Alerts for the SOC platforms (the platform, the platform) from the latest real incidents -> alertwriter. It writes "
+        "scenario briefs the platform's own generator turns into alerts; never ask any agent for SQL or database writes. "
+        "For a fresh topic add \"after\": researcher first, then alertwriter.\n"
         "- What does the office already know, where is an earlier result, duplicates -> librarian (read-only archive).\n"
         "- A job that needs both research and writing is one assignment to the writer, not two.\n"
         "- Order: when one agent needs another's result first, add \"after\": \"<agent id>\" to the later assignment "
@@ -1041,6 +1045,16 @@ def verify_response(run_id):
     return verify.verify_text(found["text"])
 
 
+def briefs_response(run_id):
+    """Scenario briefs of one output (Alert Writer): usable ones plus what is wrong with the rest."""
+    found = output_response(run_id)
+    cached = os.path.join(common.ROOT, os.path.dirname(found["path"]), run_id + ".briefs.json")
+    if os.path.isfile(cached) and not os.path.islink(cached):
+        with open(cached, encoding="utf-8") as f:
+            return json.load(f)
+    return briefcheck.check_text(found["text"])
+
+
 def memory_response():
     """memory/<agent>.md listing + latest dated entries per file (read-only, fixed directory)."""
     files = []
@@ -1277,6 +1291,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(200, plan_response())
         if url.path == "/api/history":
             return self._json(200, history_response())
+        if url.path == "/api/briefs":
+            return self._json(200, briefs_response((parse_qs(url.query).get("run") or [""])[0]))
         if url.path == "/api/verify":
             return self._json(200, verify_response((parse_qs(url.query).get("run") or [""])[0]))
         if url.path == "/api/output":

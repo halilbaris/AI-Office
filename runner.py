@@ -451,6 +451,17 @@ def run(argument_file):
                 common.write_event({**context, "type": "progress", "tool": "sources", "detail": f"{checked['problems']} source problem(s)"})
         except Exception as e:  # a source check never fails a run
             print(f"(source check skipped: {type(e).__name__})", flush=True)
+    if success and agent.get("brief_check"):
+        try:   # scenario briefs are checked against what the platforms' alert generator accepts (briefcheck.py)
+            import briefcheck
+            text = open(os.path.join(output_dir, context["run_id"] + ".md"), encoding="utf-8").read()
+            checked = briefcheck.check_text(text)
+            with open(os.path.join(output_dir, context["run_id"] + ".briefs.json"), "w", encoding="utf-8") as f:
+                json.dump(checked, f, ensure_ascii=False)
+            common.write_event({**context, "type": "progress", "tool": "briefs",
+                                "detail": f"{len(checked['briefs'])} usable, {len(checked['problems'])} with problems"})
+        except Exception as e:
+            print(f"(brief check skipped: {type(e).__name__})", flush=True)
     try:
         dispatch_followups(agent, table, args, context, success)
     except Exception as e:  # follow-ups never turn a finished run into a failed one

@@ -226,6 +226,15 @@ h3.small{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;l
 .help-body ol,.help-body ul{margin:8px 0 8px 20px;display:flex;flex-direction:column;gap:7px}
 .help-body h4{margin:14px 0 4px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 .verify-box{margin:0 18px 6px;padding:10px 12px;border-radius:12px;border:1px solid rgba(var(--ink-rgb),.12);background:rgba(var(--ink-rgb),.04);font-size:12.5px}
+.briefs-box{margin:0 18px 8px;display:flex;flex-direction:column;gap:8px}
+.brief-card{border:1px solid rgba(var(--ink-rgb),.14);border-radius:12px;padding:10px 12px;background:var(--paper);font-size:12.5px}
+.brief-card b{display:block;font-size:13.5px}
+.brief-card p{margin:5px 0;white-space:pre-line;overflow-wrap:anywhere}
+.brief-card .set{color:var(--muted);font-size:12px}
+.brief-card.bad{border-color:rgba(179,64,44,.5)}
+.brief-card .bad-list{color:#b3402c;margin:4px 0 0 16px}
+.brief-card button{margin-top:6px;margin-right:6px;padding:4px 11px;border-radius:999px;border:1px solid rgba(var(--ink-rgb),.2);background:transparent;color:var(--ink);font-size:12px;cursor:pointer}
+.briefs-head{font-size:12px;color:var(--muted)}
 .verify-box ul{list-style:none;margin:6px 0 0;display:flex;flex-direction:column;gap:3px}
 .verify-box li{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .verify-box .bad{color:#b3402c;font-weight:600}
@@ -666,6 +675,7 @@ body{letter-spacing:-.004em}
       <button class="button ghost small" id="resultDownload" type="button">Download .md</button>
     </div>
     <div class="verify-box" id="verifyBox" hidden></div>
+    <div class="briefs-box" id="briefsBox" hidden></div>
     <article class="md" id="resultMd"></article>
     <pre id="resultBody" hidden></pre>
   </div>
@@ -1735,7 +1745,8 @@ function showResult(k, agent) {
   md.replaceChildren(el('p', null, 'Loading…')); raw.textContent = ''; $('resultInfo').textContent = '';
   let want = 'preview'; try { want = localStorage.getItem('myoffice-result-view') || 'preview'; } catch { /* default */ }
   setResultView(want === 'raw');
-  $('verifyBox').hidden = true;
+  $('verifyBox').hidden = true; $('briefsBox').hidden = true;
+  loadBriefs(k.run_id);
   modal.hidden = false;
   $('resultClose').focus();
   getJSON('/api/output?run=' + encodeURIComponent(k.run_id))
@@ -1750,6 +1761,25 @@ function showResult(k, agent) {
       const note = 'The full output could not be loaded. It is in output/' + k.agent + '/' + k.run_id + '.md';
       md.replaceChildren(el('p', null, note)); raw.textContent = note;
     });
+}
+// Alert Writer results: scenario briefs, ready to paste into the platform's alert generator
+async function loadBriefs(runId) {
+  const box = $('briefsBox'); box.replaceChildren(); box.hidden = true;
+  let r; try { r = await getJSON('/api/briefs?run=' + encodeURIComponent(runId)); } catch { return; }
+  if (!r.found || resultRun !== runId) return;
+  box.append(el('div', 'briefs-head', r.briefs.length + ' brief(s) ready for the alert generator' + (r.problems.length ? ' · ' + r.problems.length + ' rejected' : '') + '. In the dashboard: Create Alert → Scenario Context. The platform picks hosts, users and IPs itself.'));
+  const copy = async (text, btn, label) => { try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied'; } catch { btn.textContent = 'Copy failed'; } setTimeout(() => { btn.textContent = label; }, 1600); };
+  r.briefs.forEach(b => {
+    const card = el('div', 'brief-card'); card.append(el('b', null, b.title), el('p', null, b.scenario_context));
+    const sev = b.severity_counts ? ' · severity ' + Object.entries(b.severity_counts).filter(([, n]) => n).map(([k, n]) => n + ' ' + k).join(', ') : '';
+    const mix = b.verdict_mix ? ' · ' + Object.entries(b.verdict_mix).filter(([, n]) => n).map(([k, n]) => n + ' ' + k.replace('_', ' ')).join(', ') : '';
+    card.append(el('div', 'set', 'Select: sector ' + (b.sector_code || 'auto') + ' · difficulty ' + b.difficulty + ' · pack ' + (b.campaign_pack || 'general') + ' · count ' + b.count + sev + mix));
+    const b1 = el('button', null, 'Copy scenario'); b1.type = 'button'; b1.onclick = () => copy(b.scenario_context, b1, 'Copy scenario');
+    const b2 = el('button', null, 'Copy as JSON'); b2.type = 'button'; b2.onclick = () => copy(JSON.stringify(b, null, 2), b2, 'Copy as JSON');
+    card.append(b1, b2); box.append(card);
+  });
+  r.problems.forEach(p => { const card = el('div', 'brief-card bad'); card.append(el('b', null, 'Rejected: ' + (p.title || 'brief ' + p.index))); const ul = el('ul', 'bad-list'); p.problems.forEach(t => ul.append(el('li', null, t))); card.append(ul); box.append(card); });
+  box.hidden = false;
 }
 let lightboxCode = '';
 function closeLightbox() { $('lightbox').hidden = true; $('lightboxImg').removeAttribute('src'); }
