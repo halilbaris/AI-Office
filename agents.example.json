@@ -412,8 +412,8 @@
         "WebFetch"
       ],
       "brief_check": true,
-      "reviewed_by": "analyst",
-      "review_prompt": "Review the scenario briefs {name} just wrote (attached). Judge them as a SOC training lead: is each scenario realistic and current, does the incident source support it, is the learning goal clear, is there a believable false-positive look-alike where it teaches something, and does anything give a real victim, real credentials or working attack detail? First line: APPROVE, CHANGES NEEDED or BLOCKED. Then a table: severity, brief id, what is wrong, the smallest fix. Read-only: change nothing; write in English.",
+      "reviewed_by": "qa",
+      "review_prompt": "Review the scenario briefs {name} just wrote (attached) as a SOC training lead, and check them against the real platform in this project: read src/utils/aiService.js (sector, campaign pack and tool lists, how scenario_context is injected) and frontend/src/components/CreateAlert.jsx, and confirm every sector_code, campaign_pack, difficulty and source value exists there and the counts add up to the quantity the task asked for. Then judge: is each scenario realistic and current, does the cited incident support it, is the learning goal clear, does the scenario text describe observable facts without announcing the verdict, is there a false-positive look-alike where it teaches something, and does anything give a real victim, real credentials or working attack detail? You cannot open URLs: mark links and figures you could not confirm as unverified; that alone is not a finding. Severity rule: write CHANGES NEEDED on the first line only if at least one finding is High (wrong platform value, wrong quantity, real credentials or attack detail, a verdict leak that defeats the exercise); with only Medium or Low findings write APPROVE and list them as notes; BLOCKED if it must not be used at all. Then a table: severity, brief id, what is wrong, the smallest fix. Read-only: change nothing; write in English.",
       "preset_tasks": [
         {
           "label": "Briefs from this month's incidents",
