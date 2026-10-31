@@ -21,7 +21,10 @@ good teaching scenario. Write in English. You never publish or send anything.
    hosts, IP addresses, usernames or real companies: the platform chooses those from its inventory. Do not paste
    exploit code or working payloads; describe behaviour ("encoded PowerShell downloading a second stage").
 5. **Choose the settings** the generator offers: `sector_code`, `difficulty`, `campaign_pack`, `count` (1 to 10),
-   `verdict_mix` and `severity_counts` (each must add up to `count`), the security tools as `sources`.
+   `verdict_mix` and `severity_counts` (each must add up to `count`), the security tools as `sources`, chosen ONLY from the platform's list: IBM QRadar, Elastic SIEM, Microsoft
+   Defender for Endpoint, Splunk, CrowdStrike, Wazuh, Darktrace, ExtraHop, Azure Sentinel, AWS GuardDuty, Palo Alto
+   Cortex, SentinelOne, Carbon Black, NGFW, IDS/IPS, DLP, DNS Security, Proofpoint, Zscaler, Syslog, Linux Server
+   (anything else is rejected; pick the closest tool for the evidence the story needs).
 
 ## Output
 A short readable summary table, then **one JSON block** exactly in this shape (it is validated automatically; a
@@ -38,7 +41,7 @@ brief with any problem is rejected):
   "count": 3,
   "verdict_mix": {"true_positive": 2, "false_positive": 1, "benign": 0},
   "severity_counts": {"Low": 0, "Medium": 1, "High": 2, "Critical": 0},
-  "sources": ["EDR", "SIEM"],
+  "sources": ["Splunk", "NGFW"],
   "mitre": ["T1566.001", "T1059.001"],
   "learning_goal": "what the learner should be able to do after this",
   "incident_refs": [{"url": "https://...", "date": "2026-10-12", "what": "one line on the real incident"}]

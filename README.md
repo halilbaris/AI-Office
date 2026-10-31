@@ -187,8 +187,17 @@ the original run in **History**. Before you press **Ship**, the confirmation sho
 Set it per agent in `agents.json` with `"reviewed_by": "<agent id>"` and an optional `"review_prompt"`;
 **Settings → Health** warns if a reviewer can edit files. `"verify": false` turns the source check off for one agent.
 
+**Revisions.** When a review says `CHANGES NEEDED`, the work goes back to the agent that made it (label "Revision 1
+after Analyst's review") with its own result, the review and the original task attached; the revision is reviewed
+again. It stops after 2 rounds, on `APPROVE`, and always on `BLOCKED`, and the card then waits for you. The agent is
+told to leave findings alone that are wrong or rest on something the reviewer could not see. Reviewers also get the
+original task, so a shortfall (19 alerts when 20 were asked) counts as a finding.
+
+**The CEO remembers your last requests** (3, from the last 30 minutes) so a follow-up or a message that was cut off
+keeps its numbers and constraints.
+
 **Chaining.** The CEO can order work with `"after"`: "trainer after researcher" starts the trainer when the
-researcher finishes and hands it that output (as data, cut at 8,000 characters). Without `after`, assignments
+researcher finishes and hands it that output (as data, cut at 24,000 characters). Without `after`, assignments
 start together. A failed step stops the chain; a follow-up never inherits Ship rights.
 
 ### Projects: a big job split into steps

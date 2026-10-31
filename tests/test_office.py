@@ -14,6 +14,7 @@ import server  # noqa: E402
 import briefcheck  # noqa: E402
 import plan  # noqa: E402
 import verify  # noqa: E402
+import runner  # noqa: E402
 
 TABLE = {
     "writer": {"id": "writer", "installed": True},
@@ -112,7 +113,7 @@ class Inputs(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             os.makedirs(os.path.join(tmp, "researcher"))
             with open(os.path.join(tmp, "researcher", "2026-10-30-000000-researcher.md"), "w") as f:
-                f.write("found things " + "x" * 9000)
+                f.write("found things " + "x" * (runner.MAX_INPUT_CHARS + 1000))
             common.OUTPUT_DIR = tmp
             try:
                 text = runner.read_inputs(["2026-10-30-000000-researcher", "../etc/passwd", "missing-run"])
@@ -264,6 +265,72 @@ class Goals(unittest.TestCase):
         gid = self.goal()
         self.assertEqual(plan.goal_context(plan.load(), gid)["title"], "Launch the SOC course")
         self.assertIsNone(plan.goal_context(plan.load(), "g-gone"))
+
+
+class Revisions(unittest.TestCase):
+    """CHANGES NEEDED sends the work back to its maker, twice at most; APPROVE and BLOCKED stop and wait for you."""
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.old = (common.RUNS_DIR, common.OUTPUT_DIR)
+        common.RUNS_DIR, common.OUTPUT_DIR = os.path.join(self.dir, "runs"), os.path.join(self.dir, "output")
+        os.makedirs(common.RUNS_DIR); os.makedirs(os.path.join(common.OUTPUT_DIR, "analyst"))
+        with open(os.path.join(common.RUNS_DIR, "w1.arg.json"), "w") as f:
+            json.dump({"run_id": "w1", "agent": "alertwriter"}, f)
+
+    def tearDown(self):
+        common.RUNS_DIR, common.OUTPUT_DIR = self.old
+
+    def review(self, text, rounds=0, rid="r1"):
+        with open(os.path.join(common.OUTPUT_DIR, "analyst", rid + ".md"), "w") as f:
+            f.write(text)
+        args = {"source": "review", "parent": "w1", **({"round": rounds} if rounds else {})}
+        return runner.revision_step({"id": "analyst", "name": "Analyst"}, args, {"run_id": rid, "agent": "analyst", "room": "soc"})
+
+    def test_changes_needed_goes_back_to_the_agent_that_made_it(self):
+        step = self.review("Notes first.\n**CHANGES NEEDED**\n| High | b1 |")
+        self.assertEqual((step[0], step[2], step[3]), ("alertwriter", ["w1", "r1"], 1))
+
+    def test_approve_and_blocked_stop_here(self):
+        self.assertIsNone(self.review("APPROVE\nall good"))
+        self.assertIsNone(self.review("BLOCKED\nreal credentials in b2"))
+        self.assertIsNone(self.review("no verdict word here"))
+
+    def test_it_gives_up_after_the_limit_and_says_so(self):
+        with mock.patch.object(common, "write_event") as event:
+            self.assertIsNone(self.review("CHANGES NEEDED", rounds=runner.MAX_REVISIONS))
+        self.assertIn("back to you", event.call_args[0][0]["detail"])
+
+    def test_only_reviews_trigger_a_revision(self):
+        self.assertIsNone(runner.revision_step({"id": "x", "name": "X"}, {"source": "chain", "parent": "w1"}, {"run_id": "r1"}))
+
+    def test_the_review_of_a_run_follows_its_newest_revision(self):
+        for rid, arg in (("r1", {"source": "review", "parent": "w1", "agent": "analyst"}),
+                         ("w2", {"source": "revision", "parent": "r1", "agent": "alertwriter"})):
+            with open(os.path.join(common.RUNS_DIR, rid + ".arg.json"), "w") as f:
+                json.dump({"run_id": rid, **arg}, f)
+        with open(os.path.join(common.OUTPUT_DIR, "analyst", "r1.md"), "w") as f:
+            f.write("CHANGES NEEDED")
+        self.assertEqual(server.review_of_run("w1", "analyst")["state"], "running")      # revision not finished yet
+
+
+class CeoMemory(unittest.TestCase):
+    def test_previous_requests_reach_the_ceo_but_not_the_current_one(self):
+        now = datetime.now().astimezone().isoformat()
+        old = "2020-01-01T00:00:00+00:00"
+        events = [{"type": "ceo_started", "time": old, "request": "ancient"},
+                  {"type": "ceo_started", "time": now, "request": "give me 20 alerts about the latest news"},
+                  {"type": "ceo_started", "time": now, "request": "for the platform"}]
+        with mock.patch.object(server, "read_events", return_value=iter(events)):
+            self.assertEqual(server.recent_requests("for the platform"), ["give me 20 alerts about the latest news"])
+
+
+class Sources(unittest.TestCase):
+    def test_sources_must_come_from_the_platform_tool_list(self):
+        base = {"title": "t", "scenario_context": "x" * 100, "difficulty": "Expert", "count": 1,
+                "incident_refs": [{"url": "https://a.example/x", "date": "2026-10-01"}]}
+        self.assertEqual(briefcheck.check_brief({**base, "sources": ["Splunk", "NGFW"]}, 0)[1], [])
+        problems = briefcheck.check_brief({**base, "sources": ["Splunk", "Zeek"]}, 0)[1]
+        self.assertTrue(problems and "Zeek" in problems[0])
 
 
 class Queue(unittest.TestCase):

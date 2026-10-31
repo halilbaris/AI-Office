@@ -12,6 +12,10 @@ SECTORS = ("auto", "HEALTHCARE", "FINANCE", "GOVERNMENT", "OT_ICS", "RETAIL", "E
 DIFFICULTIES = ("Novice", "Beginner", "Intermediate", "Advanced", "Expert")
 PACKS = ("general", "ransomware", "apt", "phishing", "cloud", "ai_security")
 SEVERITIES = ("Low", "Medium", "High", "Critical")
+# The tool names the platform's alert generator offers (CreateAlert.jsx securityTools); anything else is off-catalog.
+SOURCES = ("IBM QRadar", "Elastic SIEM", "Microsoft Defender for Endpoint", "Splunk", "CrowdStrike", "Wazuh",
+           "Darktrace", "ExtraHop", "Azure Sentinel", "AWS GuardDuty", "Palo Alto Cortex", "SentinelOne",
+           "Carbon Black", "NGFW", "IDS/IPS", "DLP", "DNS Security", "Proofpoint", "Zscaler", "Syslog", "Linux Server")
 MITRE_RE = re.compile(r"^T\d{4}(\.\d{3})?$")
 IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 MIN_CONTEXT, MAX_CONTEXT, MAX_BRIEFS = 80, 1200, 12
@@ -66,6 +70,11 @@ def check_brief(brief, index):
     if count:
         _int_map(brief.get("verdict_mix"), ("true_positive", "false_positive", "benign"), "verdict_mix", problems, count)
         _int_map(brief.get("severity_counts"), SEVERITIES, "severity_counts", problems, count)
+    sources = brief.get("sources")
+    if sources is not None and (not isinstance(sources, list) or any(s not in SOURCES for s in sources)):
+        bad = [s for s in sources if s not in SOURCES] if isinstance(sources, list) else []
+        problems.append("sources must be tools the platform offers" + (f" (not: {', '.join(map(str, bad))})" if bad else "")
+                        + ": " + ", ".join(SOURCES))
     mitre = brief.get("mitre") or []
     if not isinstance(mitre, list) or not all(isinstance(m, str) and MITRE_RE.match(m) for m in mitre):
         problems.append("mitre must be a list of technique ids like T1566 or T1059.001")
