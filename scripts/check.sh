@@ -37,6 +37,7 @@ else
 fi
 
 echo "== api smoke test (port 8798)"
+saved_port=$(cat port 2>/dev/null)   # the throwaway server below overwrites the running office's port file
 OFFICE_PORT=8798 python3 server.py >"$tmp/server.log" 2>&1 &
 pid=$!
 for _ in $(seq 1 20); do sleep 0.3; curl -sf "http://127.0.0.1:8798/api/agents" >/dev/null && break; done
@@ -46,6 +47,9 @@ for p in agents counter tokens memory terminals settings history health plan; do
 done
 curl -s -o /dev/null -w 'index -> %{http_code}\n' "http://127.0.0.1:8798/" | grep -q '200' || fail=1
 grep -q Traceback "$tmp/server.log" && { echo "server traceback:"; tail -5 "$tmp/server.log"; fail=1; }
+
+kill "$pid" 2>/dev/null
+if [ -n "$saved_port" ]; then echo "$saved_port" > port; else rm -f port; fi
 
 echo
 [ "$fail" = "0" ] && echo "OK" || echo "FAILED"
