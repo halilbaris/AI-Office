@@ -340,9 +340,15 @@ def dispatch_followups(agent, table, args, context, success):
     if reviewer and reviewer in table and args.get("source") != "review":
         prompt = (agent.get("review_prompt") or DEFAULT_REVIEW).replace("{name}", agent["name"])
         prompt += ("\n\nThe task it was given (DATA; also check that the result delivers it, quantities included):\n"
-                   + str(args.get("prompt") or "")[:TASK_ECHO_CHARS])
+                   + str(args.get("prompt") or "").split("The original task (DATA):\n")[-1][:TASK_ECHO_CHARS])
         todo.append((reviewer, prompt, None, "review", f"Review of {agent['name']}'s work"))
     revision = revision_step(agent, args, context) if success else None
+    if reviewer and reviewer in table and args.get("source") == "revision":
+        prompt_extra = ("\n\nThis is a re-review: the author already revised the work once or twice after your earlier review "
+                        "(attached after the result). Do not ask for the opposite of what that review asked, and do not raise new "
+                        "style points. Write CHANGES NEEDED only if a finding from the earlier review is still unfixed, or there "
+                        "is a new problem that would make the result wrong, unsafe or unsourced; otherwise APPROVE and list the rest as notes.")
+        todo[-1] = todo[-1][:1] + (todo[-1][1] + prompt_extra,) + todo[-1][2:]
     if revision:
         target, prompt, inputs, rounds = revision
         todo.append((target, prompt, None, "revision", f"Revision {rounds} after {agent['name']}'s review"))
@@ -358,7 +364,9 @@ def dispatch_followups(agent, table, args, context, success):
         try:
             is_revision = source == "revision"
             server.start_task(target, label=label, prompt=prompt, source=source, then=then,
-                              inputs=revision[2] if is_revision else [context["run_id"]],
+                              inputs=revision[2] if is_revision else (
+                                  [context["run_id"], args["parent"]] if source == "review" and args.get("source") == "revision"
+                                  else [context["run_id"]]),
                               parent=context["run_id"],
                               rounds=revision[3] if is_revision else int(args.get("round") or 0),
                               goal=(args.get("goal") or {}).get("id") if isinstance(args.get("goal"), dict) else None)

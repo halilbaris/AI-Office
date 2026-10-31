@@ -324,6 +324,25 @@ class CeoMemory(unittest.TestCase):
             self.assertEqual(server.recent_requests("for the platform"), ["give me 20 alerts about the latest news"])
 
 
+class ReReview(unittest.TestCase):
+    def test_a_review_after_a_revision_sees_the_earlier_review_and_the_original_task(self):
+        calls = []
+        fake_server = mock.MagicMock()
+        fake_server.RequestError = Exception
+        fake_server.start_task.side_effect = lambda target, **kw: calls.append((target, kw))
+        table = {"alertwriter": {"id": "alertwriter"}, "qa": {"id": "qa", "name": "QA"}}
+        agent = {"id": "alertwriter", "name": "Alert Writer", "reviewed_by": "qa"}
+        args = {"source": "revision", "parent": "rev1", "round": 1,
+                "prompt": "fix it.\n\nThe original task (DATA):\nwrite exactly 5 alerts"}
+        with mock.patch.dict(sys.modules, {"server": fake_server}):
+            runner.dispatch_followups(agent, table, args, {"run_id": "w2", "agent": "alertwriter", "room": "soc"}, True)
+        target, kw = calls[0]
+        self.assertEqual((target, kw["source"], kw["inputs"], kw["rounds"]), ("qa", "review", ["w2", "rev1"], 1))
+        self.assertIn("write exactly 5 alerts", kw["prompt"])
+        self.assertIn("re-review", kw["prompt"])
+        self.assertNotIn("fix it.", kw["prompt"])
+
+
 class Sources(unittest.TestCase):
     def test_sources_must_come_from_the_platform_tool_list(self):
         base = {"title": "t", "scenario_context": "x" * 100, "difficulty": "Expert", "count": 1,
