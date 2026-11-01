@@ -215,6 +215,11 @@ def init_project(_argv):
                        "skip_cwd": [], "hide": []}, handle, indent=2)
             handle.write("\n")
         created.append("bridge.json")
+    constitution = os.path.join(ROOT, "CLAUDE.md")
+    example = os.path.join(ROOT, "CLAUDE.example.md")
+    if not os.path.exists(constitution) and os.path.exists(example):
+        shutil.copyfile(example, constitution)
+        created.append("CLAUDE.md")
     for directory in (common.STATE_DIR, common.RUNS_DIR, common.OUTPUT_DIR, common.MEMORY_DIR):
         os.makedirs(directory, exist_ok=True)
 

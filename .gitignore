@@ -3,6 +3,7 @@ agents.json
 bridge.json
 watch.json
 CLAUDE.local.md
+CLAUDE.md
 
 # working data: run logs, events, state, outputs, memory content
 events.jsonl

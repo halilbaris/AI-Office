@@ -249,7 +249,7 @@ def ceo_prompt(text, table):
     gated = [f"agent '{a['id']}' may only be assigned when the request contains '{a['trigger_word']}'."
              for a in table.values() if a.get("trigger_word")]
     return (
-        "You are the CEO of MyOffice. CLAUDE.md is your constitution. Read the user's request and decide "
+        "You are the CEO of MyOffice. CLAUDE.md (when present) is your constitution. Read the user's request and decide "
         "which agent(s) should get work. Each assignment prompt must be a clear task one agent can carry out "
         "alone (short, naming the files to look at). If the work is outside the office's scope or needs a "
         "user decision, leave assignments empty and say why in the answer. At most 3 assignments.\n"
