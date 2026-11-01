@@ -31,22 +31,29 @@
 
 ![The same office in dark mode](docs/office-dark.png)
 
-## Why MyOffice
+## What it does
 
-Agent tools are powerful, but they are invisible: a terminal scrolls, a session ends, and you have no idea what
-happened. MyOffice turns that work into a room you can watch.
+MyOffice is a local control room for your AI agents. Tell the CEO what you need in plain words; it routes the
+job to the right helper and you watch the office while it runs. Each helper is an animal at a desk: it wakes
+when work arrives, shows its current action on its screen, and drops the result into **Needs you**. Idle
+agents sleep, so idle time costs zero tokens.
 
-Each helper is a procedurally modelled animal at a desk. It wakes when work arrives, shows its current action on
-its screen, drops a result into **Needs you**, and goes back to sleep. **Idle costs zero tokens.**
+## What it makes easier
+
+- **See what is running** — every agent, its room, its current tool and your own terminal sessions on one screen.
+- **Stop scrolling terminals** — each run keeps its prompt, duration and full result in History.
+- **Stay in control** — nothing is published, mailed, paid for or pushed by itself; you approve each result.
+- **Give work in plain words** — the CEO picks the right helper, so there is no prompt engineering.
+- **Review before shipping** — a second helper returns APPROVE, CHANGES NEEDED or BLOCKED.
+- **Keep it private** — the server binds `127.0.0.1`; prompts, output and file contents stay on your machine.
+- **Pay nothing while idle** — no work means no model calls and no tokens.
 
 ## Highlights
 
 | | |
 |---|---|
 | **A real office, not a dashboard** | Isometric 3D rooms, animals at desks, clickable agents, a live event stream, a bottom activity dock and a daily token counter. |
-| **Human in the loop** | Every result lands in **Needs you** with **Full result**, **Approve** and **Later**. Nothing is published, sent or paid for on its own. |
 | **Any agent** | Claude Code is automatic; OpenCode is read from its local database; Codex, Gemini and any other CLI plug in through `myoffice run`, a hook or a JSONL watcher. |
-| **Local by default** | The server binds `127.0.0.1`. It reads local session files; prompts, model output and file contents are never uploaded. |
 | **Small and dependency-free** | Python standard library + a single-page three.js frontend. No database server, no cloud account. |
 | **Built for a team** | A CEO routes work to specialists (SOC Analyst, Lab Builder, Content Writer…) and a second helper reviews the result. |
 | **Made to be watched** | Light and dark themes, sound with a mute toggle, focus mode, room and agent panels, and a click-anywhere overview. |
