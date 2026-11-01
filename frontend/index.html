@@ -512,6 +512,9 @@ body{letter-spacing:-.004em}
 .theme-toggle .icon-sun{display:none}
 :root[data-theme="dark"] .theme-toggle .icon-moon{display:none}
 :root[data-theme="dark"] .theme-toggle .icon-sun{display:block}
+.sound-toggle .icon-sound-off{display:none}
+:root[data-sound="off"] .sound-toggle .icon-sound-on{display:none}
+:root[data-sound="off"] .sound-toggle .icon-sound-off{display:block}
 .button.ghost:hover{background:var(--surface-hover)}
 .side{gap:12px}
 .sec{border-radius:18px;box-shadow:var(--shadow-2)}
@@ -581,7 +584,7 @@ body{letter-spacing:-.004em}
 @media (min-width:901px){
   .side{
     top:auto;left:16px;right:16px;bottom:96px;
-    width:auto;height:196px;
+    width:auto;height:auto;max-height:220px;
     flex-direction:row;align-items:stretch;gap:12px;
   }
   .side-handle{
@@ -600,18 +603,21 @@ body{letter-spacing:-.004em}
   #needsSec{flex:1.6 1 0;max-height:none;min-height:0;position:relative}
   #needsSec .sec-head{padding-right:112px}
   #needsSec .sec-tools{position:absolute;top:9px;right:16px;min-height:0;z-index:2}
-  #liveSec{flex:1 1 0}
+  #liveSec{flex:1 1 0;position:relative}
+  #liveSec .sec-head{padding-right:128px}
+  #liveSec .sec-tools{position:absolute;top:10px;right:16px;min-height:0;z-index:2}
+  #liveSec .sec-body{max-height:64px}
   #todaySec{flex:0 0 184px;flex-direction:column;justify-content:center;gap:2px;padding:14px 18px}
   #todaySec span{display:flex;align-items:baseline;gap:8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2)}
   #todaySec b{font-family:"Space Grotesk",sans-serif;font-size:18px;letter-spacing:-.02em;color:var(--ink);min-width:52px;text-align:right}
   .side .cards{
     flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:10px;padding:0 2px 4px;
-    scroll-snap-type:x proximity;scrollbar-width:thin;
+    scroll-snap-type:x proximity;scrollbar-width:thin;max-height:96px;
   }
   .side .cards::-webkit-scrollbar{height:5px}
   .side .cards::-webkit-scrollbar-thumb{background:rgba(var(--ink-rgb),.18)}
   .side .cards .card{
-    flex:0 0 340px;height:100%;display:flex;flex-direction:column;
+    flex:0 0 340px;height:auto;display:flex;flex-direction:column;
     padding:10px 12px;scroll-snap-align:start;
   }
   .side .cards .card .top{font-size:11px;gap:6px}
@@ -661,6 +667,10 @@ body{letter-spacing:-.004em}
     <span id="pillResults" class="pill-results" hidden></span>
   </button>
   <span class="clock" id="clock"></span>
+  <button class="button ghost theme-toggle sound-toggle" id="soundToggle" type="button" aria-label="Mute sounds" aria-pressed="false" title="Mute sounds">
+    <svg class="icon-sound-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+    <svg class="icon-sound-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>
+  </button>
   <button class="button ghost theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme" aria-pressed="true" title="Switch to light theme">
     <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.4A8.2 8.2 0 0 1 9.6 4 8.5 8.5 0 1 0 20 14.4Z"/></svg>
     <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.2M12 19.8V22M2 12h2.2M19.8 12H22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
@@ -881,8 +891,10 @@ const findAgent = id => AGENTS.find(a => a.id === id);
 
 /* ---------- audio ---------- */
 let audio = null;
+let soundMuted = false;
 const ensureAudio = () => { if (!audio) { try { audio = new AudioContext(); } catch { audio = null; } } return audio; };
 function beep(freq, duration = .09, volume = .05, type = 'sine', delay = 0, sweep = 1) {
+  if (soundMuted) return;
   const c = audio; if (!c) return;
   const t = c.currentTime + delay;
   const o = c.createOscillator(), g = c.createGain();
@@ -1215,6 +1227,24 @@ $('themeToggle').addEventListener('click', () => {
 });
 window.addEventListener('myoffice:theme', (event) => {
   applyTheme(event.detail === 'light' ? 'light' : 'dark');
+});
+
+/* ---------- sound toggle ---------- */
+const SOUND_KEY = 'myoffice-sound';
+function applySound(muted) {
+  soundMuted = muted;
+  document.documentElement.dataset.sound = muted ? 'off' : 'on';
+  try { localStorage.setItem(SOUND_KEY, muted ? 'off' : 'on'); } catch { /* optional */ }
+  const button = $('soundToggle');
+  if (!button) return;
+  button.setAttribute('aria-pressed', String(muted));
+  button.setAttribute('aria-label', muted ? 'Unmute sounds' : 'Mute sounds');
+  button.title = muted ? 'Unmute sounds' : 'Mute sounds';
+}
+try { applySound(localStorage.getItem(SOUND_KEY) === 'off'); } catch { applySound(false); }
+$('soundToggle')?.addEventListener('click', () => {
+  applySound(!soundMuted);
+  if (!soundMuted) SOUND.click();
 });
 
 /* ---------- decor ---------- */
@@ -2174,6 +2204,7 @@ function syncTerminals() {
     const all = [...terminals.values()].filter(t => t.agent === a.id);
     const active = all.filter(t => t.status === 'working');
     a.terminalCount = all.length;
+    a.terminalWorking = active.length;
     const officeRun = a.status !== 'sleeping' && !a.terminal;   // the office's own run always comes first
     if (active.length && !officeRun) {
       if (!a.terminal) { wakeAgent(a, 'terminal session', null, Date.now()); a.terminal = true; }
@@ -2919,7 +2950,13 @@ function updateCamera(dt) {
   controls.target.lerpVectors(camTransition.t0, camTransition.t1, k);
   if (t >= 1) camTransition = null;
 }
-$('overview').onclick = () => { SOUND.click(); closePanel(); openTab('office'); goCamera(OVERVIEW.position, OVERVIEW.target); };
+function goOverview() {
+  closePanel();
+  openTab('office');
+  highlightRoom(null);
+  goCamera(OVERVIEW.position, OVERVIEW.target);
+}
+$('overview').onclick = () => { SOUND.click(); goOverview(); };
 $('overview').onmouseenter = () => SOUND.hover();
 
 /* ---------- cat memes (played on click) ---------- */
@@ -2946,17 +2983,27 @@ canvasEl.addEventListener('pointerdown', e => { pressPoint = [e.clientX, e.clien
 canvasEl.addEventListener('pointerup', e => {
   if (!pressPoint || Math.hypot(e.clientX - pressPoint[0], e.clientY - pressPoint[1]) > 5) return;
   const h = pickAt(e);
-  if (meme.active()) { const previous = meme.close(); if (!h) { if (previous) goRoom(findRoom(previous.room)); return; } }
-  if (!h) return;
+  if (!h) {
+    if (meme.active()) meme.close();
+    SOUND.click();
+    goOverview();
+    return;
+  }
   SOUND.click();
   const room = findRoom(h.room);
+  const wasSelected = selectedRoom === room.id;
   highlightRoom(room.id);
   if (h.agent) {
     // the cat's meme first, then the panel
     const a = findAgent(h.agent);
     const open = () => { goRoom(room); agentPanel(a); };
     if (!meme.play(a, { onDone:open })) open();
-  } else { goRoom(room); roomPanel(room); }
+  } else if (wasSelected) {
+    goOverview();
+  } else {
+    goRoom(room);
+    roomPanel(room);
+  }
 });
 $('command').addEventListener('submit', e => { e.preventDefault(); const i = $('commandInput'); askCeo(i.value); i.value = ''; });
 document.addEventListener('keydown', e => {
@@ -2997,7 +3044,8 @@ function detailLines(a) {
   if (a.steps?.length && !a.terminal) { L.push(['h', 'Recent steps']); a.steps.slice(-6).forEach(x => L.push(['li', x])); }
   const sessions = [...terminals.values()].filter(t => t.agent === a.id);
   if (sessions.length) {
-    L.push(['h', sessions.length + (sessions.length === 1 ? ' terminal' : ' terminals')]);
+    const working = sessions.filter(t => t.status === 'working').length;
+    L.push(['h', sessions.length + (sessions.length === 1 ? ' session' : ' sessions') + (working ? ' · ' + working + ' working' : ' · idle')]);
     sessions.slice(0, 7).forEach(t => {
       const on = t.status === 'working';
       L.push([on ? 'on' : 'off', sessionName(t) + ' · ' + (on ? terminalAction(t) : 'waiting')]);
@@ -3038,7 +3086,8 @@ function updateLabels() {
     const bubbleText = a.bubble && Date.now() < a.bubbleUntil ? a.bubble : null;
     let changed = false;
     if (e.text !== text) { e.what.textContent = text; e.text = text; changed = true; }
-    const badgeText = !a.sub && a.terminal && a.terminalCount > 1 ? a.terminalCount + ' terminals' : '';
+    const badgeText = !a.sub && a.terminal && a.terminalCount > 1
+      ? (a.terminalWorking ? a.terminalWorking + ' active' : a.terminalCount + ' idle') : '';
     if (e.badge && e.badgeText !== badgeText) { e.badge.textContent = badgeText; e.badge.style.display = badgeText ? '' : 'none'; e.badgeText = badgeText; changed = true; }
     const tokensText = !a.sub && cls !== 'sleeping' && agentTokens(a.id).total ? shortNumber(agentTokens(a.id).total) + ' tokens' : '';
     if (e.tokens && e.tokensText !== tokensText) { e.tokens.textContent = tokensText; e.tokens.style.display = tokensText ? '' : 'none'; e.tokensText = tokensText; changed = true; }
