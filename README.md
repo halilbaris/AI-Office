@@ -27,7 +27,7 @@
   <a href="#origin"><b>Origin</b></a>
 </p>
 
-![MyOffice — the 3D office, activity dock and daily stats](docs/myoffice.png)
+![MyOffice — a full office with eight rooms, live terminal sessions and the activity dock](docs/office.png)
 
 ## Why MyOffice
 
@@ -88,6 +88,8 @@ cd frontend && python3 -m http.server 8000
 
 The demo uses `frontend/demo-data.json`: fake agents wake up, work and finish without a backend or any model
 calls. `?auto=0` turns automatic runs off and `?light=1` renders at lower resolution.
+
+![The demo mode, no backend](docs/myoffice.png)
 
 ## Bring any agent
 
