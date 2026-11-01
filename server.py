@@ -19,6 +19,8 @@ from urllib.parse import urlparse, parse_qs
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common  # noqa: E402
 import bridge  # noqa: E402
+import ingest  # noqa: E402
+import watch  # noqa: E402
 import token_counter
 import plan  # noqa: E402
 import briefcheck  # noqa: E402
@@ -1407,7 +1409,7 @@ class Handler(SimpleHTTPRequestHandler):
         if url.path == "/api/settings":
             return self._json(200, settings_response())
         if url.path == "/api/terminals":
-            return self._json(200, {"terminals": LIVE_BRIDGE.list_sessions()})
+            return self._json(200, {"terminals": LIVE_BRIDGE.list_sessions() + ingest.list_sessions()})
         if url.path == "/api/projects":
             return self._json(200, list_projects())
         if url.path == "/api/events":
@@ -1422,6 +1424,12 @@ class Handler(SimpleHTTPRequestHandler):
         path = urlparse(self.path).path
         try:
             data = self._body()
+            if path == "/api/ingest":
+                try:
+                    ingest.handle(data)
+                except ValueError as e:
+                    raise RequestError(400, str(e)) from e
+                return self._json(200, {"ok": True})
             if path == "/api/task":
                 agent = data.get("agent")
                 if not isinstance(agent, str) or not common.AGENT_ID_PATTERN.match(agent):
@@ -1522,6 +1530,8 @@ def main():
         f.write(str(port))
     print(f"MyOffice: http://{HOST}:{port}   (demo: http://{HOST}:{port}/?demo=1)", flush=True)
     LIVE_BRIDGE.start()
+    if os.environ.get("OFFICE_DISABLE_WATCH") != "1":
+        watch.start()
     threading.Thread(target=scheduler_loop, daemon=True, name="scheduler").start()
     server.serve_forever()
 

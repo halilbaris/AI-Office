@@ -1,6 +1,7 @@
 # personal configuration (examples: *.example.json)
 agents.json
 bridge.json
+watch.json
 CLAUDE.local.md
 
 # working data: run logs, events, state, outputs, memory content

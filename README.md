@@ -91,6 +91,33 @@ tmux attach -t office        # watch running agents live (one window per run)
 5. **Open `http://127.0.0.1:8796`.** Click an agent to give it a preset task, or use the bottom box to tell the
    CEO what you need.
 
+### Any agent, any model
+
+The Claude bridge is automatic. For everything else the office has one event stream and three ways in:
+
+- **Wrapper (any CLI).** Run the command through `myoffice.py run`. It tees the output and reports
+  start / tool / finish events:
+
+```bash
+python3 myoffice.py run -- codex exec "fix the failing test"
+python3 myoffice.py run -- gemini -p "summarize this repo"
+python3 myoffice.py run --agent writer -- ./my-agent
+```
+
+- **Hook.** Any tool with a hook or a small plugin can send one event:
+
+```bash
+python3 myoffice.py hook --agent writer --tool read --target README.md
+```
+
+- **Passive logs.** Copy `watch.json.example` to `watch.json` and point it at JSONL session folders
+  (Codex, Gemini, or anything with a similar log). OpenCode is detected automatically from its local
+  SQLite database; no configuration is needed.
+
+Only tool names and short targets are stored. A shell command is reduced to its first word, and prompts,
+model output and file contents are never written. Every session carries its source (`claude`, `opencode`,
+`wrapper`, `hook`, `log`) so the UI can show where it came from.
+
 Health check: `./scripts/check.sh` compiles the Python, validates the JSON, syntax-checks the frontend modules,
 looks for leftover Turkish text and boots a throwaway server on port 8798 to hit every endpoint.
 
@@ -135,6 +162,8 @@ browser (frontend/)  ──GET/POST──▶  server.py (127.0.0.1)  ──tmux 
        ▲                                  │   ▲                                    │
        └──────── SSE: events ─────────────┘   └──── events.jsonl ◀── progress, usage, finish ┘
                                           bridge.py (read-only) ◀── ~/.claude/sessions + transcripts
+                                          providers/ (read-only) ◀── OpenCode DB, JSONL logs
+                                          myoffice run / hook ──POST /api/ingest──▶ server.py
 ```
 
 ### CEO = the main configuration

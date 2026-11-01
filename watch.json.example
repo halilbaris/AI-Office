@@ -1,0 +1,17 @@
+{
+  "_note": "Optional passive watchers for tools that write JSONL session logs. Copy to watch.json. OpenCode is detected automatically from its local database; Claude Code already has its own bridge.",
+  "watchers": [
+    {
+      "id": "codex",
+      "label": "Codex",
+      "path": "~/.codex/sessions",
+      "glob": "**/*.jsonl"
+    },
+    {
+      "id": "gemini",
+      "label": "Gemini",
+      "path": "~/.gemini",
+      "glob": "**/*.jsonl"
+    }
+  ]
+}

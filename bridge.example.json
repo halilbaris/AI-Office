@@ -1,5 +1,5 @@
 {
-  "_note": "Mapping for the live terminal bridge. Copy to bridge.json (works without the file too). Every Claude Code session you open (terminal, tmux or desktop app) shows up in the office. Order: 'window' (tmux window name) > 'cwd' (folder or any parent; a session opened in a subfolder matches too) > 'default'. Without 'default' an unmapped session lands on the first agent; \"\" hides unmapped sessions. A session carrying any string from 'hide' in its cwd or tmux session name is never shown; 'skip_cwd' skips an exact folder.",
+  "_note": "Mapping for the live terminal bridge. Copy to bridge.json (works without the file too). Every Claude Code session you open (terminal or desktop app) shows up in the office. External sessions (OpenCode, wrapper, JSONL logs) use the same cwd/default mapping. Order: 'window' (tmux window name) > 'cwd' (folder or any parent; a session opened in a subfolder matches too) > 'default'. Without 'default' an unmapped session lands on the first agent; \"\" hides unmapped sessions. A session carrying any string from 'hide' in its cwd or tmux session name is never shown; 'skip_cwd' skips an exact folder.",
   "cwd": {
     "/path/to/your/project": "code-reviewer"
   },

@@ -9,14 +9,15 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"; [ -n "${pid:-}" ] && kill "$pid" 2>/dev/null; true' EXIT
 
 echo "== python syntax"
-python3 -m py_compile server.py runner.py bridge.py common.py token_counter.py verify.py || fail=1
+python3 -m py_compile server.py runner.py bridge.py common.py token_counter.py verify.py \
+  ingest.py watch.py myoffice.py providers/*.py || fail=1
 
 echo "== unit tests"
 python3 -m unittest discover -s tests >"$tmp/unit.log" 2>&1 || { tail -15 "$tmp/unit.log"; fail=1; }
 tail -3 "$tmp/unit.log"
 
 echo "== json"
-for f in agents.json agents.example.json bridge.json bridge.example.json frontend/demo-data.json; do
+for f in agents.json agents.example.json bridge.json bridge.example.json watch.json.example frontend/demo-data.json; do
   [ -f "$f" ] && { python3 -m json.tool "$f" >/dev/null || { echo "broken: $f"; fail=1; }; }
 done
 
@@ -38,7 +39,7 @@ fi
 
 echo "== api smoke test (port 8798)"
 saved_port=$(cat port 2>/dev/null)   # the throwaway server below overwrites the running office's port file
-OFFICE_PORT=8798 python3 server.py >"$tmp/server.log" 2>&1 &
+OFFICE_DISABLE_WATCH=1 OFFICE_PORT=8798 python3 server.py >"$tmp/server.log" 2>&1 &
 pid=$!
 for _ in $(seq 1 20); do sleep 0.3; curl -sf "http://127.0.0.1:8798/api/agents" >/dev/null && break; done
 for p in agents counter tokens memory terminals settings history health plan; do
