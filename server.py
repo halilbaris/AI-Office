@@ -270,7 +270,7 @@ def ceo_prompt(text, table):
         "- Security review, route/lab inventory -> analyst (read-only).\n"
         "- UI and product code changes, build and commit -> coder (it never pushes on its own; only the user can ship). "
         "Engineer is the read-only reviewer: assign it only for an explicit review request.\n"
-        "- Alerts for the SOC platforms (the platform, the platform) from the latest real incidents -> alertwriter. It writes "
+        "- Alerts for the project's SOC training platform from the latest real incidents -> alertwriter. It writes "
         "scenario briefs the platform's own generator turns into alerts; never ask any agent for SQL or database writes. "
         "For a fresh topic add \"after\": researcher first, then alertwriter. When the user names a number of alerts, "
         "write that exact number into the alertwriter prompt (its briefs' counts must add up to it) and ask the "

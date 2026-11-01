@@ -319,9 +319,9 @@ class CeoMemory(unittest.TestCase):
         old = "2020-01-01T00:00:00+00:00"
         events = [{"type": "ceo_started", "time": old, "request": "ancient"},
                   {"type": "ceo_started", "time": now, "request": "give me 20 alerts about the latest news"},
-                  {"type": "ceo_started", "time": now, "request": "for the platform"}]
+                  {"type": "ceo_started", "time": now, "request": "for the office"}]
         with mock.patch.object(server, "read_events", return_value=iter(events)):
-            self.assertEqual(server.recent_requests("for the platform"), ["give me 20 alerts about the latest news"])
+            self.assertEqual(server.recent_requests("for the office"), ["give me 20 alerts about the latest news"])
 
 
 class ReReview(unittest.TestCase):

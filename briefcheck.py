@@ -1,6 +1,6 @@
 """Scenario briefs: the Alert Writer's output, checked against what the platforms' alert generator accepts.
 
-The platforms (the platform, the platform) build their alerts themselves from a "scenario context" plus a few options
+The platform builds its alerts itself from a "scenario context" plus a few options
 (sector, difficulty, campaign pack, counts), using their own asset inventory, OS rules and playbook generator.
 So the agent does not write alerts or SQL: it writes briefs, and this module checks that every brief is something
 the generator can use. Plain code, no model, no network.
@@ -12,7 +12,7 @@ SECTORS = ("auto", "HEALTHCARE", "FINANCE", "GOVERNMENT", "OT_ICS", "RETAIL", "E
 DIFFICULTIES = ("Novice", "Beginner", "Intermediate", "Advanced", "Expert")
 PACKS = ("general", "ransomware", "apt", "phishing", "cloud", "ai_security")
 SEVERITIES = ("Low", "Medium", "High", "Critical")
-# The tool names the platform's alert generator offers (CreateAlert.jsx securityTools); anything else is off-catalog.
+# The tool names a SOC platform's alert generator offers; anything else is off-catalog.
 SOURCES = ("IBM QRadar", "Elastic SIEM", "Microsoft Defender for Endpoint", "Splunk", "CrowdStrike", "Wazuh",
            "Darktrace", "ExtraHop", "Azure Sentinel", "AWS GuardDuty", "Palo Alto Cortex", "SentinelOne",
            "Carbon Black", "NGFW", "IDS/IPS", "DLP", "DNS Security", "Proofpoint", "Zscaler", "Syslog", "Linux Server")
