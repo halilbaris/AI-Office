@@ -577,6 +577,62 @@ body{letter-spacing:-.004em}
   .clock{display:none}
   #overview{display:none}
 }
+/* Desktop: dock the activity column to the bottom so the office keeps its width */
+@media (min-width:901px){
+  .side{
+    top:auto;left:16px;right:16px;bottom:96px;
+    width:auto;height:196px;
+    flex-direction:row;align-items:stretch;gap:12px;
+  }
+  .side-handle{
+    display:block;position:absolute;top:-10px;left:50%;transform:translateX(-50%);
+    width:56px;height:20px;margin:0;padding:0;border:1px solid var(--glass-edge);
+    border-radius:999px;background:var(--glass);backdrop-filter:blur(16px);
+    box-shadow:var(--shadow-1);z-index:5;cursor:pointer;
+  }
+  .side-handle::after{
+    content:"";display:block;width:18px;height:3px;margin:8px auto 0;border-radius:99px;
+    background:rgba(var(--ink-rgb),.34);transition:transform .2s var(--ease);
+  }
+  .side.collapsed .side-handle::after{transform:rotate(180deg)}
+
+  .side .sec{flex:1 1 0;min-width:0;min-height:0;max-height:none}
+  #needsSec{flex:1.6 1 0;max-height:none;min-height:0;position:relative}
+  #needsSec .sec-head{padding-right:112px}
+  #needsSec .sec-tools{position:absolute;top:9px;right:16px;min-height:0;z-index:2}
+  #liveSec{flex:1 1 0}
+  #todaySec{flex:0 0 184px;flex-direction:column;justify-content:center;gap:2px;padding:14px 18px}
+  #todaySec span{display:flex;align-items:baseline;gap:8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2)}
+  #todaySec b{font-family:"Space Grotesk",sans-serif;font-size:18px;letter-spacing:-.02em;color:var(--ink);min-width:52px;text-align:right}
+  .side .cards{
+    flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:10px;padding:0 2px 4px;
+    scroll-snap-type:x proximity;scrollbar-width:thin;
+  }
+  .side .cards::-webkit-scrollbar{height:5px}
+  .side .cards::-webkit-scrollbar-thumb{background:rgba(var(--ink-rgb),.18)}
+  .side .cards .card{
+    flex:0 0 340px;height:100%;display:flex;flex-direction:column;
+    padding:10px 12px;scroll-snap-align:start;
+  }
+  .side .cards .card .top{font-size:11px;gap:6px}
+  .side .cards .card h4{font-size:12.5px;margin:4px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .side .cards .card p{display:none}
+  .side .cards .card .buttons{margin-top:auto;display:flex;gap:6px}
+  .side .cards .card .buttons button{font-size:11px;padding:4px 9px}
+  .side .sec-body{overflow:auto;overscroll-behavior:contain}
+  .side .sec.collapsed{flex:0 0 168px}
+
+  .side.collapsed{height:52px}
+  .side.collapsed .sec-body,
+  .side.collapsed #todaySec{display:none}
+  .side.collapsed .sec{flex:0 0 auto}
+  .side.collapsed .sec-head{height:52px;padding:0 16px;align-items:center}
+  .side.collapsed .sec-chev{display:none}
+
+  .command{left:50%;width:min(620px,calc(100% - 32px));transform:translateX(-50%);z-index:6}
+  .page{left:16px;right:16px;bottom:calc(96px + 196px + 12px)}
+  .side.collapsed ~ .page{bottom:calc(96px + 52px + 12px)}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <script type="importmap">
@@ -1871,6 +1927,11 @@ $('stepsToggle').onchange = (e) => { $('stream').classList.toggle('show-steps', 
 $('statusPill').onclick = () => {
   const needs = document.getElementById('needsSec');
   needs.classList.remove('collapsed');
+  const sideEl = $('side');
+  if (sideEl?.classList.contains('collapsed')) {
+    sideEl.classList.remove('collapsed');
+    $('sideHandle').setAttribute('aria-expanded', 'true');
+  }
   needs.scrollIntoView({ behavior:'smooth', block:'nearest' });
   if (!cards.some(k => !k.approved)) openTab('office');
 };
@@ -3131,6 +3192,15 @@ $('sideHandle')?.addEventListener('click', () => {
   const closed = $('side').classList.toggle('collapsed');
   $('sideHandle').setAttribute('aria-expanded', String(!closed));
 });
+
+// Short desktop windows start with the activity dock collapsed so the office
+// and the CEO input keep their space. The handle or the results pill expands it.
+try {
+  if (window.innerWidth >= 901 && window.innerHeight < 820) {
+    $('side').classList.add('collapsed');
+    $('sideHandle').setAttribute('aria-expanded', 'false');
+  }
+} catch { /* optional */ }
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); setView(); });
 
 /* ---------- boot ---------- */

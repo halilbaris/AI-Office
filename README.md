@@ -23,7 +23,7 @@ hands it over. When a helper finishes, you read the result, and approve it or no
 **What you do, step by step**
 
 1. Open the page and type what you need into the box at the bottom ("Write a blog post about phishing").
-2. Watch the right panel: **Working now** shows who is busy and what they are doing.
+2. Watch the activity dock at the bottom (the side sheet on narrow screens): **Live** shows who is busy and what they are doing.
 3. When a card appears under **Needs you**, press **Full result** to read it. Press **Check sources** to see
    whether the CVE numbers and links in it really exist.
 4. Press **Approve** when you are happy. Everything stays in the **History** tab.
