@@ -14,7 +14,7 @@
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="Local-first" src="https://img.shields.io/badge/local--first-127.0.0.1-0f766e">
   <img alt="Agents" src="https://img.shields.io/badge/agents-Claude%20%7C%20OpenCode%20%7C%20Codex%20%7C%20Gemini-6d28d9">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-58%20passing-16a34a">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-59%20passing-16a34a">
   <img alt="License" src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-d97706">
 </p>
 
@@ -164,7 +164,7 @@ missing in plain words.
 ./scripts/check.sh
 ```
 
-Runs Python syntax, the unit tests (58), JSON and frontend checks, the leftover-Turkish rule and an API smoke test
+Runs Python syntax, the unit tests (59), JSON and frontend checks, the leftover-Turkish rule and an API smoke test
 on port 8798.
 
 - Python standard library only; no new runtime dependencies.

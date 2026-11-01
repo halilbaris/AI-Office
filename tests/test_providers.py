@@ -8,7 +8,7 @@ from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from providers import mapping  # noqa: E402
-from providers.generic_log import parse_line  # noqa: E402
+from providers.generic_log import GenericLogProvider, parse_line  # noqa: E402
 from providers.opencode import model_name, tool_from_message, tool_from_part  # noqa: E402
 
 
@@ -53,6 +53,26 @@ class OpenCodeParser(unittest.TestCase):
     def test_model_json(self):
         self.assertEqual(model_name('{"id":"gpt-5","providerID":"openai"}'), "gpt-5")
         self.assertIsNone(model_name(None))
+
+
+class GenericLogProviderTest(unittest.TestCase):
+    def test_tails_new_lines(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "session.jsonl")
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write(json.dumps({"type": "assistant", "message": {"content": []}}) + "\n")
+            offsets = os.path.join(folder, "offsets.json")
+            with mock.patch("providers.generic_log.OFFSETS_FILE", offsets):
+                provider = GenericLogProvider([
+                    {"id": "test", "label": "Test", "path": folder, "glob": "*.jsonl"}])
+                provider.poll()  # first sight skips existing history
+                with open(path, "a", encoding="utf-8") as handle:
+                    handle.write(json.dumps({"tool": "read", "input": {"path": "a.py"}}) + "\n")
+                payloads = provider.poll()
+            tools = [event for event in payloads if event.get("event") == "tool"]
+            self.assertTrue(tools)
+            self.assertEqual(tools[-1]["tool"], "read")
+            self.assertEqual(tools[-1]["target"], "a.py")
 
 
 class Mapping(unittest.TestCase):
