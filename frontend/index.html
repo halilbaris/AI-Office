@@ -1701,7 +1701,7 @@ function updateTopbar() {
   if (waiting) resultsChip.textContent = plural(waiting, 'result');
   const tokens = totalTokens();
   if ($('quickTasks')) $('quickTasks').textContent = counter.runs_today ?? 0;
-  if ($('quickResults')) $('quickResults').textContent = cards.filter(k => k.approved).length;
+  if ($('quickResults')) $('quickResults').textContent = waiting;
   if ($('quickTokens')) $('quickTokens').textContent = tokens ? shortNumber(tokens) : '0';
   const total = AGENTS.length;
   const sleeping = total - n;
