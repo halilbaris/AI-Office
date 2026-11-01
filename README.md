@@ -16,9 +16,11 @@
   <img alt="Agents" src="https://img.shields.io/badge/agents-Claude%20%7C%20OpenCode%20%7C%20Codex%20%7C%20Gemini-6d28d9">
   <img alt="Tests" src="https://img.shields.io/badge/tests-59%20passing-16a34a">
   <img alt="License" src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-d97706">
+  <a href="https://halilbaris.github.io/AI-Office/?demo=1"><img alt="Live demo" src="https://img.shields.io/badge/demo-live-ff6b4a"></a>
 </p>
 
 <p align="center">
+  <a href="https://halilbaris.github.io/AI-Office/?demo=1"><b>Live demo</b></a> ·
   <a href="#install"><b>Install</b></a> ·
   <a href="#bring-any-agent"><b>Bring any agent</b></a> ·
   <a href="#how-it-works"><b>How it works</b></a> ·
@@ -48,6 +50,9 @@ its screen, drops a result into **Needs you**, and goes back to sleep. **Idle co
 | **Made to be watched** | Light and dark themes, sound with a mute toggle, focus mode, room and agent panels, and a click-anywhere overview. |
 
 ## Install
+
+**Try it without installing:** [open the live demo](https://halilbaris.github.io/AI-Office/?demo=1) — fake
+agents, no backend and no model calls.
 
 macOS or Linux (Windows via WSL2):
 
