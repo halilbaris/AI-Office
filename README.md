@@ -27,7 +27,9 @@
   <a href="#origin"><b>Origin</b></a>
 </p>
 
-![MyOffice — a full office with eight rooms, live terminal sessions and the activity dock](docs/office.png)
+![MyOffice in light mode — eight rooms, live terminals and the activity dock](docs/office.png)
+
+![The same office in dark mode](docs/office-dark.png)
 
 ## Why MyOffice
 
@@ -48,6 +50,21 @@ its screen, drops a result into **Needs you**, and goes back to sleep. **Idle co
 | **Small and dependency-free** | Python standard library + a single-page three.js frontend. No database server, no cloud account. |
 | **Built for a team** | A CEO routes work to specialists (SOC Analyst, Lab Builder, Content Writer…) and a second helper reviews the result. |
 | **Made to be watched** | Light and dark themes, sound with a mute toggle, focus mode, room and agent panels, and a click-anywhere overview. |
+
+## A look inside
+
+<table>
+<tr>
+<td width="50%"><a href="docs/settings.webp"><img src="docs/settings.webp" alt="Settings: name, brand, greeting and limits"></a><br><sub><b>Settings</b> — name, brand, greeting and the daily token limit.</sub></td>
+<td width="50%"><a href="docs/memory.webp"><img src="docs/memory.webp" alt="Memory: what each agent has learned"></a><br><sub><b>Memory</b> — what every agent has learned, in plain markdown.</sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="docs/history.webp"><img src="docs/history.webp" alt="History: every CEO exchange and run"></a><br><sub><b>History</b> — every CEO exchange, run and review, with the full result.</sub></td>
+<td width="50%"><a href="docs/plan.webp"><img src="docs/plan.webp" alt="Plan: schedules, goals and queued work"></a><br><sub><b>Plan</b> — schedules, goals, projects and work waiting its turn.</sub></td>
+</tr>
+</table>
+
+Click any image to open it full size.
 
 ## Install
 
