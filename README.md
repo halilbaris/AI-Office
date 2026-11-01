@@ -35,6 +35,36 @@ daily limit stops it from using too much AI time. The **Help** button in the pag
 
 The sections below are for the person who sets the office up.
 
+## Install
+
+macOS and Linux (Windows: use WSL2; the office runs on tmux):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/halilbaris/AI-Office/main/install.sh | bash
+```
+
+This clones the app to `~/MyOffice`, creates the private `agents.json` and `bridge.json`, and installs the
+`myoffice` launcher in `~/.local/bin`.
+
+```bash
+myoffice start                          # start the local server and open it
+myoffice init                           # re-create missing config, print detected tools
+myoffice run -- codex exec "..."        # show any CLI session in the office
+myoffice hook --tool read --target README.md
+```
+
+You need Python 3.10+, git, and one of Claude Code or OpenCode for the office's own agents. `tmux` is needed
+for office runs; watching your own sessions works without it. Codex, Gemini and other CLIs can be watched
+through `myoffice run` or `watch.json`.
+
+Prefer a manual checkout?
+
+```bash
+git clone https://github.com/halilbaris/AI-Office.git
+cd AI-Office
+./start.sh
+```
+
 ## Start in one command
 
 ```bash

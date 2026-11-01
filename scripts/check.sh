@@ -2,11 +2,20 @@
 # Quick health check for MyOffice: syntax, JSON, leftover Turkish text and a live API smoke test.
 # Usage: ./scripts/check.sh            (checks files and boots a throwaway server on 8798)
 set -u
-export LC_ALL=en_US.UTF-8   # the Turkish-text check needs a UTF-8 locale
+if locale -a 2>/dev/null | grep -qiE '^en_US\.utf-?8$'; then
+  export LC_ALL=en_US.UTF-8
+elif locale -a 2>/dev/null | grep -qiE '^C\.utf-?8$'; then
+  export LC_ALL=C.UTF-8
+fi
 cd "$(dirname "$0")/.." || exit 1
 fail=0
 tmp=$(mktemp -d)
-trap 'rm -rf "$tmp"; [ -n "${pid:-}" ] && kill "$pid" 2>/dev/null; true' EXIT
+created_agents=0
+if [ ! -f agents.json ]; then
+  cp agents.example.json agents.json
+  created_agents=1
+fi
+trap 'rm -rf "$tmp"; [ -n "${pid:-}" ] && kill "$pid" 2>/dev/null; [ "${created_agents:-0}" = "1" ] && rm -f agents.json; true' EXIT
 
 echo "== python syntax"
 python3 -m py_compile server.py runner.py bridge.py common.py token_counter.py verify.py \
