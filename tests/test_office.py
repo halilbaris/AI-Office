@@ -124,6 +124,51 @@ class Inputs(unittest.TestCase):
         self.assertLess(len(text), runner.MAX_INPUT_CHARS + 600)
 
 
+class Fallback(unittest.TestCase):
+    """The fallback retry has to speak each runtime's prompt and result format."""
+
+    @staticmethod
+    def claude_output(result, is_error=False):
+        return "\n".join([
+            json.dumps({"type": "system", "subtype": "init"}),
+            json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "working"}]}}),
+            json.dumps({"type": "result", "subtype": "success", "is_error": is_error, "result": result,
+                        "usage": {"input_tokens": 3}, "total_cost_usd": 0.01}),
+        ])
+
+    def test_claude_retry_receives_the_prompt_and_returns_its_result_event(self):
+        output = self.claude_output("the answer")
+        with mock.patch("runner.subprocess.run") as run:
+            run.return_value = mock.Mock(returncode=0, stdout=output)
+            result, raw = runner.fallback_attempt(["claude", "--model", "backup"], "/tmp", 5, {}, "the task", False)
+        self.assertEqual(run.call_args.kwargs["input"], "the task")
+        self.assertEqual(result["result"], "the answer")
+        self.assertFalse(result["is_error"])
+        self.assertEqual(result["usage"], {"input_tokens": 3})
+        self.assertEqual(result["total_cost_usd"], 0.01)
+        self.assertEqual(raw, output)
+
+    def test_claude_retry_error_is_not_a_success(self):
+        with mock.patch("runner.subprocess.run") as run:
+            run.return_value = mock.Mock(returncode=1, stdout=self.claude_output("boom", is_error=True))
+            result, _ = runner.fallback_attempt(["claude"], "/tmp", 5, {}, "the task", False)
+        self.assertIsNone(result)
+
+    def test_claude_retry_without_a_result_event_is_not_a_success(self):
+        with mock.patch("runner.subprocess.run") as run:
+            run.return_value = mock.Mock(returncode=0, stdout='{"type": "assistant"}')
+            result, _ = runner.fallback_attempt(["claude"], "/tmp", 5, {}, "the task", False)
+        self.assertIsNone(result)
+
+    def test_opencode_retry_keeps_the_prompt_in_argv_and_reads_text_events(self):
+        output = json.dumps({"type": "text", "part": {"text": "the answer"}}) + "\n"
+        with mock.patch("runner.subprocess.run") as run:
+            run.return_value = mock.Mock(returncode=0, stdout=output)
+            result, _ = runner.fallback_attempt(["opencode"], "/tmp", 5, {}, "the task", True)
+        self.assertEqual(run.call_args.kwargs["input"], "")
+        self.assertEqual(result["result"], "the answer")
+
+
 class Plan(unittest.TestCase):
     TABLE = {"qa": {"id": "qa"}, "ceo": {"id": "ceo"}}
 

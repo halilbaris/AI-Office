@@ -228,6 +228,40 @@ def opencode_text(output):
     return "\n\n".join(texts)
 
 
+def claude_result(output):
+    """Result event from `claude -p --output-format stream-json` output (used by the fallback retry)."""
+    found = None
+    for line in (output or "").splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == "result":
+            found = event
+    return found
+
+
+def fallback_attempt(command, work_dir, timeout_s, env, prompt_full, opencode):
+    """One retry on the fallback model. claude takes the prompt on stdin and answers in its stream-json
+    result event; OpenCode takes the prompt in argv and answers in text events. Returns the successful
+    result event (or None) and the raw output for the run log."""
+    try:
+        again = subprocess.run(command, cwd=work_dir, input="" if opencode else prompt_full,
+                               capture_output=True, text=True, timeout=timeout_s, env=env)
+    except (OSError, subprocess.SubprocessError):
+        return None, ""
+    if opencode:
+        text = opencode_text(again.stdout)
+        if again.returncode == 0 and text:
+            return {"type": "result", "is_error": False, "result": text,
+                    "usage": None, "total_cost_usd": None}, again.stdout
+        return None, again.stdout
+    event = claude_result(again.stdout)
+    if again.returncode == 0 and event and not event.get("is_error") and str(event.get("result") or "").strip():
+        return event, again.stdout
+    return None, again.stdout
+
+
 def summarize_tool(tool_input):
     for key in ("file_path", "pattern", "path", "command", "url", "query", "description"):
         if isinstance(tool_input, dict) and tool_input.get(key):
@@ -481,16 +515,13 @@ def run(argument_file):
                 retry = [c if c != agent.get("model") else fallback_model for c in command]
                 print(f"↻ retrying on {fallback_model}", flush=True)
                 common.write_event({**context, "type": "progress", "tool": "retry", "detail": fallback_model})
-                try:
-                    again = subprocess.run(retry, cwd=work_dir, stdin=subprocess.DEVNULL, capture_output=True,
-                                           text=True, timeout=timeout_s, env=child_env)
-                    text = opencode_text(again.stdout) if opencode else ""
-                    if again.returncode == 0 and text:
-                        result = {"type": "result", "is_error": False, "result": text,
-                                  "usage": None, "total_cost_usd": None}
-                        error = None
-                except (OSError, subprocess.SubprocessError):
-                    pass
+                retried, retry_output = fallback_attempt(retry, work_dir, timeout_s, child_env,
+                                                         prompt_full, opencode)
+                if retry_output:
+                    log.write(f"\n--- retry on {fallback_model} ---\n{retry_output}")
+                    log.flush()
+                if retried:
+                    result, error = retried, None
     except Exception as e:  # a run must always end with a finish event
         error = f"{type(e).__name__}: {e}"
 
